@@ -23,6 +23,15 @@ type Snapshot = {
   elapsedSeconds: number;
 };
 
+type ConfettiPiece = {
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+  hue: number;
+  rotation: number;
+};
+
 type SavedGame = {
   difficulty: Difficulty;
   puzzle: Grid;
@@ -189,6 +198,17 @@ function boardMatchesSolution(board: Grid, solution: Grid): boolean {
   return board.every((row, rowIndex) => row.every((cell, colIndex) => cell === solution[rowIndex][colIndex]));
 }
 
+function getNoteCellValue(notes: number[]): string[] {
+  const slots = Array.from({ length: 9 }, () => '');
+  notes.forEach((note) => {
+    const index = note - 1;
+    if (index >= 0 && index < 9) {
+      slots[index] = String(note);
+    }
+  });
+  return slots;
+}
+
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [puzzle, setPuzzle] = useState<Puzzle>(() => generatePuzzle('medium'));
@@ -200,6 +220,7 @@ export default function SudokuGame() {
   const [checks, setChecks] = useState<{ row: number; col: number }[]>([]);
   const [solved, setSolved] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [noteMode, setNoteMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -291,6 +312,16 @@ export default function SudokuGame() {
     if (!solved) return;
     setTimerRunning(false);
     setShowCompleteModal(true);
+    setConfettiPieces(
+      Array.from({ length: 42 }, (_, index) => ({
+        left: Math.random() * 100,
+        delay: Math.random() * 0.6,
+        duration: 2.4 + Math.random() * 1.8,
+        size: 8 + Math.random() * 10,
+        hue: [45, 140, 200, 280, 330][index % 5],
+        rotation: Math.random() * 360,
+      })),
+    );
     setMessage('정답입니다. 퍼즐을 완성했어요!');
   }, [solved]);
 
@@ -365,6 +396,8 @@ export default function SudokuGame() {
     setHistory([]);
     setChecks([]);
     setSolved(false);
+    setShowCompleteModal(false);
+    setConfettiPieces([]);
     setNoteMode(false);
     setElapsedSeconds(0);
     setTimerRunning(false);
@@ -439,6 +472,8 @@ export default function SudokuGame() {
       setElapsedSeconds(previous.elapsedSeconds);
       setChecks([]);
       setSolved(false);
+    setShowCompleteModal(false);
+    setConfettiPieces([]);
       setMessage('마지막 수를 되돌렸어요.');
       return current.slice(0, -1);
     });
@@ -649,7 +684,13 @@ export default function SudokuGame() {
                   {cell !== null ? (
                     <span className={styles.cellValue}>{cell}</span>
                   ) : noteDigits.length > 0 ? (
-                    <span className={styles.cellNotes}>{noteDigits.join(' ')}</span>
+                    <span className={styles.cellNotesGrid}>
+                      {getNoteCellValue(noteDigits).map((value, index) => (
+                        <span key={index} className={styles.cellNoteValue}>
+                          {value}
+                        </span>
+                      ))}
+                    </span>
                   ) : selected ? (
                     <span className={styles.cellPlaceholder}>•</span>
                   ) : null}
@@ -663,6 +704,23 @@ export default function SudokuGame() {
 
       {showCompleteModal ? (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="퍼즐 완료" onClick={() => setShowCompleteModal(false)}>
+          <div className={styles.confettiLayer} aria-hidden="true">
+            {confettiPieces.map((piece, index) => (
+              <span
+                key={index}
+                className={styles.confettiPiece}
+                style={{
+                  left: `${piece.left}%`,
+                  animationDelay: `${piece.delay}s`,
+                  animationDuration: `${piece.duration}s`,
+                  width: `${piece.size}px`,
+                  height: `${piece.size * 0.5}px`,
+                  background: `hsl(${piece.hue} 95% 62%)`,
+                  transform: `rotate(${piece.rotation}deg)`,
+                }}
+              />
+            ))}
+          </div>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
             <p className={styles.panelLabel}>완료</p>
             <h3 className={styles.modalTitle}>퍼즐을 완성했어요 🎉</h3>
@@ -670,10 +728,10 @@ export default function SudokuGame() {
               {difficulty === 'easy' ? '하' : difficulty === 'medium' ? '중' : '상'} 난이도를 {formatTime(elapsedSeconds)} 만에 끝냈습니다.
             </p>
             <div className={styles.modalActions}>
-              <button className={styles.actionPrimary} onClick={() => { setShowCompleteModal(false); resetGame(difficulty); }}>
+              <button className={styles.actionPrimary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); resetGame(difficulty); }}>
                 새 퍼즐
               </button>
-              <button className={styles.actionSecondary} onClick={() => setShowCompleteModal(false)}>
+              <button className={styles.actionSecondary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); }}>
                 계속 보기
               </button>
             </div>

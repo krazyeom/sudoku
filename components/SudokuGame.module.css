@@ -312,18 +312,25 @@
   z-index: 1;
 }
 
-.cellNotes {
+.cellNotesGrid {
   position: absolute;
   inset: 0;
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   place-items: center;
-  padding: 5px;
+  padding: 4px;
   color: rgba(226, 232, 240, 0.86);
-  font-size: clamp(0.4rem, 1vw, 0.72rem);
-  line-height: 1.2;
-  white-space: pre-wrap;
-  text-align: center;
+  font-size: clamp(0.38rem, 0.85vw, 0.68rem);
+  line-height: 1;
   pointer-events: none;
+}
+
+.cellNoteValue {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 
@@ -405,5 +412,37 @@
 
   .boardHint {
     text-align: left;
+  }
+}
+
+
+.confettiLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: -12px;
+  border-radius: 999px;
+  opacity: 0.95;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
   }
 }
