@@ -1360,6 +1360,18 @@ export default function SudokuGame() {
                       className={styles.roomFieldInput}
                       value={roomInput}
                       onChange={(event) => setRoomInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          joinRoomFromInput();
+                        }
+                      }}
+                      inputMode="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      enterKeyHint="go"
                       placeholder={locale === 'ko' ? '방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type a room ID.'}
                     />
                   </div>

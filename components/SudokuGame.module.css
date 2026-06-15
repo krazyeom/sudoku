@@ -762,6 +762,23 @@
     grid-template-columns: 1fr;
   }
 
+  .roomPanel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .roomMeta {
+    order: 0;
+  }
+
+  .roomActions {
+    order: 1;
+  }
+
+  .roomField {
+    order: 2;
+  }
+
   .roomActions .actionPrimary,
   .roomActions .actionSecondary {
     min-height: 52px;
