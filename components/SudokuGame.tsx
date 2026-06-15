@@ -48,6 +48,7 @@ type SavedGame = {
   history: Snapshot[];
   selected: Position;
   noteMode: boolean;
+  soundEnabled: boolean;
   elapsedSeconds: number;
   timerRunning: boolean;
   solved: boolean;
@@ -307,6 +308,7 @@ export default function SudokuGame() {
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [activePanel, setActivePanel] = useState<'play' | 'records'>('play');
   const [noteMode, setNoteMode] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -352,6 +354,7 @@ export default function SudokuGame() {
       setHistory(savedHistory);
       setSelected(saved.selected ?? null);
       setNoteMode(Boolean(saved.noteMode));
+      setSoundEnabled(saved.soundEnabled ?? true);
       setElapsedSeconds(Number.isFinite(saved.elapsedSeconds) ? Math.max(0, Math.floor(saved.elapsedSeconds ?? 0)) : 0);
       setTimerRunning(Boolean(saved.timerRunning));
       setSolved(Boolean(saved.solved));
@@ -374,12 +377,13 @@ export default function SudokuGame() {
       history,
       selected,
       noteMode,
+      soundEnabled,
       elapsedSeconds,
       timerRunning,
       solved,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, elapsedSeconds, timerRunning, solved]);
+  }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, soundEnabled, elapsedSeconds, timerRunning, solved]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -415,7 +419,9 @@ export default function SudokuGame() {
         rotation: Math.random() * 360,
       })),
     );
-    void playCompletionSound();
+    if (soundEnabled) {
+      void playCompletionSound();
+    }
 
     if (!completionSavedRef.current) {
       completionSavedRef.current = true;
@@ -595,6 +601,45 @@ export default function SudokuGame() {
     setMessage('기록을 모두 삭제했어요.');
   }
 
+  function handleExportRecords() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      records,
+      settings: { soundEnabled },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sudoku-records-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setMessage('기록 파일을 내려받았어요.');
+  }
+
+  function handleImportRecords() {
+    const input = window.prompt('내보낸 JSON을 붙여넣어 주세요.');
+    if (!input) return;
+
+    try {
+      const parsed = JSON.parse(input) as { records?: unknown; settings?: { soundEnabled?: unknown } } | unknown;
+      if (!parsed || typeof parsed !== 'object') throw new Error('invalid');
+      const payload = parsed as { records?: unknown; settings?: { soundEnabled?: unknown } };
+      const importedRecords = normalizeRecords(payload.records);
+      if (importedRecords.length === 0) {
+        throw new Error('no records');
+      }
+      setRecords(importedRecords);
+      if (typeof payload.settings?.soundEnabled === 'boolean') {
+        setSoundEnabled(payload.settings.soundEnabled);
+      }
+      setActivePanel('records');
+      setMessage(`${importedRecords.length}개의 기록을 불러왔어요.`);
+    } catch {
+      setMessage('기록 JSON을 불러오지 못했어요. 형식을 확인해 주세요.');
+    }
+  }
+
   function handleCheck() {
     const wrong: { row: number; col: number }[] = [];
     const conflictList = Array.from(conflictCells).map((entry) => {
@@ -683,6 +728,13 @@ export default function SudokuGame() {
     }
     return all;
   }, [records]);
+  const stats = useMemo(() => {
+    const total = records.length;
+    const average = total > 0 ? Math.round(records.reduce((sum, record) => sum + record.elapsedSeconds, 0) / total) : 0;
+    const best = total > 0 ? records[0] : null;
+    const hardestSolved = records.filter((record) => record.difficulty === 'hard').length;
+    return { total, average, best, hardestSolved };
+  }, [records]);
 
   const selectedCandidates = selected ? buildNotes(board, selected.row, selected.col) : [];
 
@@ -721,6 +773,14 @@ export default function SudokuGame() {
               >
                 <span>메모 모드</span>
                 <strong>{noteMode ? 'ON' : 'OFF'}</strong>
+              </button>
+              <button
+                type="button"
+                className={`${styles.statusChip} ${soundEnabled ? styles.statusChipActive : ''}`}
+                onClick={() => setSoundEnabled((current) => !current)}
+              >
+                <span>사운드</span>
+                <strong>{soundEnabled ? 'ON' : 'OFF'}</strong>
               </button>
             </div>
 
@@ -790,9 +850,34 @@ export default function SudokuGame() {
               </div>
               <div className={styles.panelHeaderActions}>
                 <div className={styles.badge}>{records.length} plays</div>
+                <button type="button" className={styles.actionSecondary} onClick={handleExportRecords}>
+                  내보내기
+                </button>
+                <button type="button" className={styles.actionSecondary} onClick={handleImportRecords}>
+                  가져오기
+                </button>
                 <button type="button" className={styles.actionSecondary} onClick={handleClearRecords}>
                   기록 초기화
                 </button>
+              </div>
+            </div>
+
+            <div className={styles.statsGrid}>
+              <div className={styles.statsCard}>
+                <span>총 완료</span>
+                <strong>{stats.total}</strong>
+              </div>
+              <div className={styles.statsCard}>
+                <span>평균 시간</span>
+                <strong>{stats.total > 0 ? formatTime(stats.average) : '—'}</strong>
+              </div>
+              <div className={styles.statsCard}>
+                <span>최고 기록</span>
+                <strong>{stats.best ? formatTime(stats.best.elapsedSeconds) : '—'}</strong>
+              </div>
+              <div className={styles.statsCard}>
+                <span>상 난이도 완료</span>
+                <strong>{stats.hardestSolved}</strong>
               </div>
             </div>
 

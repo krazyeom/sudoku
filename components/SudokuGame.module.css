@@ -203,6 +203,31 @@
   font-size: 1.1rem;
 }
 
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statsCard {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statsCard span {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+}
+
+.statsCard strong {
+  font-size: 1.15rem;
+}
+
 .rankGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -531,6 +556,7 @@
 
   .difficultyRow,
   .statGrid,
+  .statsGrid,
   .actions,
   .keypad,
   .statusRow {
