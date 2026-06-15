@@ -85,6 +85,27 @@ function createEmptyOwnershipGrid(): SharedRoomCellOccupancy[][] {
 function ownershipFromPuzzle(puzzle: Grid): SharedRoomCellOccupancy[][] {
   return puzzle.map((row) => row.map((cell) => (cell === null ? 'empty' : 'clue')));
 }
+
+function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | null) {
+  const cells = snapshot.occupancy.flat();
+  const clueCells = cells.filter((cell) => cell === 'clue').length;
+  const selfCells = cells.filter((cell) => cell === 'self').length;
+  const otherCells = cells.filter((cell) => cell === 'other').length;
+  const fillableCells = 81 - clueCells;
+  const rivalsConnected = snapshot.participants.filter(
+    (participant) => participant.connected && participant.role !== 'spectator' && participant.id !== participantId,
+  ).length;
+
+  return {
+    clueCells,
+    selfCells,
+    otherCells,
+    fillableCells,
+    rivalsConnected,
+    battleActive: rivalsConnected > 0,
+  };
+}
+
 const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
@@ -485,6 +506,10 @@ export default function SudokuGame() {
 
   const candidateCount = selected ? buildNotes(board, selected.row, selected.col).length : 0;
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
+  const battleSummary = useMemo(
+    () => (sharedRoom?.snapshot ? summarizeBattle(sharedRoom.snapshot, sharedRoom.participantId) : null),
+    [sharedRoom?.participantId, sharedRoom?.snapshot],
+  );
 
   function syncOwnershipFromBoard(nextBoard: Grid, participantId: string | null) {
     setOwnership(
@@ -1579,7 +1604,71 @@ export default function SudokuGame() {
             <p className={styles.panelLabel}>Sudoku Board</p>
             <h3 className={styles.boardTitle}>{locale === 'ko' ? '집중하기 좋은 클린한 레이아웃' : 'A clean layout for focused play'}</h3>
           </div>
-          <span className={styles.boardHint}>{locale === 'ko' ? '클릭하거나 키보드 1~9를 사용하세요. I = 힌트, H = 자동입력' : 'Click a cell or press 1–9. I = hint, H = auto-fill.'}</span>
+          <div className={styles.boardMetaSide}>
+            {sharedRoom?.snapshot ? (
+              <div className={styles.battleCard}>
+                <div className={styles.battleCardHeader}>
+                  <div>
+                    <p className={styles.panelLabel}>{locale === 'ko' ? '대결 미니맵' : 'Battle minimap'}</p>
+                    <h4 className={styles.battleCardTitle}>
+                      {battleSummary?.battleActive
+                        ? locale === 'ko'
+                          ? '상대 진행 상황'
+                          : 'Opponent progress'
+                        : locale === 'ko'
+                          ? '상대 참가 대기 중'
+                          : 'Waiting for an opponent'}
+                    </h4>
+                  </div>
+                  <div className={styles.battleScore}>
+                    <strong>{battleSummary?.otherCells ?? 0}</strong>
+                    <span>{locale === 'ko' ? '상대 수' : 'Rival moves'}</span>
+                  </div>
+                </div>
+                <div className={styles.battleProgress} aria-hidden="true">
+                  <span
+                    style={{
+                      width: `${battleSummary && battleSummary.fillableCells > 0 ? Math.min(100, (battleSummary.otherCells / battleSummary.fillableCells) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+                <p className={styles.battleCaption}>
+                  {battleSummary?.battleActive
+                    ? locale === 'ko'
+                      ? `상대가 ${battleSummary.otherCells}/${battleSummary.fillableCells}칸을 채웠어요. 숫자는 숨기고 진행만 보여줘요.`
+                      : `Your rival has filled ${battleSummary.otherCells}/${battleSummary.fillableCells} cells. Digits stay hidden.`
+                    : locale === 'ko'
+                      ? '상대가 들어오면 미니맵이 살아나요.'
+                      : 'The minimap comes alive when a rival joins.'}
+                </p>
+                <div className={styles.battleMiniMap} aria-label={locale === 'ko' ? '상대 진행 미니맵' : 'Opponent minimap'}>
+                  {sharedRoom.snapshot.occupancy.flatMap((row, rowIndex) =>
+                    row.map((cell, colIndex) => (
+                      <span
+                        key={`${rowIndex}-${colIndex}`}
+                        className={`${styles.battleMiniCell} ${
+                          cell === 'clue'
+                            ? styles.battleMiniClue
+                            : cell === 'self'
+                              ? styles.battleMiniSelf
+                              : cell === 'other'
+                                ? styles.battleMiniOther
+                                : styles.battleMiniEmpty
+                        }`}
+                        aria-hidden="true"
+                      />
+                    )),
+                  )}
+                </div>
+                <div className={styles.battleLegend}>
+                  <span><i className={styles.battleLegendSelf} />{locale === 'ko' ? '내 수' : 'Mine'}</span>
+                  <span><i className={styles.battleLegendOther} />{locale === 'ko' ? '상대 수' : 'Rival'}</span>
+                  <span><i className={styles.battleLegendClue} />{locale === 'ko' ? '주어진 숫자' : 'Clue'}</span>
+                </div>
+              </div>
+            ) : null}
+            <span className={styles.boardHint}>{locale === 'ko' ? '클릭하거나 키보드 1~9를 사용하세요. I = 힌트, H = 자동입력' : 'Click a cell or press 1–9. I = hint, H = auto-fill.'}</span>
+          </div>
         </div>
 
         <div className={`${styles.board} ${solved ? styles.boardSolved : ""}`} role="grid" aria-label="Sudoku board">

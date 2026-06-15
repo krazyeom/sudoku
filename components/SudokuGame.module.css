@@ -613,6 +613,147 @@
   margin-bottom: 18px;
 }
 
+.boardMetaSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.battleCard {
+  width: min(100%, 360px);
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.battleCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.battleCardTitle {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.battleScore {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 64px;
+}
+
+.battleScore strong {
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.battleScore span {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 11px;
+}
+
+.battleProgress {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.battleProgress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.95), rgba(168, 85, 247, 0.95));
+}
+
+.battleCaption {
+  margin: 10px 0 12px;
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.battleMiniMap {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 3px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.battleMiniCell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.battleMiniEmpty {
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.battleMiniClue {
+  background: rgba(100, 116, 139, 0.95);
+}
+
+.battleMiniSelf {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.96), rgba(20, 184, 166, 0.94));
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.16);
+}
+
+.battleMiniOther {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.96), rgba(251, 146, 60, 0.94));
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.16);
+}
+
+.battleLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 10px;
+}
+
+.battleLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 11px;
+}
+
+.battleLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.battleLegendSelf {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.96), rgba(20, 184, 166, 0.94));
+}
+
+.battleLegendOther {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.96), rgba(251, 146, 60, 0.94));
+}
+
+.battleLegendClue {
+  background: rgba(100, 116, 139, 0.95);
+}
+
 .boardHint {
   color: rgba(148, 163, 184, 0.95);
   font-size: 13px;
@@ -777,6 +918,15 @@
 
   .board {
     width: min(100%, 640px);
+  }
+
+  .boardMetaSide {
+    align-items: flex-start;
+    max-width: 100%;
+  }
+
+  .battleCard {
+    width: 100%;
   }
 }
 
