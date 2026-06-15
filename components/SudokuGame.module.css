@@ -112,8 +112,17 @@
   font-size: 12px;
 }
 
+.statusChip span,
 .statusChip strong {
-  font-size: 1.1rem;
+  min-width: 0;
+}
+
+.statusChip strong,
+.statCard strong {
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .statusChipActive {
@@ -167,9 +176,15 @@
 }
 
 .roomActions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.roomActions .actionPrimary,
+.roomActions .actionSecondary {
+  width: 100%;
+  min-height: 48px;
 }
 
 .roomField {
@@ -721,13 +736,35 @@
     border-radius: 22px;
   }
 
-  .difficultyRow,
-  .statGrid,
-  .statsGrid,
+  .statusRow,
+  .itemRow,
   .actions,
   .keypad,
-  .statusRow {
+  .modalActions,
+  .difficultyRow,
+  .statGrid,
+  .statsGrid {
     gap: 8px;
+  }
+
+  .statusRow,
+  .roomActions,
+  .actions,
+  .modalActions {
+    grid-template-columns: 1fr;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .roomActions .actionPrimary,
+  .roomActions .actionSecondary {
+    min-height: 52px;
   }
 
   .difficultyButton {
