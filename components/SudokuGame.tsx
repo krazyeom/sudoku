@@ -112,6 +112,10 @@ function getDifficultyDetail(locale: Locale, difficulty: Difficulty): string {
   return locale === 'ko' ? item.koDetail : item.enDetail;
 }
 
+function sanitizeRoomIdInput(value: string): string {
+  return value.toLowerCase().replace(/[^a-z-]/g, '');
+}
+
 function cloneGrid(grid: Grid): Grid {
   return grid.map((row) => [...row]);
 }
@@ -564,10 +568,13 @@ export default function SudokuGame() {
   }
 
   function joinRoomFromInput() {
-    const roomId = roomInput.trim();
+    const roomId = sanitizeRoomIdInput(roomInput.trim());
     if (!roomId) {
       setMessage(locale === 'ko' ? '방 ID를 입력해 주세요.' : 'Please enter a room ID.');
       return;
+    }
+    if (roomId !== roomInput.trim()) {
+      setRoomInput(roomId);
     }
     connectSharedRoom(roomId);
   }
@@ -1327,7 +1334,15 @@ export default function SudokuGame() {
                 <>
                   <div className={styles.roomMeta}>
                     <span>{locale === 'ko' ? '공유 방' : 'Shared room'}</span>
-                    <strong>{sharedRoom.roomId}</strong>
+                    <button
+                      type="button"
+                      className={styles.roomIdButton}
+                      onClick={() => { void copyRoomInviteLink(); }}
+                      aria-label={locale === 'ko' ? '방 초대 링크 복사' : 'Copy room invite link'}
+                      title={locale === 'ko' ? '터치하면 초대 링크를 복사해요.' : 'Tap to copy the invite link.'}
+                    >
+                      <strong>{sharedRoom.roomId}</strong>
+                    </button>
                     <small>
                       {locale === 'ko'
                         ? sharedRoom.role === 'host'
@@ -1359,7 +1374,7 @@ export default function SudokuGame() {
                       id="room-id-input"
                       className={styles.roomFieldInput}
                       value={roomInput}
-                      onChange={(event) => setRoomInput(event.target.value)}
+                      onChange={(event) => setRoomInput(sanitizeRoomIdInput(event.target.value))}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
                           event.preventDefault();
@@ -1372,7 +1387,7 @@ export default function SudokuGame() {
                       autoCapitalize="off"
                       spellCheck={false}
                       enterKeyHint="go"
-                      placeholder={locale === 'ko' ? '방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type a room ID.'}
+                      placeholder={locale === 'ko' ? '영문 방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type an English room ID.'}
                     />
                   </div>
                   <div className={styles.roomActions}>
