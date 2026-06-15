@@ -1,0 +1,24 @@
+{
+  "name": "sudoku-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 6767",
+    "build": "next build",
+    "start": "next start -p 6767",
+    "pm2:start": "bash scripts/start.sh",
+    "pm2:stop": "bash scripts/stop.sh"
+  },
+  "dependencies": {
+    "next": "13.5.11",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.15",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "pm2": "^5.4.2",
+    "typescript": "^5.5.4"
+  }
+}
