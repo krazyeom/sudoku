@@ -686,6 +686,8 @@ export default function SudokuGame() {
   }
 
   const isSharedMode = Boolean(sharedRoom);
+  const normalizedRoomId = useMemo(() => sanitizeRoomIdInput(roomInput), [roomInput]);
+  const canJoinRoom = normalizedRoomId.length > 0;
   useEffect(() => {
     setHydrated(true);
     try {
@@ -1394,7 +1396,12 @@ export default function SudokuGame() {
                     <button type="button" className={styles.actionPrimary} onClick={() => createSharedRoom(difficulty)}>
                       {locale === 'ko' ? '방 만들기' : 'Create room'}
                     </button>
-                    <button type="button" className={styles.actionSecondary} onClick={joinRoomFromInput}>
+                    <button
+                      type="button"
+                      className={`${styles.actionSecondary} ${canJoinRoom ? styles.roomJoinReady : ''}`}
+                      onClick={joinRoomFromInput}
+                      disabled={!canJoinRoom}
+                    >
                       {locale === 'ko' ? '방 참가' : 'Join room'}
                     </button>
                   </div>

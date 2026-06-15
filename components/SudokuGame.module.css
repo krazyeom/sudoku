@@ -549,6 +549,18 @@
   border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
+.roomJoinReady {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(14, 165, 233, 0.92));
+  color: #eff6ff;
+  border-color: rgba(125, 211, 252, 0.6);
+  box-shadow: 0 10px 26px rgba(59, 130, 246, 0.24);
+}
+
+.roomJoinReady:hover,
+.roomJoinReady:focus-visible {
+  box-shadow: 0 14px 30px rgba(59, 130, 246, 0.32);
+}
+
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
