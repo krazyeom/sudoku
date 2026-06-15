@@ -147,6 +147,48 @@ function getSelectedCellLabel(position: Position): string {
   return `${position.row + 1}행 ${position.col + 1}열`;
 }
 
+function getConflictCells(board: Grid): Set<string> {
+  const conflicts = new Set<string>();
+
+  const markGroup = (positions: Array<{ row: number; col: number; value: number | null }>) => {
+    const seen = new Map<number, Array<{ row: number; col: number }>>();
+    positions.forEach(({ row, col, value }) => {
+      if (value === null) return;
+      const bucket = seen.get(value) ?? [];
+      bucket.push({ row, col });
+      seen.set(value, bucket);
+    });
+
+    seen.forEach((cells) => {
+      if (cells.length < 2) return;
+      cells.forEach(({ row, col }) => conflicts.add(`${row}-${col}`));
+    });
+  };
+
+  for (let index = 0; index < 9; index += 1) {
+    markGroup(board[index].map((value, col) => ({ row: index, col, value })));
+    markGroup(board.map((row, rowIndex) => ({ row: rowIndex, col: index, value: row[index] })));
+  }
+
+  for (let boxRow = 0; boxRow < 3; boxRow += 1) {
+    for (let boxCol = 0; boxCol < 3; boxCol += 1) {
+      const cells: Array<{ row: number; col: number; value: number | null }> = [];
+      for (let row = boxRow * 3; row < boxRow * 3 + 3; row += 1) {
+        for (let col = boxCol * 3; col < boxCol * 3 + 3; col += 1) {
+          cells.push({ row, col, value: board[row][col] });
+        }
+      }
+      markGroup(cells);
+    }
+  }
+
+  return conflicts;
+}
+
+function boardMatchesSolution(board: Grid, solution: Grid): boolean {
+  return board.every((row, rowIndex) => row.every((cell, colIndex) => cell === solution[rowIndex][colIndex]));
+}
+
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [puzzle, setPuzzle] = useState<Puzzle>(() => generatePuzzle('medium'));
@@ -157,6 +199,7 @@ export default function SudokuGame() {
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [checks, setChecks] = useState<{ row: number; col: number }[]>([]);
   const [solved, setSolved] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [noteMode, setNoteMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -167,6 +210,7 @@ export default function SudokuGame() {
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
 
   const candidateCount = selected ? buildNotes(board, selected.row, selected.col).length : 0;
+  const conflictCells = useMemo(() => getConflictCells(board), [board]);
 
   useEffect(() => {
     setHydrated(true);
@@ -246,11 +290,32 @@ export default function SudokuGame() {
   useEffect(() => {
     if (!solved) return;
     setTimerRunning(false);
+    setShowCompleteModal(true);
     setMessage('정답입니다. 퍼즐을 완성했어요!');
   }, [solved]);
 
+  function moveSelection(deltaRow: number, deltaCol: number) {
+    const current = selected ?? { row: 0, col: 0 };
+    const next = {
+      row: Math.max(0, Math.min(8, current.row + deltaRow)),
+      col: Math.max(0, Math.min(8, current.col + deltaCol)),
+    };
+    setSelected(next);
+  }
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const isArrow = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key);
+      if (isArrow) {
+        event.preventDefault();
+        if (key === 'arrowup') moveSelection(-1, 0);
+        if (key === 'arrowdown') moveSelection(1, 0);
+        if (key === 'arrowleft') moveSelection(0, -1);
+        if (key === 'arrowright') moveSelection(0, 1);
+        return;
+      }
+
       if (!selected) return;
       if (event.key >= '1' && event.key <= '9') {
         event.preventDefault();
@@ -263,11 +328,11 @@ export default function SudokuGame() {
       if (event.key === 'Escape') {
         setSelected(null);
       }
-      if (event.key.toLowerCase() === 'n') {
+      if (key === 'n') {
         event.preventDefault();
         setNoteMode((current) => !current);
       }
-      if (event.key.toLowerCase() === 'h') {
+      if (key === 'h') {
         event.preventDefault();
         handleHint();
       }
@@ -341,6 +406,9 @@ export default function SudokuGame() {
     nextBoard[row][col] = value;
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
+    if (boardMatchesSolution(nextBoard, puzzle.solution)) {
+      setSolved(true);
+    }
     setMessage(`(${row + 1}, ${col + 1})에 ${value}를 입력했어요.`);
   }
 
@@ -378,10 +446,14 @@ export default function SudokuGame() {
 
   function handleCheck() {
     const wrong: { row: number; col: number }[] = [];
+    const conflictList = Array.from(conflictCells).map((entry) => {
+      const [row, col] = entry.split('-').map(Number);
+      return { row, col };
+    });
     const solvedBoard = solveSudoku(board);
 
     if (!solvedBoard) {
-      setChecks([]);
+      setChecks(conflictList);
       setMessage('현재 배치는 아직 완성될 수 있지만, 입력을 다시 확인해보세요.');
       return;
     }
@@ -394,13 +466,18 @@ export default function SudokuGame() {
       });
     });
 
-    setChecks(wrong);
-    if (wrong.length === 0 && isFilled(board)) {
+    const nextChecks = Array.from(new Map([...wrong, ...conflictList].map((item) => [`${item.row}-${item.col}`, item])).values());
+    setChecks(nextChecks);
+    if (boardMatchesSolution(board, puzzle.solution)) {
       setSolved(true);
-    } else if (wrong.length === 0) {
+      return;
+    }
+    if (nextChecks.length === 0 && isFilled(board)) {
+      setSolved(true);
+    } else if (nextChecks.length === 0) {
       setMessage('충돌은 없어요. 계속 진행해보세요.');
     } else {
-      setMessage(`${wrong.length}개의 칸이 해답과 달라요.`);
+      setMessage(`${nextChecks.length}개의 칸이 해답과 달라요.`);
     }
   }
 
@@ -447,7 +524,8 @@ export default function SudokuGame() {
   const hasSavedState = hydrated && window.localStorage.getItem(STORAGE_KEY) !== null;
 
   return (
-    <section className={styles.shell}>
+    <>
+      <section className={styles.shell}>
       <aside className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
@@ -555,7 +633,7 @@ export default function SudokuGame() {
                 isFixed ? styles.cellFixed : '',
                 isSelected ? styles.cellSelected : '',
                 (inSameRow || inSameCol || inSameBox) && !isSelected ? styles.cellFocus : '',
-                isWrong ? styles.cellWrong : '',
+                (isWrong || conflictCells.has(`${rowIndex}-${colIndex}`)) ? styles.cellWrong : '',
               ]
                 .filter(Boolean)
                 .join(' ');
@@ -572,6 +650,8 @@ export default function SudokuGame() {
                     <span className={styles.cellValue}>{cell}</span>
                   ) : noteDigits.length > 0 ? (
                     <span className={styles.cellNotes}>{noteDigits.join(' ')}</span>
+                  ) : selected ? (
+                    <span className={styles.cellPlaceholder}>•</span>
                   ) : null}
                 </button>
               );
@@ -580,5 +660,26 @@ export default function SudokuGame() {
         </div>
       </section>
     </section>
+
+      {showCompleteModal ? (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="퍼즐 완료" onClick={() => setShowCompleteModal(false)}>
+          <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
+            <p className={styles.panelLabel}>완료</p>
+            <h3 className={styles.modalTitle}>퍼즐을 완성했어요 🎉</h3>
+            <p className={styles.modalText}>
+              {difficulty === 'easy' ? '하' : difficulty === 'medium' ? '중' : '상'} 난이도를 {formatTime(elapsedSeconds)} 만에 끝냈습니다.
+            </p>
+            <div className={styles.modalActions}>
+              <button className={styles.actionPrimary} onClick={() => { setShowCompleteModal(false); resetGame(difficulty); }}>
+                새 퍼즐
+              </button>
+              <button className={styles.actionSecondary} onClick={() => setShowCompleteModal(false)}>
+                계속 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
