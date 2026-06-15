@@ -88,11 +88,29 @@ const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
 
-const DIFFICULTIES: Array<{ value: Difficulty; label: string; detail: string }> = [
-  { value: 'easy', label: '하', detail: '여유 있게 시작' },
-  { value: 'medium', label: '중', detail: '밸런스 좋은 난이도' },
-  { value: 'hard', label: '상', detail: '깊게 생각하는 퍼즐' },
+const DIFFICULTIES: Array<{
+  value: Difficulty;
+  koLabel: string;
+  enLabel: string;
+  koDetail: string;
+  enDetail: string;
+}> = [
+  { value: 'easy', koLabel: '하', enLabel: 'Easy', koDetail: '여유 있게 시작', enDetail: 'Relaxed start' },
+  { value: 'medium', koLabel: '중', enLabel: 'Medium', koDetail: '밸런스 좋은 난이도', enDetail: 'Balanced challenge' },
+  { value: 'hard', koLabel: '상', enLabel: 'Hard', koDetail: '깊게 생각하는 퍼즐', enDetail: 'A deeper puzzle' },
 ];
+
+function getDifficultyLabel(locale: Locale, difficulty: Difficulty): string {
+  const item = DIFFICULTIES.find((entry) => entry.value === difficulty);
+  if (!item) return difficulty;
+  return locale === 'ko' ? item.koLabel : item.enLabel;
+}
+
+function getDifficultyDetail(locale: Locale, difficulty: Difficulty): string {
+  const item = DIFFICULTIES.find((entry) => entry.value === difficulty);
+  if (!item) return difficulty;
+  return locale === 'ko' ? item.koDetail : item.enDetail;
+}
 
 function cloneGrid(grid: Grid): Grid {
   return grid.map((row) => [...row]);
@@ -125,26 +143,43 @@ function escapeXml(value: string): string {
     .replaceAll("'", '&apos;');
 }
 
-function buildShareText(summary: CompletionSummary): string {
-  const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
-  return [
-    'ZenGrid Sudoku에서 퍼즐을 완성했어요! 🎉',
-    `난이도: ${difficultyLabel}`,
-    `기록: ${formatTime(summary.elapsedSeconds)}`,
-    `클루 수: ${summary.clueCount}`,
-    `랭크: ${summary.rank}/${summary.total}`,
-  ].join('\n');
+function buildShareText(summary: CompletionSummary, locale: Locale): string {
+  const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
+  return locale === 'ko'
+    ? [
+        'ZenGrid Sudoku에서 퍼즐을 완성했어요! 🎉',
+        `난이도: ${difficultyLabel}`,
+        `기록: ${formatTime(summary.elapsedSeconds)}`,
+        `클루 수: ${summary.clueCount}`,
+        `랭크: ${summary.rank}/${summary.total}`,
+      ].join('\n')
+    : [
+        'I completed a ZenGrid Sudoku puzzle! 🎉',
+        `Difficulty: ${difficultyLabel}`,
+        `Time: ${formatTime(summary.elapsedSeconds)}`,
+        `Clues: ${summary.clueCount}`,
+        `Rank: ${summary.rank}/${summary.total}`,
+      ].join('\n');
 }
 
-function buildShareCardSvg(summary: CompletionSummary): string {
-  const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
-  const textLines = [
-    'ZenGrid Sudoku',
-    `${difficultyLabel} 난이도 완료`,
-    `Time ${formatTime(summary.elapsedSeconds)}`,
-    `Clues ${summary.clueCount}`,
-    `Rank #${summary.rank}/${summary.total}`,
-  ];
+function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
+  const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
+  const textLines =
+    locale === 'ko'
+      ? [
+          'ZenGrid Sudoku',
+          `${difficultyLabel} 난이도 완료`,
+          `Time ${formatTime(summary.elapsedSeconds)}`,
+          `Clues ${summary.clueCount}`,
+          `Rank #${summary.rank}/${summary.total}`,
+        ]
+      : [
+          'ZenGrid Sudoku',
+          `${difficultyLabel} puzzle complete`,
+          `Time ${formatTime(summary.elapsedSeconds)}`,
+          `Clues ${summary.clueCount}`,
+          `Rank #${summary.rank}/${summary.total}`,
+        ];
 
   const svgText = textLines
     .map(
@@ -509,10 +544,21 @@ export default function SudokuGame() {
     if (typeof window === 'undefined' || !sharedRoom) return;
     const url = new URL(window.location.href);
     url.searchParams.set('room', sharedRoom.roomId);
+    const invite = url.toString();
     try {
-      await navigator.clipboard.writeText(url.toString());
-      setMessage(locale === 'ko' ? '초대 링크를 복사했어요.' : 'Copied the invite link.');
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(invite);
+        setMessage(locale === 'ko' ? '초대 링크를 복사했어요.' : 'Copied the invite link.');
+        return;
+      }
     } catch {
+      // fall through to manual copy fallback
+    }
+
+    const copied = window.prompt(locale === 'ko' ? '아래 링크를 복사해 주세요.' : 'Copy this invite link:', invite);
+    if (copied !== null) {
+      setMessage(locale === 'ko' ? '링크를 표시했어요. 직접 복사해 주세요.' : 'Shown the invite link for manual copy.');
+    } else {
       setMessage(locale === 'ko' ? '링크 복사에 실패했어요.' : 'Could not copy the link.');
     }
   }
@@ -1001,13 +1047,13 @@ export default function SudokuGame() {
 
   async function handleShareCompletion() {
     if (!completionSummary) return;
-    const text = buildShareText(completionSummary);
+    const text = buildShareText(completionSummary, locale);
     try {
       if (navigator.share) {
-        const svg = buildShareCardSvg(completionSummary);
+        const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: 'ZenGrid Sudoku 완료 카드',
+          title: locale === 'ko' ? 'ZenGrid Sudoku 완료 카드' : 'ZenGrid Sudoku completion card',
           text,
           files: [file],
         });
@@ -1289,7 +1335,11 @@ export default function SudokuGame() {
                           : sharedRoom.role === 'guest'
                             ? '참가자'
                             : '관전자'
-                        : sharedRoom.role}
+                        : sharedRoom.role === 'host'
+                          ? 'Host'
+                          : sharedRoom.role === 'guest'
+                            ? 'Guest'
+                            : 'Spectator'}
                     </small>
                   </div>
                   <div className={styles.roomActions}>
@@ -1346,8 +1396,8 @@ export default function SudokuGame() {
                   className={`${styles.difficultyButton} ${difficulty === item.value ? styles.difficultyActive : ''}`}
                   onClick={() => resetGame(item.value)}
                 >
-                  <span>{item.label}</span>
-                  <small>{item.detail}</small>
+                  <span>{locale === 'ko' ? item.koLabel : item.enLabel}</span>
+                  <small>{locale === 'ko' ? item.koDetail : item.enDetail}</small>
                 </button>
               ))}
             </div>
@@ -1355,7 +1405,7 @@ export default function SudokuGame() {
             <div className={styles.statGrid}>
               <div className={styles.statCard}>
                 <span>{locale === 'ko' ? '해결 상태' : 'Status'}</span>
-                <strong>{solved ? '완료' : '진행 중'}</strong>
+                <strong>{solved ? (locale === 'ko' ? '완료' : 'Done') : (locale === 'ko' ? '진행 중' : 'In progress')}</strong>
               </div>
               <div className={styles.statCard}>
                 <span>{locale === 'ko' ? '후보 수' : 'Candidates'}</span>
@@ -1395,7 +1445,7 @@ export default function SudokuGame() {
                 </button>
               ))}
               <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={!selected || solved}>
-                지우기
+                {locale === 'ko' ? '지우기' : 'Clear'}
               </button>
             </div>
           </>
@@ -1432,7 +1482,7 @@ export default function SudokuGame() {
                     className={`${styles.filterChip} ${recordDifficultyFilter === level ? styles.filterChipActive : ''}`}
                     onClick={() => setRecordDifficultyFilter(level)}
                   >
-                    {level === 'all' ? '전체' : level === 'easy' ? '하' : level === 'medium' ? '중' : '상'}
+                    {level === 'all' ? (locale === 'ko' ? '전체' : 'All') : level === 'easy' ? (locale === 'ko' ? '하' : 'Easy') : level === 'medium' ? (locale === 'ko' ? '중' : 'Medium') : (locale === 'ko' ? '상' : 'Hard')}
                   </button>
                 ))}
               </div>
@@ -1589,16 +1639,18 @@ export default function SudokuGame() {
             ))}
           </div>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
-            <p className={styles.panelLabel}>완료</p>
-            <h3 className={styles.modalTitle}>퍼즐을 완성했어요 🎉</h3>
+            <p className={styles.panelLabel}>{locale === 'ko' ? '완료' : 'Complete'}</p>
+            <h3 className={styles.modalTitle}>{locale === 'ko' ? '퍼즐을 완성했어요 🎉' : 'Puzzle complete 🎉'}</h3>
             <p className={styles.modalText}>
-              {difficulty === 'easy' ? '하' : difficulty === 'medium' ? '중' : '상'} 난이도를 {formatTime(elapsedSeconds)} 만에 끝냈습니다.
+              {locale === 'ko'
+                ? `${getDifficultyLabel(locale, difficulty)} 난이도를 ${formatTime(elapsedSeconds)} 만에 끝냈습니다.`
+                : `Finished the ${getDifficultyLabel(locale, difficulty)} puzzle in ${formatTime(elapsedSeconds)}.`}
             </p>
             {completionSummary ? (
               <div className={styles.shareCard}>
-                <span>공유 카드</span>
-                <strong>{completionSummary.difficulty === 'easy' ? '하' : completionSummary.difficulty === 'medium' ? '중' : '상'} · {formatTime(completionSummary.elapsedSeconds)}</strong>
-                <small>{completionSummary.clueCount} clues · #{completionSummary.rank}/{completionSummary.total}</small>
+                <span>{locale === 'ko' ? '공유 카드' : 'Share card'}</span>
+                <strong>{locale === 'ko' ? getDifficultyLabel(locale, completionSummary.difficulty) : getDifficultyLabel(locale, completionSummary.difficulty)} · {formatTime(completionSummary.elapsedSeconds)}</strong>
+                <small>{locale === 'ko' ? `${completionSummary.clueCount} clues · #${completionSummary.rank}/${completionSummary.total}` : `${completionSummary.clueCount} clues · #${completionSummary.rank}/${completionSummary.total}`}</small>
               </div>
             ) : null}
             <div className={styles.modalActions}>
@@ -1606,10 +1658,10 @@ export default function SudokuGame() {
                 {locale === 'ko' ? '새 퍼즐' : 'New puzzle'}
               </button>
               <button className={styles.actionSecondary} onClick={() => { void handleShareCompletion(); }}>
-                공유하기
+                {locale === 'ko' ? '공유하기' : 'Share'}
               </button>
               <button className={styles.actionSecondary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); }}>
-                계속 보기
+                {locale === 'ko' ? '계속 보기' : 'Keep playing'}
               </button>
             </div>
           </div>
