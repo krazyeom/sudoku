@@ -54,6 +54,11 @@ type SavedGame = {
   solved: boolean;
 };
 
+type CompletionSummary = RecordEntry & {
+  rank: number;
+  total: number;
+};
+
 const STORAGE_KEY = 'sudoku-studio-state-v2';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 
@@ -83,6 +88,75 @@ function formatTime(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
+function buildShareText(summary: CompletionSummary): string {
+  const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
+  return [
+    'Sudoku Studio에서 퍼즐을 완성했어요! 🎉',
+    `난이도: ${difficultyLabel}`,
+    `기록: ${formatTime(summary.elapsedSeconds)}`,
+    `클루 수: ${summary.clueCount}`,
+    `랭크: ${summary.rank}/${summary.total}`,
+  ].join('\n');
+}
+
+function buildShareCardSvg(summary: CompletionSummary): string {
+  const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
+  const textLines = [
+    'Sudoku Studio',
+    `${difficultyLabel} 난이도 완료`,
+    `Time ${formatTime(summary.elapsedSeconds)}`,
+    `Clues ${summary.clueCount}`,
+    `Rank #${summary.rank}/${summary.total}`,
+  ];
+
+  const svgText = textLines
+    .map(
+      (line, index) =>
+        `<text x="64" y="${128 + index * 54}" fill="${index === 0 ? '#f8fafc' : '#cbd5e1'}" font-size="${index === 0 ? 44 : 28}" font-weight="${index === 0 ? 900 : 700}" font-family="Inter, ui-sans-serif, system-ui, sans-serif">${escapeXml(line)}</text>`,
+    )
+    .join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="48" fill="url(#bg)"/>
+  <rect x="42" y="42" width="1116" height="546" rx="38" fill="rgba(15, 23, 42, 0.72)" stroke="rgba(148, 163, 184, 0.22)"/>
+  <circle cx="1010" cy="126" r="118" fill="rgba(56, 189, 248, 0.12)"/>
+  <circle cx="1060" cy="512" r="156" fill="rgba(168, 85, 247, 0.14)"/>
+  <rect x="64" y="64" width="180" height="14" rx="7" fill="url(#accent)"/>
+  ${svgText}
+  <text x="64" y="460" fill="#94a3b8" font-size="22" font-family="Inter, ui-sans-serif, system-ui, sans-serif">Single-solution sudoku • Modern UI • PM2 run</text>
+</svg>`;
+}
+
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function buildNotes(grid: Grid, row: number, col: number): number[] {
@@ -310,6 +384,8 @@ export default function SudokuGame() {
   const [noteMode, setNoteMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -360,6 +436,7 @@ export default function SudokuGame() {
       setSolved(Boolean(saved.solved));
       setChecks([]);
       setRecords(savedRecords);
+      setLastBackupAt(new Date().toISOString());
       setMessage('이전 진행상태를 불러왔어요.');
     } catch {
       // ignore broken save data
@@ -383,6 +460,7 @@ export default function SudokuGame() {
       solved,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    setLastBackupAt(new Date().toISOString());
   }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, soundEnabled, elapsedSeconds, timerRunning, solved]);
 
   useEffect(() => {
@@ -419,9 +497,6 @@ export default function SudokuGame() {
         rotation: Math.random() * 360,
       })),
     );
-    if (soundEnabled) {
-      void playCompletionSound();
-    }
 
     if (!completionSavedRef.current) {
       completionSavedRef.current = true;
@@ -431,11 +506,21 @@ export default function SudokuGame() {
         clueCount: puzzle.clueCount,
         completedAt: new Date().toISOString(),
       };
-      setRecords((current) => [record, ...current].sort((a, b) => a.elapsedSeconds - b.elapsedSeconds || b.completedAt.localeCompare(a.completedAt)).slice(0, 20));
+      const nextRecords = [record, ...records].sort((a, b) => a.elapsedSeconds - b.elapsedSeconds || b.completedAt.localeCompare(a.completedAt)).slice(0, 20);
+      setRecords(nextRecords);
+      setCompletionSummary({
+        ...record,
+        rank: nextRecords.findIndex((entry) => entry.completedAt === record.completedAt) + 1,
+        total: nextRecords.length,
+      });
+    }
+
+    if (soundEnabled) {
+      void playCompletionSound();
     }
 
     setMessage('정답입니다. 퍼즐을 완성했어요!');
-  }, [solved]);
+  }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled]);
 
   function moveSelection(deltaRow: number, deltaCol: number) {
     const current = selected ?? { row: 0, col: 0 };
@@ -510,6 +595,7 @@ export default function SudokuGame() {
     setSolved(false);
     setShowCompleteModal(false);
     setConfettiPieces([]);
+    setCompletionSummary(null);
     completionSavedRef.current = false;
     setNoteMode(false);
     setElapsedSeconds(0);
@@ -588,6 +674,7 @@ export default function SudokuGame() {
       setSolved(false);
       setShowCompleteModal(false);
       setConfettiPieces([]);
+      setCompletionSummary(null);
       completionSavedRef.current = false;
       setMessage('마지막 수를 되돌렸어요.');
       return current.slice(0, -1);
@@ -607,14 +694,47 @@ export default function SudokuGame() {
       records,
       settings: { soundEnabled },
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sudoku-records-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`sudoku-records-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
     setMessage('기록 파일을 내려받았어요.');
+  }
+
+  function handleExportCsv() {
+    const header = ['difficulty', 'elapsedSeconds', 'clueCount', 'completedAt'];
+    const rows = records.map((record) => [record.difficulty, String(record.elapsedSeconds), String(record.clueCount), record.completedAt]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    downloadTextFile(`sudoku-records-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv');
+    setMessage('CSV 파일을 내려받았어요.');
+  }
+
+  async function handleShareCompletion() {
+    if (!completionSummary) return;
+    const text = buildShareText(completionSummary);
+    try {
+      if (navigator.share) {
+        const svg = buildShareCardSvg(completionSummary);
+        const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
+        await navigator.share({
+          title: 'Sudoku Studio 완료 카드',
+          text,
+          files: [file],
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setMessage('완료 요약을 클립보드에 복사했어요.');
+      } else {
+        downloadTextFile(`sudoku-completion-${new Date().toISOString().slice(0, 10)}.txt`, text, 'text/plain');
+        setMessage('완료 요약 파일을 내려받았어요.');
+      }
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setMessage('완료 요약을 클립보드에 복사했어요.');
+      } else {
+        setMessage('공유를 완료하지 못했어요.');
+      }
+    }
   }
 
   function handleImportRecords() {
@@ -811,6 +931,10 @@ export default function SudokuGame() {
                 <span>저장</span>
                 <strong>{hasSavedState ? 'ON' : 'OFF'}</strong>
               </div>
+              <div className={styles.statCard}>
+                <span>백업</span>
+                <strong>{lastBackupAt ? new Date(lastBackupAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '—'}</strong>
+              </div>
             </div>
 
             <p className={styles.message}>{message}</p>
@@ -852,6 +976,9 @@ export default function SudokuGame() {
                 <div className={styles.badge}>{records.length} plays</div>
                 <button type="button" className={styles.actionSecondary} onClick={handleExportRecords}>
                   내보내기
+                </button>
+                <button type="button" className={styles.actionSecondary} onClick={handleExportCsv}>
+                  CSV
                 </button>
                 <button type="button" className={styles.actionSecondary} onClick={handleImportRecords}>
                   가져오기
@@ -1001,9 +1128,19 @@ export default function SudokuGame() {
             <p className={styles.modalText}>
               {difficulty === 'easy' ? '하' : difficulty === 'medium' ? '중' : '상'} 난이도를 {formatTime(elapsedSeconds)} 만에 끝냈습니다.
             </p>
+            {completionSummary ? (
+              <div className={styles.shareCard}>
+                <span>공유 카드</span>
+                <strong>{completionSummary.difficulty === 'easy' ? '하' : completionSummary.difficulty === 'medium' ? '중' : '상'} · {formatTime(completionSummary.elapsedSeconds)}</strong>
+                <small>{completionSummary.clueCount} clues · #{completionSummary.rank}/{completionSummary.total}</small>
+              </div>
+            ) : null}
             <div className={styles.modalActions}>
               <button className={styles.actionPrimary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); resetGame(difficulty); }}>
                 새 퍼즐
+              </button>
+              <button className={styles.actionSecondary} onClick={() => { void handleShareCompletion(); }}>
+                공유하기
               </button>
               <button className={styles.actionSecondary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); }}>
                 계속 보기
