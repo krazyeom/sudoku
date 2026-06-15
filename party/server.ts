@@ -312,6 +312,7 @@ function registerParticipant(state: RoomState, participantId: string): Participa
 
   const roleCounts = Object.values(state.participants).reduce(
     (counts, participant) => {
+      if (!participant.connected) return counts;
       if (participant.role === 'host') counts.host += 1;
       else if (participant.role === 'guest') counts.guest += 1;
       return counts;

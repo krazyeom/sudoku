@@ -567,16 +567,16 @@ export default function SudokuGame() {
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(invite);
-        setMessage(locale === 'ko' ? '초대 링크를 복사했어요.' : 'Copied the invite link.');
+        setMessage(locale === 'ko' ? '참가 링크를 복사했어요.' : 'Copied the join link.');
         return;
       }
     } catch {
       // fall through to manual copy fallback
     }
 
-    const copied = window.prompt(locale === 'ko' ? '아래 링크를 복사해 주세요.' : 'Copy this invite link:', invite);
+    const copied = window.prompt(locale === 'ko' ? '아래 참가 링크를 복사해 주세요.' : 'Copy this join link:', invite);
     if (copied !== null) {
-      setMessage(locale === 'ko' ? '링크를 표시했어요. 직접 복사해 주세요.' : 'Shown the invite link for manual copy.');
+      setMessage(locale === 'ko' ? '참가 링크를 표시했어요. 직접 복사해 주세요.' : 'Shown the join link for manual copy.');
     } else {
       setMessage(locale === 'ko' ? '링크 복사에 실패했어요.' : 'Could not copy the link.');
     }
@@ -616,7 +616,10 @@ export default function SudokuGame() {
     socket.addEventListener('open', () => {
       if (seedDifficulty) {
         sendSharedMessage({ type: 'create_room', difficulty: seedDifficulty });
+        return;
       }
+
+      sendSharedMessage({ type: 'request_snapshot' });
     });
 
     socket.addEventListener('message', (event) => {
@@ -1322,8 +1325,8 @@ export default function SudokuGame() {
                       type="button"
                       className={styles.roomIdButton}
                       onClick={() => { void copyRoomInviteLink(); }}
-                      aria-label={locale === 'ko' ? '방 초대 링크 복사' : 'Copy room invite link'}
-                      title={locale === 'ko' ? '터치하면 초대 링크를 복사해요.' : 'Tap to copy the invite link.'}
+                      aria-label={locale === 'ko' ? '참가 링크 복사' : 'Copy join link'}
+                      title={locale === 'ko' ? '터치하면 참가 링크를 복사해요.' : 'Tap to copy the join link.'}
                     >
                       <strong>{sharedRoom.roomId}</strong>
                     </button>
