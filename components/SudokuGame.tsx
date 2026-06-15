@@ -32,6 +32,13 @@ type ConfettiPiece = {
   rotation: number;
 };
 
+type RecordEntry = {
+  difficulty: Difficulty;
+  elapsedSeconds: number;
+  clueCount: number;
+  completedAt: string;
+};
+
 type SavedGame = {
   difficulty: Difficulty;
   puzzle: Grid;
@@ -47,6 +54,7 @@ type SavedGame = {
 };
 
 const STORAGE_KEY = 'sudoku-studio-state-v2';
+const RECORDS_KEY = 'sudoku-studio-records-v1';
 
 const DIFFICULTIES: Array<{ value: Difficulty; label: string; detail: string }> = [
   { value: 'easy', label: '하', detail: '여유 있게 시작' },
@@ -136,6 +144,29 @@ function normalizeHistory(value: unknown): Snapshot[] {
     .slice(-30);
 }
 
+function normalizeRecords(value: unknown): RecordEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item !== 'object' || item === null) return null;
+      const record = item as { difficulty?: unknown; elapsedSeconds?: unknown; clueCount?: unknown; completedAt?: unknown };
+      if (record.difficulty !== 'easy' && record.difficulty !== 'medium' && record.difficulty !== 'hard') return null;
+      const elapsedSeconds = Number(record.elapsedSeconds);
+      const clueCount = Number(record.clueCount);
+      const completedAt = typeof record.completedAt === 'string' ? record.completedAt : '';
+      if (!Number.isFinite(elapsedSeconds) || !Number.isFinite(clueCount) || !completedAt) return null;
+      return {
+        difficulty: record.difficulty,
+        elapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
+        clueCount: Math.max(0, Math.floor(clueCount)),
+        completedAt,
+      };
+    })
+    .filter((entry): entry is RecordEntry => entry !== null)
+    .sort((a, b) => a.elapsedSeconds - b.elapsedSeconds || b.completedAt.localeCompare(a.completedAt))
+    .slice(0, 20);
+}
+
 function toggleNote(notes: NoteGrid, row: number, col: number, value: number): NoteGrid {
   const next = cloneNotes(notes);
   const cell = next[row][col];
@@ -221,12 +252,15 @@ export default function SudokuGame() {
   const [solved, setSolved] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
+  const [records, setRecords] = useState<RecordEntry[]>([]);
+  const [activePanel, setActivePanel] = useState<'play' | 'records'>('play');
   const [noteMode, setNoteMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   const timerOriginRef = useRef<number | null>(null);
+  const completionSavedRef = useRef(false);
 
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
 
@@ -244,6 +278,7 @@ export default function SudokuGame() {
       const savedBoard = normalizeGrid(saved.board);
       const savedNotes = normalizeNotesGrid(saved.notes);
       const savedHistory = normalizeHistory(saved.history);
+      const savedRecords = normalizeRecords(window.localStorage.getItem(RECORDS_KEY) ? JSON.parse(window.localStorage.getItem(RECORDS_KEY) as string) : []);
 
       if (!savedPuzzle || !savedSolution || !savedBoard || !savedNotes) return;
       if (!isPosition(saved.selected)) return;
@@ -269,6 +304,7 @@ export default function SudokuGame() {
       setTimerRunning(Boolean(saved.timerRunning));
       setSolved(Boolean(saved.solved));
       setChecks([]);
+      setRecords(savedRecords);
       setMessage('이전 진행상태를 불러왔어요.');
     } catch {
       // ignore broken save data
@@ -292,6 +328,11 @@ export default function SudokuGame() {
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, elapsedSeconds, timerRunning, solved]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  }, [hydrated, records]);
 
   useEffect(() => {
     if (!timerRunning) {
@@ -322,6 +363,18 @@ export default function SudokuGame() {
         rotation: Math.random() * 360,
       })),
     );
+
+    if (!completionSavedRef.current) {
+      completionSavedRef.current = true;
+      const record: RecordEntry = {
+        difficulty,
+        elapsedSeconds,
+        clueCount: puzzle.clueCount,
+        completedAt: new Date().toISOString(),
+      };
+      setRecords((current) => [record, ...current].sort((a, b) => a.elapsedSeconds - b.elapsedSeconds || b.completedAt.localeCompare(a.completedAt)).slice(0, 20));
+    }
+
     setMessage('정답입니다. 퍼즐을 완성했어요!');
   }, [solved]);
 
@@ -398,6 +451,7 @@ export default function SudokuGame() {
     setSolved(false);
     setShowCompleteModal(false);
     setConfettiPieces([]);
+    completionSavedRef.current = false;
     setNoteMode(false);
     setElapsedSeconds(0);
     setTimerRunning(false);
@@ -430,6 +484,7 @@ export default function SudokuGame() {
     }
 
     if (!isValidPlacement(board, row, col, value)) {
+      setChecks([{ row, col }]);
       setMessage(`그 자리에는 ${value}를 둘 수 없어요.`);
       return;
     }
@@ -474,6 +529,7 @@ export default function SudokuGame() {
       setSolved(false);
     setShowCompleteModal(false);
     setConfettiPieces([]);
+    completionSavedRef.current = false;
       setMessage('마지막 수를 되돌렸어요.');
       return current.slice(0, -1);
     });
@@ -557,88 +613,153 @@ export default function SudokuGame() {
   }
 
   const hasSavedState = hydrated && window.localStorage.getItem(STORAGE_KEY) !== null;
+  const visibleRecords = useMemo(() => records.slice(0, 5), [records]);
+  const bestByDifficulty = useMemo(() => {
+    const all: Record<Difficulty, RecordEntry | null> = { easy: null, medium: null, hard: null };
+    for (const record of records) {
+      if (!all[record.difficulty] || record.elapsedSeconds < all[record.difficulty]!.elapsedSeconds) {
+        all[record.difficulty] = record;
+      }
+    }
+    return all;
+  }, [records]);
+
+  const selectedCandidates = selected ? buildNotes(board, selected.row, selected.col) : [];
 
   return (
     <>
       <section className={styles.shell}>
       <aside className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <p className={styles.panelLabel}>난이도</p>
-            <h2 className={styles.panelTitle}>새 게임 시작</h2>
-          </div>
-          <div className={styles.badge}>{puzzle.clueCount} clues</div>
-        </div>
-
-        <div className={styles.statusRow}>
-          <div className={styles.statusChip}>
-            <span>타이머</span>
-            <strong>{formatTime(elapsedSeconds)}</strong>
-          </div>
-          <button
-            className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`}
-            onClick={() => setNoteMode((current) => !current)}
-          >
-            <span>메모 모드</span>
-            <strong>{noteMode ? 'ON' : 'OFF'}</strong>
+        <div className={styles.panelTabs} role="tablist" aria-label="panel views">
+          <button type="button" className={`${styles.panelTab} ${activePanel === 'play' ? styles.panelTabActive : ''}`} onClick={() => setActivePanel('play')}>
+            플레이
+          </button>
+          <button type="button" className={`${styles.panelTab} ${activePanel === 'records' ? styles.panelTabActive : ''}`} onClick={() => setActivePanel('records')}>
+            기록
           </button>
         </div>
 
-        <div className={styles.difficultyRow}>
-          {DIFFICULTIES.map((item) => (
-            <button
-              key={item.value}
-              className={`${styles.difficultyButton} ${difficulty === item.value ? styles.difficultyActive : ''}`}
-              onClick={() => resetGame(item.value)}
-            >
-              <span>{item.label}</span>
-              <small>{item.detail}</small>
-            </button>
-          ))}
-        </div>
+        {activePanel === 'play' ? (
+          <>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelLabel}>난이도</p>
+                <h2 className={styles.panelTitle}>새 게임 시작</h2>
+              </div>
+              <div className={styles.badge}>{puzzle.clueCount} clues</div>
+            </div>
 
-        <div className={styles.statGrid}>
-          <div className={styles.statCard}>
-            <span>해결 상태</span>
-            <strong>{solved ? '완료' : '진행 중'}</strong>
-          </div>
-          <div className={styles.statCard}>
-            <span>후보 수</span>
-            <strong>{selected ? candidateCount : '—'}</strong>
-          </div>
-          <div className={styles.statCard}>
-            <span>저장</span>
-            <strong>{hasSavedState ? 'ON' : 'OFF'}</strong>
-          </div>
-        </div>
+            <div className={styles.statusRow}>
+              <div className={styles.statusChip}>
+                <span>타이머</span>
+                <strong>{formatTime(elapsedSeconds)}</strong>
+              </div>
+              <button
+                type="button"
+                className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`}
+                onClick={() => setNoteMode((current) => !current)}
+              >
+                <span>메모 모드</span>
+                <strong>{noteMode ? 'ON' : 'OFF'}</strong>
+              </button>
+            </div>
 
-        <p className={styles.message}>{message}</p>
+            <div className={styles.difficultyRow}>
+              {DIFFICULTIES.map((item) => (
+                <button
+                  type="button"
+                  key={item.value}
+                  className={`${styles.difficultyButton} ${difficulty === item.value ? styles.difficultyActive : ''}`}
+                  onClick={() => resetGame(item.value)}
+                >
+                  <span>{item.label}</span>
+                  <small>{item.detail}</small>
+                </button>
+              ))}
+            </div>
 
-        <div className={styles.actions}>
-          <button className={styles.actionPrimary} onClick={() => resetGame(difficulty)}>
-            새 퍼즐
-          </button>
-          <button className={styles.actionSecondary} onClick={handleHint}>
-            힌트
-          </button>
-          <button className={styles.actionSecondary} onClick={handleCheck}>
-            검사
-          </button>
-          <button className={styles.actionSecondary} onClick={handleUndo}>
-            Undo
-          </button>
-        </div>
+            <div className={styles.statGrid}>
+              <div className={styles.statCard}>
+                <span>해결 상태</span>
+                <strong>{solved ? '완료' : '진행 중'}</strong>
+              </div>
+              <div className={styles.statCard}>
+                <span>후보 수</span>
+                <strong>{selected ? candidateCount : '—'}</strong>
+              </div>
+              <div className={styles.statCard}>
+                <span>저장</span>
+                <strong>{hasSavedState ? 'ON' : 'OFF'}</strong>
+              </div>
+            </div>
 
-        <div className={styles.keypad}>
-          {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
-            <button key={number} onClick={() => updateCell(number)} className={styles.keypadButton}>
-              {number}
-            </button>
-          ))}
-          <button onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`}>
-            지우기
-          </button>
-        </div>
+            <p className={styles.message}>{message}</p>
+
+            <div className={styles.actions}>
+              <button type="button" className={styles.actionPrimary} onClick={() => resetGame(difficulty)}>
+                새 퍼즐
+              </button>
+              <button type="button" className={styles.actionSecondary} onClick={handleHint}>
+                힌트
+              </button>
+              <button type="button" className={styles.actionSecondary} onClick={handleCheck}>
+                검사
+              </button>
+              <button type="button" className={styles.actionSecondary} onClick={handleUndo}>
+                Undo
+              </button>
+            </div>
+
+            <div className={styles.keypad}>
+              {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
+                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={!selected || solved || (!noteMode && selected ? !selectedCandidates.includes(number) && board[selected.row][selected.col] === null : false)}>
+                  {number}
+                </button>
+              ))}
+              <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={!selected || solved}>
+                지우기
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelLabel}>기록</p>
+                <h2 className={styles.panelTitle}>베스트 랭킹</h2>
+              </div>
+              <div className={styles.badge}>{records.length} plays</div>
+            </div>
+
+            <div className={styles.rankGrid}>
+              {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => {
+                const best = bestByDifficulty[level];
+                return (
+                  <div key={level} className={styles.rankCard}>
+                    <span>{level === 'easy' ? '하' : level === 'medium' ? '중' : '상'}</span>
+                    <strong>{best ? formatTime(best.elapsedSeconds) : '—'}</strong>
+                    <small>{best ? `${best.clueCount} clues · ${new Date(best.completedAt).toLocaleDateString('ko-KR')}` : '기록 없음'}</small>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={styles.recordList}>
+              {visibleRecords.length > 0 ? visibleRecords.map((record, index) => (
+                <div key={`${record.completedAt}-${index}`} className={styles.recordItem}>
+                  <div>
+                    <strong>{record.difficulty === 'easy' ? '하' : record.difficulty === 'medium' ? '중' : '상'}</strong>
+                    <span>{record.clueCount} clues</span>
+                  </div>
+                  <div>
+                    <strong>{formatTime(record.elapsedSeconds)}</strong>
+                    <span>{new Date(record.completedAt).toLocaleString('ko-KR')}</span>
+                  </div>
+                </div>
+              )) : <p className={styles.recordEmpty}>아직 기록이 없어요. 첫 퍼즐을 완성해보세요.</p>}
+            </div>
+          </>
+        )}
       </aside>
 
       <section className={styles.boardWrap}>
@@ -677,8 +798,10 @@ export default function SudokuGame() {
                 <button
                   key={`${rowIndex}-${colIndex}`}
                   role="gridcell"
+                  type="button"
                   aria-label={`row ${rowIndex + 1} column ${colIndex + 1}`}
                   className={classes}
+                  onPointerDown={() => setSelected({ row: rowIndex, col: colIndex })}
                   onClick={() => setSelected({ row: rowIndex, col: colIndex })}
                 >
                   {cell !== null ? (

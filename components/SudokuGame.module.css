@@ -24,6 +24,29 @@
   gap: 18px;
 }
 
+.panelTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.panelTab {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.78);
+  font-weight: 800;
+}
+
+.panelTabActive {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(168, 85, 247, 0.92));
+  color: #fff;
+}
+
 .panelHeader,
 .boardMeta {
   display: flex;
@@ -101,9 +124,12 @@
 .actionSecondary,
 .keypadButton,
 .cell,
-.statusChip {
+.statusChip,
+.panelTab {
   border: 0;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .difficultyButton {
@@ -169,6 +195,74 @@
   font-size: 1.1rem;
 }
 
+.rankGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.rankCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.rankCard span,
+.rankCard small {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+}
+
+.rankCard strong {
+  font-size: 1.1rem;
+}
+
+.recordList {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.recordItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.recordItem div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recordItem strong {
+  font-size: 1rem;
+}
+
+.recordItem span,
+.recordEmpty {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+}
+
+.recordEmpty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
 .message {
   margin: 0;
   min-height: 52px;
@@ -226,6 +320,29 @@
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(239, 68, 68, 0.28));
 }
 
+
+.keypadButton:disabled,
+.actionPrimary:disabled,
+.actionSecondary:disabled,
+.difficultyButton:disabled,
+.statusChip:disabled,
+.panelTab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.cell:focus-visible,
+.keypadButton:focus-visible,
+.actionPrimary:focus-visible,
+.actionSecondary:focus-visible,
+.difficultyButton:focus-visible,
+.statusChip:focus-visible,
+.panelTab:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.88);
+  outline-offset: 2px;
+}
+
 .boardWrap {
   padding: 24px;
 }
@@ -268,6 +385,7 @@
   transition: background 120ms ease, color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
   border-right: 1px solid rgba(148, 163, 184, 0.12);
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  user-select: none;
 }
 
 .cell:nth-child(9n) {
@@ -405,6 +523,10 @@
     min-height: 64px;
   }
 
+  .board {
+    width: min(100%, 94vw);
+  }
+
   .boardMeta {
     align-items: flex-start;
     flex-direction: column;
@@ -412,6 +534,10 @@
 
   .boardHint {
     text-align: left;
+  }
+
+  .recordList {
+    max-height: 220px;
   }
 }
 
