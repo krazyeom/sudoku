@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './SudokuGame.module.css';
 import {
   Difficulty,
@@ -15,6 +15,30 @@ import {
 
 type Position = { row: number; col: number } | null;
 
+type NoteGrid = number[][][];
+
+type Snapshot = {
+  board: Grid;
+  notes: NoteGrid;
+  elapsedSeconds: number;
+};
+
+type SavedGame = {
+  difficulty: Difficulty;
+  puzzle: Grid;
+  solution: Grid;
+  board: Grid;
+  notes: NoteGrid;
+  history: Snapshot[];
+  selected: Position;
+  noteMode: boolean;
+  elapsedSeconds: number;
+  timerRunning: boolean;
+  solved: boolean;
+};
+
+const STORAGE_KEY = 'sudoku-studio-state-v2';
+
 const DIFFICULTIES: Array<{ value: Difficulty; label: string; detail: string }> = [
   { value: 'easy', label: '하', detail: '여유 있게 시작' },
   { value: 'medium', label: '중', detail: '밸런스 좋은 난이도' },
@@ -25,8 +49,22 @@ function cloneGrid(grid: Grid): Grid {
   return grid.map((row) => [...row]);
 }
 
+function cloneNotes(grid: NoteGrid): NoteGrid {
+  return grid.map((row) => row.map((cell) => [...cell]));
+}
+
+function createEmptyNotesGrid(): NoteGrid {
+  return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => [] as number[]));
+}
+
 function isFilled(grid: Grid): boolean {
   return grid.every((row) => row.every((cell) => cell !== null));
+}
+
+function formatTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function buildNotes(grid: Grid, row: number, col: number): number[] {
@@ -34,19 +72,182 @@ function buildNotes(grid: Grid, row: number, col: number): number[] {
   return getCandidates(grid, row, col);
 }
 
+function normalizeGrid(value: unknown): Grid | null {
+  if (!Array.isArray(value) || value.length !== 9) return null;
+  const rows = value.map((row) => {
+    if (!Array.isArray(row) || row.length !== 9) return null;
+    const cells = row.map((cell) => (cell === null ? null : Number(cell)));
+    if (cells.some((cell) => cell !== null && !Number.isInteger(cell))) return null;
+    return cells as Grid[number];
+  });
+  if (rows.some((row) => row === null)) return null;
+  return rows as Grid;
+}
+
+function normalizeNotesGrid(value: unknown): NoteGrid | null {
+  if (!Array.isArray(value) || value.length !== 9) return null;
+  const rows = value.map((row) => {
+    if (!Array.isArray(row) || row.length !== 9) return null;
+    const cells = row.map((cell) => {
+      if (!Array.isArray(cell)) return null;
+      const notes = cell.map((note) => Number(note)).filter((note) => Number.isInteger(note) && note >= 1 && note <= 9);
+      return Array.from(new Set(notes)).sort((a, b) => a - b);
+    });
+    if (cells.some((cell) => cell === null)) return null;
+    return cells as number[][];
+  });
+  if (rows.some((row) => row === null)) return null;
+  return rows as NoteGrid;
+}
+
+function isPosition(value: unknown): value is Position {
+  if (value === null) return true;
+  if (typeof value !== 'object' || value === null) return false;
+  const maybe = value as { row?: unknown; col?: unknown };
+  return Number.isInteger(maybe.row) && Number.isInteger(maybe.col);
+}
+
+function normalizeHistory(value: unknown): Snapshot[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item !== 'object' || item === null) return null;
+      const snapshot = item as { board?: unknown; notes?: unknown; elapsedSeconds?: unknown };
+      const board = normalizeGrid(snapshot.board);
+      const notes = normalizeNotesGrid(snapshot.notes);
+      const elapsedSeconds = Number(snapshot.elapsedSeconds);
+      if (!board || !notes || !Number.isFinite(elapsedSeconds)) return null;
+      return {
+        board,
+        notes,
+        elapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
+      };
+    })
+    .filter((entry): entry is Snapshot => entry !== null)
+    .slice(-30);
+}
+
+function toggleNote(notes: NoteGrid, row: number, col: number, value: number): NoteGrid {
+  const next = cloneNotes(notes);
+  const cell = next[row][col];
+  if (cell.includes(value)) {
+    next[row][col] = cell.filter((note) => note !== value);
+  } else {
+    next[row][col] = [...cell, value].sort((a, b) => a - b);
+  }
+  return next;
+}
+
+function hasNotes(notes: NoteGrid, row: number, col: number): boolean {
+  return notes[row][col].length > 0;
+}
+
+function getSelectedCellLabel(position: Position): string {
+  if (!position) return '선택 없음';
+  return `${position.row + 1}행 ${position.col + 1}열`;
+}
+
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [puzzle, setPuzzle] = useState<Puzzle>(() => generatePuzzle('medium'));
   const [board, setBoard] = useState<Grid>(() => cloneGrid(puzzle.puzzle));
+  const [notes, setNotes] = useState<NoteGrid>(() => createEmptyNotesGrid());
   const [selected, setSelected] = useState<Position>(null);
   const [message, setMessage] = useState('빈 칸을 눌러 숫자를 입력해보세요.');
-  const [history, setHistory] = useState<Grid[]>([]);
+  const [history, setHistory] = useState<Snapshot[]>([]);
   const [checks, setChecks] = useState<{ row: number; col: number }[]>([]);
   const [solved, setSolved] = useState(false);
+  const [noteMode, setNoteMode] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  const fixedCells = useMemo(() => {
-    return puzzle.puzzle.map((row) => row.map((cell) => cell !== null));
-  }, [puzzle]);
+  const timerOriginRef = useRef<number | null>(null);
+
+  const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
+
+  const candidateCount = selected ? buildNotes(board, selected.row, selected.col).length : 0;
+
+  useEffect(() => {
+    setHydrated(true);
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<SavedGame>;
+      const savedPuzzle = normalizeGrid(saved.puzzle);
+      const savedSolution = normalizeGrid(saved.solution);
+      const savedBoard = normalizeGrid(saved.board);
+      const savedNotes = normalizeNotesGrid(saved.notes);
+      const savedHistory = normalizeHistory(saved.history);
+
+      if (!savedPuzzle || !savedSolution || !savedBoard || !savedNotes) return;
+      if (!isPosition(saved.selected)) return;
+      if (saved.selected && (saved.selected.row < 0 || saved.selected.row > 8 || saved.selected.col < 0 || saved.selected.col > 8)) return;
+
+      const restoredDifficulty = saved.difficulty === 'easy' || saved.difficulty === 'medium' || saved.difficulty === 'hard'
+        ? saved.difficulty
+        : 'medium';
+
+      setDifficulty(restoredDifficulty);
+      setPuzzle({
+        puzzle: savedPuzzle,
+        solution: savedSolution,
+        clueCount: savedPuzzle.flat().filter((cell) => cell !== null).length,
+        difficulty: restoredDifficulty,
+      });
+      setBoard(savedBoard);
+      setNotes(savedNotes);
+      setHistory(savedHistory);
+      setSelected(saved.selected ?? null);
+      setNoteMode(Boolean(saved.noteMode));
+      setElapsedSeconds(Number.isFinite(saved.elapsedSeconds) ? Math.max(0, Math.floor(saved.elapsedSeconds ?? 0)) : 0);
+      setTimerRunning(Boolean(saved.timerRunning));
+      setSolved(Boolean(saved.solved));
+      setChecks([]);
+      setMessage('이전 진행상태를 불러왔어요.');
+    } catch {
+      // ignore broken save data
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const payload: SavedGame = {
+      difficulty,
+      puzzle: puzzle.puzzle,
+      solution: puzzle.solution,
+      board,
+      notes,
+      history,
+      selected,
+      noteMode,
+      elapsedSeconds,
+      timerRunning,
+      solved,
+    };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, elapsedSeconds, timerRunning, solved]);
+
+  useEffect(() => {
+    if (!timerRunning) {
+      timerOriginRef.current = null;
+      return;
+    }
+
+    timerOriginRef.current = Date.now() - elapsedSeconds * 1000;
+    const intervalId = window.setInterval(() => {
+      if (!timerOriginRef.current) return;
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - timerOriginRef.current) / 1000)));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [timerRunning]);
+
+  useEffect(() => {
+    if (!solved) return;
+    setTimerRunning(false);
+    setMessage('정답입니다. 퍼즐을 완성했어요!');
+  }, [solved]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -62,39 +263,73 @@ export default function SudokuGame() {
       if (event.key === 'Escape') {
         setSelected(null);
       }
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        setNoteMode((current) => !current);
+      }
+      if (event.key.toLowerCase() === 'h') {
+        event.preventDefault();
+        handleHint();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selected, board, puzzle]);
+  }, [selected, board, puzzle, notes, noteMode, solved]);
 
-  useEffect(() => {
-    setSolved(isFilled(board) && countSolutions(board, 2) === 1);
-  }, [board]);
+  function startTimerIfNeeded() {
+    if (timerRunning || solved) return;
+    setTimerRunning(true);
+  }
+
+  function captureSnapshot(): Snapshot {
+    return {
+      board: cloneGrid(board),
+      notes: cloneNotes(notes),
+      elapsedSeconds,
+    };
+  }
 
   function resetGame(nextDifficulty: Difficulty = difficulty) {
     const nextPuzzle = generatePuzzle(nextDifficulty);
     setDifficulty(nextDifficulty);
     setPuzzle(nextPuzzle);
     setBoard(cloneGrid(nextPuzzle.puzzle));
+    setNotes(createEmptyNotesGrid());
     setSelected(null);
     setHistory([]);
     setChecks([]);
     setSolved(false);
+    setNoteMode(false);
+    setElapsedSeconds(0);
+    setTimerRunning(false);
+    timerOriginRef.current = null;
     setMessage(`${nextDifficulty === 'easy' ? '하' : nextDifficulty === 'medium' ? '중' : '상'} 난이도 새 게임을 시작했어요.`);
   }
 
-  function pushHistory(nextBoard: Grid) {
-    setHistory((current) => [...current, cloneGrid(current.length ? board : puzzle.puzzle)]);
+  function pushHistory(nextBoard: Grid, nextNotes: NoteGrid) {
+    setHistory((current) => [...current, captureSnapshot()].slice(-30));
     setBoard(nextBoard);
+    setNotes(nextNotes);
     setChecks([]);
+    startTimerIfNeeded();
   }
 
   function updateCell(value: number) {
     if (!selected) return;
     const { row, col } = selected;
-    if (fixedCells[row][col]) return;
+    if (fixedCells[row][col] || solved) return;
     if (value < 1 || value > 9) return;
+
+    startTimerIfNeeded();
+
+    if (noteMode) {
+      const nextNotes = toggleNote(notes, row, col, value);
+      setNotes(nextNotes);
+      setHistory((current) => [...current, captureSnapshot()].slice(-30));
+      setMessage(`(${row + 1}, ${col + 1}) 메모에 ${value}를 ${hasNotes(nextNotes, row, col) ? '추가/삭제' : '반영'}했어요.`);
+      return;
+    }
 
     if (!isValidPlacement(board, row, col, value)) {
       setMessage(`그 자리에는 ${value}를 둘 수 없어요.`);
@@ -102,19 +337,26 @@ export default function SudokuGame() {
     }
 
     const nextBoard = cloneGrid(board);
+    const nextNotes = cloneNotes(notes);
     nextBoard[row][col] = value;
-    pushHistory(nextBoard);
+    nextNotes[row][col] = [];
+    pushHistory(nextBoard, nextNotes);
     setMessage(`(${row + 1}, ${col + 1})에 ${value}를 입력했어요.`);
   }
 
   function clearCell() {
     if (!selected) return;
     const { row, col } = selected;
-    if (fixedCells[row][col]) return;
+    if (fixedCells[row][col] || solved) return;
+
+    startTimerIfNeeded();
+
     const nextBoard = cloneGrid(board);
+    const nextNotes = cloneNotes(notes);
     nextBoard[row][col] = null;
-    pushHistory(nextBoard);
-    setMessage('칸을 비웠어요.');
+    nextNotes[row][col] = [];
+    pushHistory(nextBoard, nextNotes);
+    setMessage('칸과 메모를 비웠어요.');
   }
 
   function handleUndo() {
@@ -124,7 +366,9 @@ export default function SudokuGame() {
         return current;
       }
       const previous = current[current.length - 1];
-      setBoard(cloneGrid(previous));
+      setBoard(cloneGrid(previous.board));
+      setNotes(cloneNotes(previous.notes));
+      setElapsedSeconds(previous.elapsedSeconds);
       setChecks([]);
       setSolved(false);
       setMessage('마지막 수를 되돌렸어요.');
@@ -153,7 +397,6 @@ export default function SudokuGame() {
     setChecks(wrong);
     if (wrong.length === 0 && isFilled(board)) {
       setSolved(true);
-      setMessage('정답입니다. 퍼즐을 완성했어요!');
     } else if (wrong.length === 0) {
       setMessage('충돌은 없어요. 계속 진행해보세요.');
     } else {
@@ -162,11 +405,14 @@ export default function SudokuGame() {
   }
 
   function handleHint() {
+    if (solved) return;
     const solvedBoard = solveSudoku(board);
     if (!solvedBoard) {
       setMessage('힌트를 줄 수 없는 상태예요. 먼저 입력을 정리해보세요.');
       return;
     }
+
+    startTimerIfNeeded();
 
     let target: Position = selected;
     if (!target || fixedCells[target.row][target.col] || board[target.row][target.col] !== null) {
@@ -187,15 +433,18 @@ export default function SudokuGame() {
     }
 
     const nextBoard = cloneGrid(board);
+    const nextNotes = cloneNotes(notes);
     nextBoard[target.row][target.col] = solvedBoard[target.row][target.col];
+    nextNotes[target.row][target.col] = [];
     setBoard(nextBoard);
-    setHistory((current) => [...current, cloneGrid(board)]);
+    setNotes(nextNotes);
+    setHistory((current) => [...current, captureSnapshot()].slice(-30));
     setSelected(target);
     setChecks([]);
     setMessage(`힌트: (${target.row + 1}, ${target.col + 1})에 ${solvedBoard[target.row][target.col]}를 넣어보세요.`);
   }
 
-  const candidateCount = selected ? buildNotes(board, selected.row, selected.col).length : 0;
+  const hasSavedState = hydrated && window.localStorage.getItem(STORAGE_KEY) !== null;
 
   return (
     <section className={styles.shell}>
@@ -206,6 +455,20 @@ export default function SudokuGame() {
             <h2 className={styles.panelTitle}>새 게임 시작</h2>
           </div>
           <div className={styles.badge}>{puzzle.clueCount} clues</div>
+        </div>
+
+        <div className={styles.statusRow}>
+          <div className={styles.statusChip}>
+            <span>타이머</span>
+            <strong>{formatTime(elapsedSeconds)}</strong>
+          </div>
+          <button
+            className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`}
+            onClick={() => setNoteMode((current) => !current)}
+          >
+            <span>메모 모드</span>
+            <strong>{noteMode ? 'ON' : 'OFF'}</strong>
+          </button>
         </div>
 
         <div className={styles.difficultyRow}>
@@ -231,8 +494,8 @@ export default function SudokuGame() {
             <strong>{selected ? candidateCount : '—'}</strong>
           </div>
           <div className={styles.statCard}>
-            <span>되돌리기</span>
-            <strong>{history.length}</strong>
+            <span>저장</span>
+            <strong>{hasSavedState ? 'ON' : 'OFF'}</strong>
           </div>
         </div>
 
@@ -271,7 +534,7 @@ export default function SudokuGame() {
             <p className={styles.panelLabel}>Sudoku Board</p>
             <h3 className={styles.boardTitle}>집중하기 좋은 클린한 레이아웃</h3>
           </div>
-          <span className={styles.boardHint}>클릭하거나 키보드 1~9를 사용하세요.</span>
+          <span className={styles.boardHint}>클릭하거나 키보드 1~9를 사용하세요. N = 메모, H = 힌트</span>
         </div>
 
         <div className={styles.board} role="grid" aria-label="Sudoku board">
@@ -286,6 +549,7 @@ export default function SudokuGame() {
                 Math.floor(selected.row / 3) === Math.floor(rowIndex / 3) &&
                 Math.floor(selected.col / 3) === Math.floor(colIndex / 3);
               const isWrong = checks.some((item) => item.row === rowIndex && item.col === colIndex);
+              const noteDigits = notes[rowIndex][colIndex];
               const classes = [
                 styles.cell,
                 isFixed ? styles.cellFixed : '',
@@ -304,7 +568,11 @@ export default function SudokuGame() {
                   className={classes}
                   onClick={() => setSelected({ row: rowIndex, col: colIndex })}
                 >
-                  {cell ?? ''}
+                  {cell !== null ? (
+                    <span className={styles.cellValue}>{cell}</span>
+                  ) : noteDigits.length > 0 ? (
+                    <span className={styles.cellNotes}>{noteDigits.join(' ')}</span>
+                  ) : null}
                 </button>
               );
             }),

@@ -58,6 +58,38 @@
   font-weight: 700;
 }
 
+.statusRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statusChip {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  color: #e2e8f0;
+}
+
+.statusChip span {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+}
+
+.statusChip strong {
+  font-size: 1.1rem;
+}
+
+.statusChipActive {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(168, 85, 247, 0.28));
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
 .difficultyRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -68,7 +100,8 @@
 .actionPrimary,
 .actionSecondary,
 .keypadButton,
-.cell {
+.cell,
+.statusChip {
   border: 0;
   cursor: pointer;
 }
@@ -101,7 +134,8 @@
 .actionPrimary:hover,
 .actionSecondary:hover,
 .keypadButton:hover,
-.cell:hover {
+.cell:hover,
+.statusChip:hover {
   transform: translateY(-1px);
 }
 
@@ -204,11 +238,14 @@
 .boardHint {
   color: rgba(148, 163, 184, 0.95);
   font-size: 13px;
+  text-align: right;
 }
 
 .board {
   display: grid;
   grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-rows: repeat(9, minmax(0, 1fr));
+  align-content: stretch;
   width: min(100%, 680px);
   aspect-ratio: 1;
   margin: 0 auto;
@@ -219,9 +256,11 @@
 }
 
 .cell {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 0;
+  padding: 0;
   background: transparent;
   color: #e2e8f0;
   font-size: clamp(1rem, 2vw, 1.5rem);
@@ -268,6 +307,25 @@
   color: #fecaca;
 }
 
+.cellValue {
+  position: relative;
+  z-index: 1;
+}
+
+.cellNotes {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  color: rgba(226, 232, 240, 0.86);
+  font-size: clamp(0.4rem, 1vw, 0.72rem);
+  line-height: 1.2;
+  white-space: pre-wrap;
+  text-align: center;
+  pointer-events: none;
+}
+
 @media (max-width: 1024px) {
   .shell {
     grid-template-columns: 1fr;
@@ -288,11 +346,21 @@
   .difficultyRow,
   .statGrid,
   .actions,
-  .keypad {
+  .keypad,
+  .statusRow {
     gap: 8px;
   }
 
   .difficultyButton {
     min-height: 64px;
+  }
+
+  .boardMeta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .boardHint {
+    text-align: left;
   }
 }
