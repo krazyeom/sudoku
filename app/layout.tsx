@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Sudoku Studio',
+  title: 'ZenGrid Sudoku',
   description: 'Modern Sudoku game built with Next.js',
 };
 

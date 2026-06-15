@@ -12,7 +12,8 @@ import {
   isValidPlacement,
   solveSudoku,
 } from '@/lib/sudoku';
-
+import { filterAndSortRecords } from '@/lib/recordView';
+import type { SharedRoomCellOccupancy, SharedRoomSnapshot } from '@/lib/shared-room';
 type Position = { row: number; col: number } | null;
 
 type NoteGrid = number[][][];
@@ -39,6 +40,13 @@ type RecordEntry = {
   completedAt: string;
 };
 
+type ItemCounts = {
+  hint: number;
+  autoFill: number;
+};
+
+type Locale = 'ko' | 'en';
+
 type SavedGame = {
   difficulty: Difficulty;
   puzzle: Grid;
@@ -49,6 +57,8 @@ type SavedGame = {
   selected: Position;
   noteMode: boolean;
   soundEnabled: boolean;
+  items: ItemCounts;
+  locale: Locale;
   elapsedSeconds: number;
   timerRunning: boolean;
   solved: boolean;
@@ -59,8 +69,24 @@ type CompletionSummary = RecordEntry & {
   total: number;
 };
 
-const STORAGE_KEY = 'sudoku-studio-state-v2';
+type SharedRoomState = {
+  roomId: string;
+  participantId: string;
+  role: 'host' | 'guest' | 'spectator';
+  connected: boolean;
+  snapshot: SharedRoomSnapshot | null;
+};
+
+function createEmptyOwnershipGrid(): SharedRoomCellOccupancy[][] {
+  return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => 'empty' as SharedRoomCellOccupancy));
+}
+
+function ownershipFromPuzzle(puzzle: Grid): SharedRoomCellOccupancy[][] {
+  return puzzle.map((row) => row.map((cell) => (cell === null ? 'empty' : 'clue')));
+}
+const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
+const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
 
 const DIFFICULTIES: Array<{ value: Difficulty; label: string; detail: string }> = [
   { value: 'easy', label: '하', detail: '여유 있게 시작' },
@@ -102,7 +128,7 @@ function escapeXml(value: string): string {
 function buildShareText(summary: CompletionSummary): string {
   const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
   return [
-    'Sudoku Studio에서 퍼즐을 완성했어요! 🎉',
+    'ZenGrid Sudoku에서 퍼즐을 완성했어요! 🎉',
     `난이도: ${difficultyLabel}`,
     `기록: ${formatTime(summary.elapsedSeconds)}`,
     `클루 수: ${summary.clueCount}`,
@@ -113,7 +139,7 @@ function buildShareText(summary: CompletionSummary): string {
 function buildShareCardSvg(summary: CompletionSummary): string {
   const difficultyLabel = summary.difficulty === 'easy' ? '하' : summary.difficulty === 'medium' ? '중' : '상';
   const textLines = [
-    'Sudoku Studio',
+    'ZenGrid Sudoku',
     `${difficultyLabel} 난이도 완료`,
     `Time ${formatTime(summary.elapsedSeconds)}`,
     `Clues ${summary.clueCount}`,
@@ -381,14 +407,23 @@ export default function SudokuGame() {
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [activePanel, setActivePanel] = useState<'play' | 'records'>('play');
+  const [recordDifficultyFilter, setRecordDifficultyFilter] = useState<'all' | Difficulty>('all');
+  const [recordSortMode, setRecordSortMode] = useState<'fastest' | 'newest' | 'oldest'>('fastest');
   const [noteMode, setNoteMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [items, setItems] = useState<ItemCounts>({ hint: 3, autoFill: 1 });
+  const [locale, setLocale] = useState<Locale>('ko');
+  const [hintPreview, setHintPreview] = useState<{ row: number; col: number; value: number } | null>(null);
+  const [roomInput, setRoomInput] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
+  const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
 
+  const socketRef = useRef<WebSocket | null>(null);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
 
@@ -397,6 +432,207 @@ export default function SudokuGame() {
   const candidateCount = selected ? buildNotes(board, selected.row, selected.col).length : 0;
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
 
+  function syncOwnershipFromBoard(nextBoard: Grid, participantId: string | null) {
+    setOwnership(
+      nextBoard.map((row, rowIndex) =>
+        row.map((cell, colIndex) => {
+          const clue = puzzle.puzzle[rowIndex][colIndex] !== null;
+          if (clue) return 'clue';
+          if (cell === null) return 'empty';
+          if (participantId && sharedRoom?.participantId === participantId) return 'self';
+          return sharedRoom?.participantId ? 'other' : 'empty';
+        }),
+      ),
+    );
+  }
+
+  function applySharedSnapshot(snapshot: SharedRoomSnapshot, participantId?: string | null) {
+    const viewerId = participantId ?? sharedRoom?.participantId ?? null;
+    const nextPuzzle: Puzzle = {
+      puzzle: snapshot.puzzle,
+      solution: snapshot.solution,
+      clueCount: snapshot.clueCount,
+      difficulty: snapshot.difficulty,
+    };
+    setDifficulty(snapshot.difficulty);
+    setPuzzle(nextPuzzle);
+    setBoard(snapshot.board);
+    setOwnership(snapshot.occupancy);
+    setSolved(snapshot.solved);
+    setSelected(null);
+    setChecks([]);
+    setHintPreview(null);
+    setCompletionSummary(null);
+    setShowCompleteModal(false);
+    setConfettiPieces([]);
+    completionSavedRef.current = false;
+    setSharedRoom((current) =>
+      current
+        ? { ...current, connected: true, role: snapshot.viewerRole, snapshot }
+        : viewerId
+          ? {
+              roomId: snapshot.roomId,
+              participantId: viewerId,
+              role: snapshot.viewerRole,
+              connected: true,
+              snapshot,
+            }
+          : current,
+    );
+    setMessage(
+      snapshot.solved
+        ? '공유 퍼즐이 완료됐어요.'
+        : snapshot.participants.filter((participant) => participant.connected && participant.role !== 'spectator').length > 1
+          ? '상대방이 입장했어요.'
+          : '공유 퍼즐에 연결됐어요.',
+    );
+  }
+
+  function sendSharedMessage(payload: Record<string, unknown>) {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify(payload));
+  }
+
+  function disconnectSharedRoom() {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      sendSharedMessage({ type: 'leave_room' });
+      socket.close();
+    }
+    socketRef.current = null;
+    setSharedRoom(null);
+    setOwnership(ownershipFromPuzzle(puzzle.puzzle));
+  }
+
+  async function copyRoomInviteLink() {
+    if (typeof window === 'undefined' || !sharedRoom) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('room', sharedRoom.roomId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setMessage(locale === 'ko' ? '초대 링크를 복사했어요.' : 'Copied the invite link.');
+    } catch {
+      setMessage(locale === 'ko' ? '링크 복사에 실패했어요.' : 'Could not copy the link.');
+    }
+  }
+
+  function joinRoomFromInput() {
+    const roomId = roomInput.trim();
+    if (!roomId) {
+      setMessage(locale === 'ko' ? '방 ID를 입력해 주세요.' : 'Please enter a room ID.');
+      return;
+    }
+    connectSharedRoom(roomId);
+  }
+
+  function connectSharedRoom(roomId: string) {
+    if (typeof window === 'undefined') return;
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    socketRef.current = socket;
+
+    socket.addEventListener('open', () => {
+      const participantId = window.localStorage.getItem(`${ROOM_TOKEN_PREFIX}${roomId}`) ?? undefined;
+      sendSharedMessage({ type: 'join_room', roomId, participantId });
+    });
+
+    socket.addEventListener('message', (event) => {
+      let payload: any;
+      try {
+        payload = JSON.parse(String(event.data));
+      } catch {
+        return;
+      }
+
+      if (payload.type === 'room_created' || payload.type === 'room_joined' || payload.type === 'room_snapshot' || payload.type === 'room_reset') {
+        if (payload.participantId && payload.roomId) {
+          window.localStorage.setItem(`${ROOM_TOKEN_PREFIX}${payload.roomId}`, payload.participantId);
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set('room', payload.roomId);
+          window.history.replaceState(null, '', nextUrl.toString());
+          setRoomInput(payload.roomId);
+        }
+        applySharedSnapshot(payload.snapshot, payload.participantId ?? null);
+        return;
+      }
+
+      if (payload.type === 'room_event' && payload.snapshot) {
+        applySharedSnapshot(payload.snapshot);
+        return;
+      }
+
+      if (payload.type === 'left_room') {
+        setSharedRoom(null);
+        return;
+      }
+
+      if (payload.type === 'error') {
+        setMessage(payload.message ?? '공유 방에서 오류가 발생했어요.');
+      }
+    });
+
+    socket.addEventListener('close', () => {
+      socketRef.current = null;
+    });
+  }
+
+  function createSharedRoom(nextDifficulty: Difficulty = difficulty) {
+    if (typeof window === 'undefined') return;
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    socketRef.current = socket;
+
+    socket.addEventListener('open', () => {
+      sendSharedMessage({ type: 'create_room', difficulty: nextDifficulty });
+    });
+
+    socket.addEventListener('message', (event) => {
+      let payload: any;
+      try {
+        payload = JSON.parse(String(event.data));
+      } catch {
+        return;
+      }
+
+      if (payload.type === 'room_created') {
+        if (payload.participantId && payload.roomId) {
+          window.localStorage.setItem(`${ROOM_TOKEN_PREFIX}${payload.roomId}`, payload.participantId);
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set('room', payload.roomId);
+          window.history.replaceState(null, '', nextUrl.toString());
+          setRoomInput(payload.roomId);
+        }
+        applySharedSnapshot(payload.snapshot, payload.participantId ?? null);
+        return;
+      }
+
+      if (payload.type === 'room_event' && payload.snapshot) {
+        applySharedSnapshot(payload.snapshot);
+        return;
+      }
+
+      if (payload.type === 'error') {
+        setMessage(payload.message ?? '공유 방을 만들지 못했어요.');
+      }
+    });
+
+    socket.addEventListener('close', () => {
+      socketRef.current = null;
+    });
+  }
+
+  const isSharedMode = Boolean(sharedRoom);
   useEffect(() => {
     setHydrated(true);
     try {
@@ -431,6 +667,12 @@ export default function SudokuGame() {
       setSelected(saved.selected ?? null);
       setNoteMode(Boolean(saved.noteMode));
       setSoundEnabled(saved.soundEnabled ?? true);
+      setItems({
+        hint: Number.isInteger(saved.items?.hint) ? Math.max(0, saved.items!.hint!) : 3,
+        autoFill: Number.isInteger(saved.items?.autoFill) ? Math.max(0, saved.items!.autoFill!) : 1,
+      });
+      setLocale(saved.locale === 'en' ? 'en' : 'ko');
+      setHintPreview(null);
       setElapsedSeconds(Number.isFinite(saved.elapsedSeconds) ? Math.max(0, Math.floor(saved.elapsedSeconds ?? 0)) : 0);
       setTimerRunning(Boolean(saved.timerRunning));
       setSolved(Boolean(saved.solved));
@@ -455,18 +697,34 @@ export default function SudokuGame() {
       selected,
       noteMode,
       soundEnabled,
+      items,
+      locale,
       elapsedSeconds,
       timerRunning,
       solved,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setLastBackupAt(new Date().toISOString());
-  }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, soundEnabled, elapsedSeconds, timerRunning, solved]);
+  }, [hydrated, difficulty, puzzle, board, notes, history, selected, noteMode, soundEnabled, items, locale, elapsedSeconds, timerRunning, solved]);
 
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
   }, [hydrated, records]);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    const roomId = new URLSearchParams(window.location.search).get('room');
+    if (roomId) {
+      connectSharedRoom(roomId);
+    }
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    };
+  }, [hydrated]);
 
   useEffect(() => {
     if (!timerRunning) {
@@ -564,11 +822,15 @@ export default function SudokuGame() {
         event.preventDefault();
         handleHint();
       }
+      if (key === 'i') {
+        event.preventDefault();
+        handleHintItem();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selected, board, puzzle, notes, noteMode, solved]);
+  }, [selected, board, puzzle, notes, noteMode, solved, items]);
 
   function startTimerIfNeeded() {
     if (timerRunning || solved) return;
@@ -584,6 +846,16 @@ export default function SudokuGame() {
   }
 
   function resetGame(nextDifficulty: Difficulty = difficulty) {
+    if (sharedRoom) {
+      if (sharedRoom.role !== 'host') {
+        setMessage('방장만 새 퍼즐을 시작할 수 있어요.');
+        return;
+      }
+      sendSharedMessage({ type: 'reset_room', difficulty: nextDifficulty });
+      setMessage('공유 방에 새 퍼즐을 요청했어요.');
+      return;
+    }
+
     const nextPuzzle = generatePuzzle(nextDifficulty);
     setDifficulty(nextDifficulty);
     setPuzzle(nextPuzzle);
@@ -598,9 +870,12 @@ export default function SudokuGame() {
     setCompletionSummary(null);
     completionSavedRef.current = false;
     setNoteMode(false);
+    setItems({ hint: 3, autoFill: 1 });
+    setHintPreview(null);
     setElapsedSeconds(0);
     setTimerRunning(false);
     timerOriginRef.current = null;
+    setOwnership(ownershipFromPuzzle(nextPuzzle.puzzle));
     setMessage(`${nextDifficulty === 'easy' ? '하' : nextDifficulty === 'medium' ? '중' : '상'} 난이도 새 게임을 시작했어요.`);
   }
 
@@ -609,6 +884,8 @@ export default function SudokuGame() {
     setBoard(nextBoard);
     setNotes(nextNotes);
     setChecks([]);
+    setHintPreview(null);
+    syncOwnershipFromBoard(nextBoard, sharedRoom?.participantId ?? null);
     startTimerIfNeeded();
   }
 
@@ -624,6 +901,7 @@ export default function SudokuGame() {
       const nextNotes = toggleNote(notes, row, col, value);
       setNotes(nextNotes);
       setHistory((current) => [...current, captureSnapshot()].slice(-30));
+      setHintPreview(null);
       setMessage(`(${row + 1}, ${col + 1}) 메모에 ${value}를 ${hasNotes(nextNotes, row, col) ? '추가/삭제' : '반영'}했어요.`);
       return;
     }
@@ -639,6 +917,9 @@ export default function SudokuGame() {
     nextBoard[row][col] = value;
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
+    if (sharedRoom) {
+      sendSharedMessage({ type: 'move', row, col, value });
+    }
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
       setSolved(true);
     }
@@ -657,10 +938,18 @@ export default function SudokuGame() {
     nextBoard[row][col] = null;
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
+    if (sharedRoom) {
+      sendSharedMessage({ type: 'move', row, col, value: null });
+    }
     setMessage('칸과 메모를 비웠어요.');
   }
 
   function handleUndo() {
+    if (sharedRoom) {
+      setMessage('공유 모드에서는 Undo를 사용할 수 없어요.');
+      return;
+    }
+
     setHistory((current) => {
       if (current.length === 0) {
         setMessage('되돌릴 수 있는 수가 없어요.');
@@ -676,6 +965,8 @@ export default function SudokuGame() {
       setConfettiPieces([]);
       setCompletionSummary(null);
       completionSavedRef.current = false;
+      setHintPreview(null);
+      setOwnership(ownershipFromPuzzle(previous.board));
       setMessage('마지막 수를 되돌렸어요.');
       return current.slice(0, -1);
     });
@@ -716,7 +1007,7 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: 'Sudoku Studio 완료 카드',
+          title: 'ZenGrid Sudoku 완료 카드',
           text,
           files: [file],
         });
@@ -797,8 +1088,56 @@ export default function SudokuGame() {
     }
   }
 
+  function handleHintItem() {
+    if (solved) return;
+    if (items.hint <= 0) {
+      setMessage('힌트 아이템이 없어요.');
+      return;
+    }
+
+    const solvedBoard = solveSudoku(board);
+    if (!solvedBoard) {
+      setMessage('힌트를 줄 수 없는 상태예요. 먼저 입력을 정리해보세요.');
+      return;
+    }
+
+    let target: Position = selected;
+    if (!target || fixedCells[target.row][target.col] || board[target.row][target.col] !== null) {
+      target = null;
+      for (let r = 0; r < 9 && !target; r += 1) {
+        for (let c = 0; c < 9; c += 1) {
+          if (board[r][c] === null && !fixedCells[r][c]) {
+            target = { row: r, col: c };
+            break;
+          }
+        }
+      }
+    }
+
+    if (!target) {
+      setMessage('더 이상 힌트를 줄 칸이 없어요.');
+      return;
+    }
+
+    const value = solvedBoard[target.row][target.col];
+    if (value === null) {
+      setMessage('힌트를 계산했지만 값을 찾지 못했어요.');
+      return;
+    }
+
+    setSelected(target);
+    setHintPreview({ row: target.row, col: target.col, value });
+    setItems((current) => ({ ...current, hint: Math.max(0, current.hint - 1) }));
+    setMessage(`힌트: (${target.row + 1}, ${target.col + 1})에는 ${value}가 들어가요.`);
+  }
+
   function handleHint() {
     if (solved) return;
+    if (items.autoFill <= 0) {
+      setMessage('자동입력 아이템이 없어요.');
+      return;
+    }
+
     const solvedBoard = solveSudoku(board);
     if (!solvedBoard) {
       setMessage('힌트를 줄 수 없는 상태예요. 먼저 입력을 정리해보세요.');
@@ -833,12 +1172,17 @@ export default function SudokuGame() {
     setNotes(nextNotes);
     setHistory((current) => [...current, captureSnapshot()].slice(-30));
     setSelected(target);
+    setHintPreview(null);
+    setItems((current) => ({ ...current, autoFill: Math.max(0, current.autoFill - 1) }));
     setChecks([]);
-    setMessage(`힌트: (${target.row + 1}, ${target.col + 1})에 ${solvedBoard[target.row][target.col]}를 넣어보세요.`);
+    setMessage(`자동입력: (${target.row + 1}, ${target.col + 1})에 ${solvedBoard[target.row][target.col]}를 넣었어요.`);
   }
 
   const hasSavedState = hydrated && window.localStorage.getItem(STORAGE_KEY) !== null;
-  const visibleRecords = useMemo(() => records.slice(0, 5), [records]);
+  const visibleRecords = useMemo(
+    () => filterAndSortRecords(records, recordDifficultyFilter, recordSortMode).slice(0, 8),
+    [records, recordDifficultyFilter, recordSortMode],
+  );
   const bestByDifficulty = useMemo(() => {
     const all: Record<Difficulty, RecordEntry | null> = { easy: null, medium: null, hard: null };
     for (const record of records) {
@@ -858,16 +1202,40 @@ export default function SudokuGame() {
 
   const selectedCandidates = selected ? buildNotes(board, selected.row, selected.col) : [];
 
+  if (!hydrated) {
+    return (
+      <section className={styles.shell}>
+        <aside className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.panelLabel}>Sudoku</p>
+              <h2 className={styles.panelTitle}>로딩 중...</h2>
+            </div>
+          </div>
+          <p className={styles.message}>게임 상태를 준비하는 중이에요...</p>
+        </aside>
+        <section className={styles.boardWrap}>
+          <div className={styles.boardMeta}>
+            <div>
+              <p className={styles.panelLabel}>Sudoku Board</p>
+              <h3 className={styles.boardTitle}>퍼즐과 스타일을 불러오는 중입니다.</h3>
+            </div>
+          </div>
+        </section>
+      </section>
+    );
+  }
+
   return (
     <>
       <section className={styles.shell}>
       <aside className={styles.panel}>
         <div className={styles.panelTabs} role="tablist" aria-label="panel views">
           <button type="button" className={`${styles.panelTab} ${activePanel === 'play' ? styles.panelTabActive : ''}`} onClick={() => setActivePanel('play')}>
-            플레이
+            {locale === 'ko' ? '플레이' : 'Play'}
           </button>
           <button type="button" className={`${styles.panelTab} ${activePanel === 'records' ? styles.panelTabActive : ''}`} onClick={() => setActivePanel('records')}>
-            기록
+            {locale === 'ko' ? '기록' : 'Records'}
           </button>
         </div>
 
@@ -875,15 +1243,15 @@ export default function SudokuGame() {
           <>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.panelLabel}>난이도</p>
-                <h2 className={styles.panelTitle}>새 게임 시작</h2>
+                <p className={styles.panelLabel}>{locale === 'ko' ? '난이도' : 'Difficulty'}</p>
+                <h2 className={styles.panelTitle}>{locale === 'ko' ? '새 게임 시작' : 'Start a new game'}</h2>
               </div>
               <div className={styles.badge}>{puzzle.clueCount} clues</div>
             </div>
 
             <div className={styles.statusRow}>
               <div className={styles.statusChip}>
-                <span>타이머</span>
+                <span>{locale === 'ko' ? '타이머' : 'Timer'}</span>
                 <strong>{formatTime(elapsedSeconds)}</strong>
               </div>
               <button
@@ -891,7 +1259,7 @@ export default function SudokuGame() {
                 className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`}
                 onClick={() => setNoteMode((current) => !current)}
               >
-                <span>메모 모드</span>
+                <span>{locale === 'ko' ? '메모 모드' : 'Notes'}</span>
                 <strong>{noteMode ? 'ON' : 'OFF'}</strong>
               </button>
               <button
@@ -899,8 +1267,74 @@ export default function SudokuGame() {
                 className={`${styles.statusChip} ${soundEnabled ? styles.statusChipActive : ''}`}
                 onClick={() => setSoundEnabled((current) => !current)}
               >
-                <span>사운드</span>
+                <span>{locale === 'ko' ? '사운드' : 'Sound'}</span>
                 <strong>{soundEnabled ? 'ON' : 'OFF'}</strong>
+              </button>
+              <button type="button" className={styles.statusChip} onClick={() => setLocale((current) => (current === 'ko' ? 'en' : 'ko'))}>
+                <span>{locale === 'ko' ? '언어' : 'Language'}</span>
+                <strong>{locale === 'ko' ? 'EN' : 'KR'}</strong>
+              </button>
+            </div>
+
+            <div className={styles.roomPanel}>
+              {sharedRoom ? (
+                <>
+                  <div className={styles.roomMeta}>
+                    <span>{locale === 'ko' ? '공유 방' : 'Shared room'}</span>
+                    <strong>{sharedRoom.roomId}</strong>
+                    <small>
+                      {locale === 'ko'
+                        ? sharedRoom.role === 'host'
+                          ? '방장'
+                          : sharedRoom.role === 'guest'
+                            ? '참가자'
+                            : '관전자'
+                        : sharedRoom.role}
+                    </small>
+                  </div>
+                  <div className={styles.roomActions}>
+                    <button type="button" className={styles.actionSecondary} onClick={copyRoomInviteLink}>
+                      {locale === 'ko' ? '초대 링크 복사' : 'Copy invite link'}
+                    </button>
+                    <button type="button" className={styles.actionSecondary} onClick={disconnectSharedRoom}>
+                      {locale === 'ko' ? '방 나가기' : 'Leave room'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.roomField}>
+                    <label htmlFor="room-id-input">{locale === 'ko' ? '방 ID' : 'Room ID'}</label>
+                    <input
+                      id="room-id-input"
+                      className={styles.roomFieldInput}
+                      value={roomInput}
+                      onChange={(event) => setRoomInput(event.target.value)}
+                      placeholder={locale === 'ko' ? '방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type a room ID.'}
+                    />
+                  </div>
+                  <div className={styles.roomActions}>
+                    <button type="button" className={styles.actionPrimary} onClick={() => createSharedRoom(difficulty)}>
+                      {locale === 'ko' ? '방 만들기' : 'Create room'}
+                    </button>
+                    <button type="button" className={styles.actionSecondary} onClick={joinRoomFromInput}>
+                      {locale === 'ko' ? '방 참가' : 'Join room'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className={styles.itemRow}>
+              <button type="button" className={styles.itemChip} onClick={handleHintItem} disabled={items.hint <= 0 || solved}>
+                <span>{locale === 'ko' ? '힌트 아이템' : 'Hint item'}</span>
+                <strong>x{items.hint}</strong>
+                <small>I</small>
+              </button>
+              <button type="button" className={styles.itemChip} onClick={handleHint} disabled={items.autoFill <= 0 || solved}>
+                <span>{locale === 'ko' ? '자동입력 아이템' : 'Auto-fill item'}</span>
+                <strong>x{items.autoFill}</strong>
+                <small>H</small>
               </button>
             </div>
 
@@ -920,20 +1354,20 @@ export default function SudokuGame() {
 
             <div className={styles.statGrid}>
               <div className={styles.statCard}>
-                <span>해결 상태</span>
+                <span>{locale === 'ko' ? '해결 상태' : 'Status'}</span>
                 <strong>{solved ? '완료' : '진행 중'}</strong>
               </div>
               <div className={styles.statCard}>
-                <span>후보 수</span>
+                <span>{locale === 'ko' ? '후보 수' : 'Candidates'}</span>
                 <strong>{selected ? candidateCount : '—'}</strong>
               </div>
               <div className={styles.statCard}>
-                <span>저장</span>
+                <span>{locale === 'ko' ? '저장' : 'Saved'}</span>
                 <strong>{hasSavedState ? 'ON' : 'OFF'}</strong>
               </div>
               <div className={styles.statCard}>
-                <span>백업</span>
-                <strong>{lastBackupAt ? new Date(lastBackupAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '—'}</strong>
+                <span>{locale === 'ko' ? '백업' : 'Backup'}</span>
+                <strong>{lastBackupAt ? new Date(lastBackupAt).toLocaleTimeString(locale === 'ko' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}</strong>
               </div>
             </div>
 
@@ -941,16 +1375,16 @@ export default function SudokuGame() {
 
             <div className={styles.actions}>
               <button type="button" className={styles.actionPrimary} onClick={() => resetGame(difficulty)}>
-                새 퍼즐
+                {locale === 'ko' ? '새 퍼즐' : 'New puzzle'}
               </button>
               <button type="button" className={styles.actionSecondary} onClick={handleHint}>
-                힌트
+                {locale === 'ko' ? '자동입력' : 'Auto-fill'}
               </button>
               <button type="button" className={styles.actionSecondary} onClick={handleCheck}>
-                검사
+                {locale === 'ko' ? '검사' : 'Check'}
               </button>
               <button type="button" className={styles.actionSecondary} onClick={handleUndo}>
-                Undo
+                {locale === 'ko' ? 'Undo' : 'Undo'}
               </button>
             </div>
 
@@ -969,41 +1403,72 @@ export default function SudokuGame() {
           <>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.panelLabel}>기록</p>
-                <h2 className={styles.panelTitle}>베스트 랭킹</h2>
+                <p className={styles.panelLabel}>{locale === 'ko' ? '기록' : 'Records'}</p>
+                <h2 className={styles.panelTitle}>{locale === 'ko' ? '베스트 랭킹' : 'Best records'}</h2>
               </div>
               <div className={styles.panelHeaderActions}>
                 <div className={styles.badge}>{records.length} plays</div>
                 <button type="button" className={styles.actionSecondary} onClick={handleExportRecords}>
-                  내보내기
+                  {locale === 'ko' ? '내보내기' : 'Export'}
                 </button>
                 <button type="button" className={styles.actionSecondary} onClick={handleExportCsv}>
                   CSV
                 </button>
                 <button type="button" className={styles.actionSecondary} onClick={handleImportRecords}>
-                  가져오기
+                  {locale === 'ko' ? '가져오기' : 'Import'}
                 </button>
                 <button type="button" className={styles.actionSecondary} onClick={handleClearRecords}>
-                  기록 초기화
+                  {locale === 'ko' ? '기록 초기화' : 'Reset'}
                 </button>
+              </div>
+            </div>
+
+            <div className={styles.recordToolbar}>
+              <div className={styles.recordFilters}>
+                {(['all', 'easy', 'medium', 'hard'] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    className={`${styles.filterChip} ${recordDifficultyFilter === level ? styles.filterChipActive : ''}`}
+                    onClick={() => setRecordDifficultyFilter(level)}
+                  >
+                    {level === 'all' ? '전체' : level === 'easy' ? '하' : level === 'medium' ? '중' : '상'}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.recordSorts}>
+                {([
+                  ['fastest', '빠름'],
+                  ['newest', '최신'],
+                  ['oldest', '오래된'],
+                ] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`${styles.filterChip} ${recordSortMode === mode ? styles.filterChipActive : ''}`}
+                    onClick={() => setRecordSortMode(mode)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
             <div className={styles.statsGrid}>
               <div className={styles.statsCard}>
-                <span>총 완료</span>
+                <span>{locale === 'ko' ? '총 완료' : 'Solved'}</span>
                 <strong>{stats.total}</strong>
               </div>
               <div className={styles.statsCard}>
-                <span>평균 시간</span>
+                <span>{locale === 'ko' ? '평균 시간' : 'Average'}</span>
                 <strong>{stats.total > 0 ? formatTime(stats.average) : '—'}</strong>
               </div>
               <div className={styles.statsCard}>
-                <span>최고 기록</span>
+                <span>{locale === 'ko' ? '최고 기록' : 'Best time'}</span>
                 <strong>{stats.best ? formatTime(stats.best.elapsedSeconds) : '—'}</strong>
               </div>
               <div className={styles.statsCard}>
-                <span>상 난이도 완료</span>
+                <span>{locale === 'ko' ? '상 난이도 완료' : 'Hard clears'}</span>
                 <strong>{stats.hardestSolved}</strong>
               </div>
             </div>
@@ -1013,9 +1478,9 @@ export default function SudokuGame() {
                 const best = bestByDifficulty[level];
                 return (
                   <div key={level} className={styles.rankCard}>
-                    <span>{level === 'easy' ? '하' : level === 'medium' ? '중' : '상'}</span>
+                    <span>{locale === 'ko' ? (level === 'easy' ? '하' : level === 'medium' ? '중' : '상') : level.toUpperCase()[0]}</span>
                     <strong>{best ? formatTime(best.elapsedSeconds) : '—'}</strong>
-                    <small>{best ? `${best.clueCount} clues · ${new Date(best.completedAt).toLocaleDateString('ko-KR')}` : '기록 없음'}</small>
+                    <small>{best ? `${best.clueCount} clues · ${new Date(best.completedAt).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US')}` : locale === 'ko' ? '기록 없음' : 'No record yet'}</small>
                   </div>
                 );
               })}
@@ -1030,11 +1495,11 @@ export default function SudokuGame() {
                   </div>
                   <div>
                     <strong>{formatTime(record.elapsedSeconds)}</strong>
-                    <span>{new Date(record.completedAt).toLocaleString('ko-KR')}</span>
+                    <span>{new Date(record.completedAt).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US')}</span>
                   </div>
                 </div>
-              )) : <p className={styles.recordEmpty}>아직 기록이 없어요. 첫 퍼즐을 완성해보세요.</p>}
-            </div>
+              )) : <p className={styles.recordEmpty}>{locale === 'ko' ? '아직 기록이 없어요. 첫 퍼즐을 완성해보세요.' : 'No records yet. Finish your first puzzle to see rankings.'}</p>}
+</div>
           </>
         )}
       </aside>
@@ -1043,9 +1508,9 @@ export default function SudokuGame() {
         <div className={styles.boardMeta}>
           <div>
             <p className={styles.panelLabel}>Sudoku Board</p>
-            <h3 className={styles.boardTitle}>집중하기 좋은 클린한 레이아웃</h3>
+            <h3 className={styles.boardTitle}>{locale === 'ko' ? '집중하기 좋은 클린한 레이아웃' : 'A clean layout for focused play'}</h3>
           </div>
-          <span className={styles.boardHint}>클릭하거나 키보드 1~9를 사용하세요. N = 메모, H = 힌트</span>
+          <span className={styles.boardHint}>{locale === 'ko' ? '클릭하거나 키보드 1~9를 사용하세요. I = 힌트, H = 자동입력' : 'Click a cell or press 1–9. I = hint, H = auto-fill.'}</span>
         </div>
 
         <div className={`${styles.board} ${solved ? styles.boardSolved : ""}`} role="grid" aria-label="Sudoku board">
@@ -1068,6 +1533,7 @@ export default function SudokuGame() {
                 solved ? styles.cellSolved : '',
                 (inSameRow || inSameCol || inSameBox) && !isSelected ? styles.cellFocus : '',
                 (isWrong || conflictCells.has(`${rowIndex}-${colIndex}`)) ? styles.cellWrong : '',
+                hintPreview?.row === rowIndex && hintPreview?.col === colIndex ? styles.cellHint : '',
               ]
                 .filter(Boolean)
                 .join(' ');
@@ -1137,7 +1603,7 @@ export default function SudokuGame() {
             ) : null}
             <div className={styles.modalActions}>
               <button className={styles.actionPrimary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); resetGame(difficulty); }}>
-                새 퍼즐
+                {locale === 'ko' ? '새 퍼즐' : 'New puzzle'}
               </button>
               <button className={styles.actionSecondary} onClick={() => { void handleShareCompletion(); }}>
                 공유하기
