@@ -3,14 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node server.mjs",
+    "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production node server.mjs",
+    "start": "next start",
     "pm2:start": "bash scripts/start.sh",
-    "pm2:stop": "bash scripts/stop.sh"
+    "pm2:stop": "bash scripts/stop.sh",
+    "realtime:dev": "npx partykit dev party/server.ts",
+    "realtime:deploy": "npx partykit deploy party/server.ts"
   },
   "dependencies": {
     "next": "13.5.11",
+    "partykit": "^0.0.115",
+    "partysocket": "^1.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

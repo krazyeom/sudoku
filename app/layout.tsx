@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ZenGrid Sudoku',
-  description: 'Modern Sudoku game built with Next.js',
+  title: 'ZenGrid 스도쿠',
+  description: 'Next.js로 만든 깔끔한 스도쿠 게임',
 };
 
 export default function RootLayout({

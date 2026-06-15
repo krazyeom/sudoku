@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import PartySocket from 'partysocket';
 import styles from './SudokuGame.module.css';
 import {
   Difficulty,
@@ -87,6 +88,20 @@ function ownershipFromPuzzle(puzzle: Grid): SharedRoomCellOccupancy[][] {
 const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
+const PARTYKIT_PARTY = 'sudoku';
+
+function getPartykitHost(): string {
+  if (typeof window === 'undefined') return '127.0.0.1:1999';
+  const { hostname, host } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return '127.0.0.1:1999';
+  }
+  return host;
+}
+
+function makeClientId(prefix = 'p'): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 const DIFFICULTIES: Array<{
   value: Difficulty;
@@ -462,7 +477,7 @@ export default function SudokuGame() {
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
   const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
 
-  const socketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<PartySocket | null>(null);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
 
@@ -579,20 +594,29 @@ export default function SudokuGame() {
     connectSharedRoom(roomId);
   }
 
-  function connectSharedRoom(roomId: string) {
+  function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty) {
     if (typeof window === 'undefined') return;
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
+    const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
+    window.localStorage.setItem(participantKey, participantId);
+
+    const socket = new PartySocket({
+      host: getPartykitHost(),
+      party: PARTYKIT_PARTY,
+      room: roomId,
+      id: participantId,
+    });
     socketRef.current = socket;
 
     socket.addEventListener('open', () => {
-      const participantId = window.localStorage.getItem(`${ROOM_TOKEN_PREFIX}${roomId}`) ?? undefined;
-      sendSharedMessage({ type: 'join_room', roomId, participantId });
+      if (seedDifficulty) {
+        sendSharedMessage({ type: 'create_room', difficulty: seedDifficulty });
+      }
     });
 
     socket.addEventListener('message', (event) => {
@@ -604,19 +628,20 @@ export default function SudokuGame() {
       }
 
       if (payload.type === 'room_created' || payload.type === 'room_joined' || payload.type === 'room_snapshot' || payload.type === 'room_reset') {
-        if (payload.participantId && payload.roomId) {
-          window.localStorage.setItem(`${ROOM_TOKEN_PREFIX}${payload.roomId}`, payload.participantId);
+        if (payload.roomId) {
           const nextUrl = new URL(window.location.href);
           nextUrl.searchParams.set('room', payload.roomId);
           window.history.replaceState(null, '', nextUrl.toString());
           setRoomInput(payload.roomId);
         }
-        applySharedSnapshot(payload.snapshot, payload.participantId ?? null);
+        if (payload.snapshot) {
+          applySharedSnapshot(payload.snapshot, participantId);
+        }
         return;
       }
 
       if (payload.type === 'room_event' && payload.snapshot) {
-        applySharedSnapshot(payload.snapshot);
+        applySharedSnapshot(payload.snapshot, participantId);
         return;
       }
 
@@ -637,52 +662,9 @@ export default function SudokuGame() {
 
   function createSharedRoom(nextDifficulty: Difficulty = difficulty) {
     if (typeof window === 'undefined') return;
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
-    socketRef.current = socket;
-
-    socket.addEventListener('open', () => {
-      sendSharedMessage({ type: 'create_room', difficulty: nextDifficulty });
-    });
-
-    socket.addEventListener('message', (event) => {
-      let payload: any;
-      try {
-        payload = JSON.parse(String(event.data));
-      } catch {
-        return;
-      }
-
-      if (payload.type === 'room_created') {
-        if (payload.participantId && payload.roomId) {
-          window.localStorage.setItem(`${ROOM_TOKEN_PREFIX}${payload.roomId}`, payload.participantId);
-          const nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.set('room', payload.roomId);
-          window.history.replaceState(null, '', nextUrl.toString());
-          setRoomInput(payload.roomId);
-        }
-        applySharedSnapshot(payload.snapshot, payload.participantId ?? null);
-        return;
-      }
-
-      if (payload.type === 'room_event' && payload.snapshot) {
-        applySharedSnapshot(payload.snapshot);
-        return;
-      }
-
-      if (payload.type === 'error') {
-        setMessage(payload.message ?? '공유 방을 만들지 못했어요.');
-      }
-    });
-
-    socket.addEventListener('close', () => {
-      socketRef.current = null;
-    });
+    const roomId = `room-${Math.random().toString(36).slice(2, 9)}`;
+    setRoomInput(roomId);
+    connectSharedRoom(roomId, nextDifficulty);
   }
 
   const isSharedMode = Boolean(sharedRoom);
@@ -1001,7 +983,7 @@ export default function SudokuGame() {
 
   function handleUndo() {
     if (sharedRoom) {
-      setMessage('공유 모드에서는 Undo를 사용할 수 없어요.');
+      setMessage('공유 모드에서는 되돌리기를 사용할 수 없어요.');
       return;
     }
 
@@ -1327,7 +1309,7 @@ export default function SudokuGame() {
               </button>
               <button type="button" className={styles.statusChip} onClick={() => setLocale((current) => (current === 'ko' ? 'en' : 'ko'))}>
                 <span>{locale === 'ko' ? '언어' : 'Language'}</span>
-                <strong>{locale === 'ko' ? 'EN' : 'KR'}</strong>
+                <strong>{locale === 'ko' ? '한국어' : 'English'}</strong>
               </button>
             </div>
 
@@ -1468,7 +1450,7 @@ export default function SudokuGame() {
                 {locale === 'ko' ? '검사' : 'Check'}
               </button>
               <button type="button" className={styles.actionSecondary} onClick={handleUndo}>
-                {locale === 'ko' ? 'Undo' : 'Undo'}
+                {locale === 'ko' ? '되돌리기' : 'Undo'}
               </button>
             </div>
 

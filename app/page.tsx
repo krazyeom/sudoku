@@ -6,10 +6,10 @@ export default function HomePage() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <h1 className={styles.title}>ZenGrid Sudoku</h1>
+          <h1 className={styles.title}>ZenGrid 스도쿠</h1>
           <p className={styles.description}>
-            Modern sudoku with Easy / Medium / Hard modes.
-            Every puzzle is validated to have exactly one solution before it is shown.
+            Easy / Medium / Hard 난이도의 스도쿠를 차분하게 풀어보세요.
+            모든 퍼즐은 공개되기 전에 해답이 하나뿐인지 검증됩니다.
           </p>
         </div>
       </section>
