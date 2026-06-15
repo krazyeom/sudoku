@@ -240,6 +240,58 @@ function getNoteCellValue(notes: number[]): string[] {
   return slots;
 }
 
+async function playCompletionSound() {
+  if (typeof window === 'undefined') return;
+  const AudioContextClass =
+    window.AudioContext || (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const context = new AudioContextClass();
+  try {
+    if (context.state === 'suspended') {
+      await context.resume();
+    }
+
+    const now = context.currentTime + 0.02;
+    const melody = [523.25, 659.25, 783.99, 1046.5];
+    melody.forEach((frequency, index) => {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = index % 2 === 0 ? 'triangle' : 'sine';
+      osc.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, now + index * 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.16, now + index * 0.11 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.28);
+      osc.connect(gain);
+      gain.connect(context.destination);
+      osc.start(now + index * 0.11);
+      osc.stop(now + index * 0.11 + 0.32);
+    });
+
+    const bass = context.createOscillator();
+    const bassGain = context.createGain();
+    bass.type = 'sine';
+    bass.frequency.value = 196;
+    bassGain.gain.setValueAtTime(0.0001, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+    bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    bass.connect(bassGain);
+    bassGain.connect(context.destination);
+    bass.start(now);
+    bass.stop(now + 0.6);
+
+    window.setTimeout(() => {
+      void context.close();
+    }, 1200);
+  } catch {
+    try {
+      await context.close();
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [puzzle, setPuzzle] = useState<Puzzle>(() => generatePuzzle('medium'));
@@ -354,15 +406,16 @@ export default function SudokuGame() {
     setTimerRunning(false);
     setShowCompleteModal(true);
     setConfettiPieces(
-      Array.from({ length: 42 }, (_, index) => ({
+      Array.from({ length: 72 }, (_, index) => ({
         left: Math.random() * 100,
-        delay: Math.random() * 0.6,
-        duration: 2.4 + Math.random() * 1.8,
-        size: 8 + Math.random() * 10,
-        hue: [45, 140, 200, 280, 330][index % 5],
+        delay: Math.random() * 0.9,
+        duration: 2.2 + Math.random() * 1.9,
+        size: 6 + Math.random() * 12,
+        hue: [42, 112, 188, 264, 330, 16][index % 6],
         rotation: Math.random() * 360,
       })),
     );
+    void playCompletionSound();
 
     if (!completionSavedRef.current) {
       completionSavedRef.current = true;
@@ -527,12 +580,19 @@ export default function SudokuGame() {
       setElapsedSeconds(previous.elapsedSeconds);
       setChecks([]);
       setSolved(false);
-    setShowCompleteModal(false);
-    setConfettiPieces([]);
-    completionSavedRef.current = false;
+      setShowCompleteModal(false);
+      setConfettiPieces([]);
+      completionSavedRef.current = false;
       setMessage('마지막 수를 되돌렸어요.');
       return current.slice(0, -1);
     });
+  }
+
+  function handleClearRecords() {
+    if (typeof window !== 'undefined' && !window.confirm('저장된 기록을 모두 삭제할까요?')) return;
+    setRecords([]);
+    window.localStorage.removeItem(RECORDS_KEY);
+    setMessage('기록을 모두 삭제했어요.');
   }
 
   function handleCheck() {
@@ -728,7 +788,12 @@ export default function SudokuGame() {
                 <p className={styles.panelLabel}>기록</p>
                 <h2 className={styles.panelTitle}>베스트 랭킹</h2>
               </div>
-              <div className={styles.badge}>{records.length} plays</div>
+              <div className={styles.panelHeaderActions}>
+                <div className={styles.badge}>{records.length} plays</div>
+                <button type="button" className={styles.actionSecondary} onClick={handleClearRecords}>
+                  기록 초기화
+                </button>
+              </div>
             </div>
 
             <div className={styles.rankGrid}>
@@ -771,7 +836,7 @@ export default function SudokuGame() {
           <span className={styles.boardHint}>클릭하거나 키보드 1~9를 사용하세요. N = 메모, H = 힌트</span>
         </div>
 
-        <div className={styles.board} role="grid" aria-label="Sudoku board">
+        <div className={`${styles.board} ${solved ? styles.boardSolved : ""}`} role="grid" aria-label="Sudoku board">
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => {
               const isFixed = fixedCells[rowIndex][colIndex];
@@ -788,6 +853,7 @@ export default function SudokuGame() {
                 styles.cell,
                 isFixed ? styles.cellFixed : '',
                 isSelected ? styles.cellSelected : '',
+                solved ? styles.cellSolved : '',
                 (inSameRow || inSameCol || inSameBox) && !isSelected ? styles.cellFocus : '',
                 (isWrong || conflictCells.has(`${rowIndex}-${colIndex}`)) ? styles.cellWrong : '',
               ]
