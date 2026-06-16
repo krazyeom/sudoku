@@ -12,5 +12,5 @@ npm run build
 if "$PM2" describe "$APP_NAME" >/dev/null 2>&1; then
   "$PM2" restart "$APP_NAME" --update-env
 else
-  "$PM2" start npm --name "$APP_NAME" -- start
+  "$PM2" start npm --name "$APP_NAME" --cwd "$ROOT" -- start
 fi

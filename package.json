@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "prestart": "npm run build",
+    "start": "next start -p ${PORT:-6767}",
     "pm2:start": "bash scripts/start.sh",
     "pm2:stop": "bash scripts/stop.sh",
     "realtime:dev": "npx partykit dev party/server.ts",
