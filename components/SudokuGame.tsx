@@ -95,6 +95,14 @@ function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | n
   const rivalsConnected = snapshot.participants.filter(
     (participant) => participant.connected && participant.role !== 'spectator' && participant.id !== participantId,
   ).length;
+  const otherProgress = fillableCells > 0 ? Math.round((otherCells / fillableCells) * 100) : 0;
+
+  const stage =
+    otherProgress >= 85 ? { ko: '막판 압박', en: 'Final push' }
+    : otherProgress >= 60 ? { ko: '공세 구간', en: 'Momentum' }
+    : otherProgress >= 35 ? { ko: '중반 추격', en: 'Midgame chase' }
+    : otherProgress >= 12 ? { ko: '초반 탐색', en: 'Opening probe' }
+    : { ko: '출발선', en: 'Starting line' };
 
   return {
     clueCells,
@@ -103,6 +111,8 @@ function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | n
     fillableCells,
     rivalsConnected,
     battleActive: rivalsConnected > 0,
+    otherProgress,
+    stage,
   };
 }
 
@@ -149,7 +159,7 @@ function getDifficultyDetail(locale: Locale, difficulty: Difficulty): string {
 }
 
 function sanitizeRoomIdInput(value: string): string {
-  return value.toLowerCase().replace(/[^a-z-]/g, '');
+  return value.toLowerCase().replace(/[^a-z0-9-]/g, '');
 }
 
 function cloneGrid(grid: Grid): Grid {
@@ -1399,7 +1409,7 @@ export default function SudokuGame() {
                       autoCapitalize="off"
                       spellCheck={false}
                       enterKeyHint="go"
-                      placeholder={locale === 'ko' ? '영문 방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type an English room ID.'}
+                      placeholder={locale === 'ko' ? '영문+숫자 방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type an alphanumeric room ID.'}
                     />
                   </div>
                   <div className={styles.roomActions}>
@@ -1621,8 +1631,8 @@ export default function SudokuGame() {
                     </h4>
                   </div>
                   <div className={styles.battleScore}>
-                    <strong>{battleSummary?.otherCells ?? 0}</strong>
-                    <span>{locale === 'ko' ? '상대 수' : 'Rival moves'}</span>
+                    <strong>{locale === 'ko' ? `${battleSummary?.otherProgress ?? 0}% 점유` : `${battleSummary?.otherProgress ?? 0}% controlled`}</strong>
+                    <span>{locale === 'ko' ? `${battleSummary?.otherCells ?? 0}칸 확보` : `${battleSummary?.otherCells ?? 0} cells`}</span>
                   </div>
                 </div>
                 <div className={styles.battleProgress} aria-hidden="true">
@@ -1635,8 +1645,8 @@ export default function SudokuGame() {
                 <p className={styles.battleCaption}>
                   {battleSummary?.battleActive
                     ? locale === 'ko'
-                      ? `상대가 ${battleSummary.otherCells}/${battleSummary.fillableCells}칸을 채웠어요. 숫자는 숨기고 진행만 보여줘요.`
-                      : `Your rival has filled ${battleSummary.otherCells}/${battleSummary.fillableCells} cells. Digits stay hidden.`
+                      ? `상대가 ${battleSummary.otherCells}/${battleSummary.fillableCells}칸을 채웠어요. ${battleSummary.stage.ko} 구간이에요.`
+                      : `Your rival has filled ${battleSummary.otherCells}/${battleSummary.fillableCells} cells. ${battleSummary.stage.en}.`
                     : locale === 'ko'
                       ? '상대가 들어오면 미니맵이 살아나요.'
                       : 'The minimap comes alive when a rival joins.'}
