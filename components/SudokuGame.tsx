@@ -87,7 +87,7 @@ function ownershipFromPuzzle(puzzle: Grid): SharedRoomCellOccupancy[][] {
 }
 
 function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | null) {
-  const cells = snapshot.occupancy.flat();
+  const cells = snapshot.occupancy?.flat() ?? [];
   const clueCells = cells.filter((cell) => cell === 'clue').length;
   const selfCells = cells.filter((cell) => cell === 'self').length;
   const otherCells = cells.filter((cell) => cell === 'other').length;
@@ -520,6 +520,15 @@ export default function SudokuGame() {
     () => (sharedRoom?.snapshot ? summarizeBattle(sharedRoom.snapshot, sharedRoom.participantId) : null),
     [sharedRoom?.participantId, sharedRoom?.snapshot],
   );
+  const sharedMatchPhase = sharedRoom?.snapshot?.phase ?? null;
+  const sharedMatchIsPlaying = sharedMatchPhase === 'playing';
+  const sharedMatchIsCountdown = sharedMatchPhase === 'countdown';
+  const sharedMatchCountDownSeconds = useMemo(() => {
+    if (!sharedRoom?.snapshot?.countdownEndsAt || !sharedMatchIsCountdown) return null;
+    return Math.max(0, Math.ceil((new Date(sharedRoom.snapshot.countdownEndsAt).getTime() - Date.now()) / 1000));
+  }, [sharedRoom?.snapshot?.countdownEndsAt, sharedMatchIsCountdown]);
+  const sharedMatchGateActive = Boolean(sharedRoom?.snapshot && !sharedMatchIsPlaying);
+  const sharedBattleMiniMapGrid = sharedRoom?.snapshot?.occupancy ?? createEmptyOwnershipGrid();
 
   function syncOwnershipFromBoard(nextBoard: Grid, participantId: string | null) {
     setOwnership(
@@ -537,17 +546,26 @@ export default function SudokuGame() {
 
   function applySharedSnapshot(snapshot: SharedRoomSnapshot, participantId?: string | null) {
     const viewerId = participantId ?? sharedRoom?.participantId ?? null;
-    const nextPuzzle: Puzzle = {
-      puzzle: snapshot.puzzle,
-      solution: snapshot.solution,
-      clueCount: snapshot.clueCount,
-      difficulty: snapshot.difficulty,
-    };
+    let nextPuzzle: Puzzle | null = null;
+    let nextBoard: Grid | null = null;
+    let nextOccupancy: SharedRoomCellOccupancy[][] = createEmptyOwnershipGrid();
+
+    if (snapshot.phase === 'playing' && snapshot.puzzle && snapshot.solution && snapshot.board && snapshot.occupancy) {
+      nextPuzzle = {
+        puzzle: snapshot.puzzle,
+        solution: snapshot.solution,
+        clueCount: snapshot.clueCount,
+        difficulty: snapshot.difficulty,
+      };
+      nextBoard = snapshot.board;
+      nextOccupancy = snapshot.occupancy;
+    }
+
     setDifficulty(snapshot.difficulty);
-    setPuzzle(nextPuzzle);
-    setBoard(snapshot.board);
-    setOwnership(snapshot.occupancy);
-    setSolved(snapshot.solved);
+    if (nextPuzzle) setPuzzle(nextPuzzle);
+    if (nextBoard) setBoard(nextBoard);
+    setOwnership(nextOccupancy);
+    setSolved(snapshot.phase === 'playing' ? snapshot.solved : false);
     setSelected(null);
     setChecks([]);
     setHintPreview(null);
@@ -568,11 +586,23 @@ export default function SudokuGame() {
             }
           : current,
     );
+    if (snapshot.phase === 'countdown') {
+      setMessage(
+        locale === 'ko'
+          ? `상대방이 연결됐어요. ${sharedMatchCountDownSeconds ?? 5}초 뒤 시작합니다.`
+          : `Opponent joined. Starting in ${sharedMatchCountDownSeconds ?? 5} seconds.`,
+      );
+      return;
+    }
+    if (snapshot.phase === 'lobby') {
+      setMessage(locale === 'ko' ? '상대방을 기다리는 중이에요.' : 'Waiting for a second player.');
+      return;
+    }
     setMessage(
       snapshot.solved
         ? '공유 퍼즐이 완료됐어요.'
         : snapshot.participants.filter((participant) => participant.connected && participant.role !== 'spectator').length > 1
-          ? '상대방이 입장했어요.'
+          ? '상대방과 동기화됐어요. 함께 시작해요.'
           : '공유 퍼즐에 연결됐어요.',
     );
   }
@@ -965,6 +995,10 @@ export default function SudokuGame() {
   }
 
   function updateCell(value: number) {
+    if (sharedMatchGateActive) {
+      setMessage(locale === 'ko' ? '상대방이 연결될 때까지 기다려 주세요.' : 'Please wait until the match starts.');
+      return;
+    }
     if (!selected) return;
     const { row, col } = selected;
     if (fixedCells[row][col] || solved) return;
@@ -1002,6 +1036,10 @@ export default function SudokuGame() {
   }
 
   function clearCell() {
+    if (sharedMatchGateActive) {
+      setMessage(locale === 'ko' ? '상대방이 연결될 때까지 기다려 주세요.' : 'Please wait until the match starts.');
+      return;
+    }
     if (!selected) return;
     const { row, col } = selected;
     if (fixedCells[row][col] || solved) return;
@@ -1020,6 +1058,10 @@ export default function SudokuGame() {
   }
 
   function handleUndo() {
+    if (sharedMatchGateActive) {
+      setMessage(locale === 'ko' ? '카운트다운이 끝난 뒤에만 조작할 수 있어요.' : 'You can only edit after the countdown finishes.');
+      return;
+    }
     if (sharedRoom) {
       setMessage('공유 모드에서는 되돌리기를 사용할 수 없어요.');
       return;
@@ -1164,6 +1206,14 @@ export default function SudokuGame() {
   }
 
   function handleHintItem() {
+    if (sharedMatchGateActive) {
+      setMessage(locale === 'ko' ? '시작 후에만 힌트를 사용할 수 있어요.' : 'Hints are available after the match starts.');
+      return;
+    }
+    if (sharedRoom) {
+      setMessage(locale === 'ko' ? '공유 경기에서는 힌트를 사용할 수 없어요.' : 'Hints are disabled in shared matches.');
+      return;
+    }
     if (solved) return;
     if (items.hint <= 0) {
       setMessage('힌트 아이템이 없어요.');
@@ -1207,6 +1257,14 @@ export default function SudokuGame() {
   }
 
   function handleHint() {
+    if (sharedMatchGateActive) {
+      setMessage(locale === 'ko' ? '시작 후에만 자동입력을 사용할 수 있어요.' : 'Auto-fill is available after the match starts.');
+      return;
+    }
+    if (sharedRoom) {
+      setMessage(locale === 'ko' ? '공유 경기에서는 자동입력을 사용할 수 없어요.' : 'Auto-fill is disabled in shared matches.');
+      return;
+    }
     if (solved) return;
     if (items.autoFill <= 0) {
       setMessage('자동입력 아이템이 없어요.');
@@ -1430,12 +1488,12 @@ export default function SudokuGame() {
             </div>
 
             <div className={styles.itemRow}>
-              <button type="button" className={styles.itemChip} onClick={handleHintItem} disabled={items.hint <= 0 || solved}>
+              <button type="button" className={styles.itemChip} onClick={handleHintItem} disabled={items.hint <= 0 || solved || Boolean(sharedRoom)}>
                 <span>{locale === 'ko' ? '힌트 아이템' : 'Hint item'}</span>
                 <strong>x{items.hint}</strong>
                 <small>I</small>
               </button>
-              <button type="button" className={styles.itemChip} onClick={handleHint} disabled={items.autoFill <= 0 || solved}>
+              <button type="button" className={styles.itemChip} onClick={handleHint} disabled={items.autoFill <= 0 || solved || Boolean(sharedRoom)}>
                 <span>{locale === 'ko' ? '자동입력 아이템' : 'Auto-fill item'}</span>
                 <strong>x{items.autoFill}</strong>
                 <small>H</small>
@@ -1652,7 +1710,7 @@ export default function SudokuGame() {
                       : 'The minimap comes alive when a rival joins.'}
                 </p>
                 <div className={styles.battleMiniMap} aria-label={locale === 'ko' ? '상대 진행 미니맵' : 'Opponent minimap'}>
-                  {sharedRoom.snapshot.occupancy.flatMap((row, rowIndex) =>
+                  {sharedBattleMiniMapGrid.flatMap((row, rowIndex) =>
                     row.map((cell, colIndex) => (
                       <span
                         key={`${rowIndex}-${colIndex}`}
@@ -1681,7 +1739,30 @@ export default function SudokuGame() {
           </div>
         </div>
 
-        <div className={`${styles.board} ${solved ? styles.boardSolved : ""}`} role="grid" aria-label="Sudoku board">
+        {sharedMatchGateActive ? (
+          <div className={styles.boardGate} role="status" aria-live="polite">
+            <p className={styles.panelLabel}>{locale === 'ko' ? '매치 준비 중' : 'Match lobby'}</p>
+            <h3 className={styles.boardGateTitle}>
+              {sharedMatchIsCountdown
+                ? locale === 'ko'
+                  ? `${sharedMatchCountDownSeconds ?? 5}초 뒤 시작합니다`
+                  : `Starting in ${sharedMatchCountDownSeconds ?? 5} seconds`
+                : locale === 'ko'
+                  ? '상대방이 들어오면 5초 카운트다운 후 시작해요'
+                  : 'Waiting for the second player, then a 5-second countdown will start'}
+            </h3>
+            <p className={styles.boardGateText}>
+              {sharedMatchIsCountdown
+                ? locale === 'ko'
+                  ? '양쪽 모두 같은 시점에 퍼즐이 공개됩니다.'
+                  : 'Both players will see the board at the same time.'
+                : locale === 'ko'
+                  ? '대기 중에는 판을 미리 보여주지 않습니다.'
+                  : 'The board stays hidden until both players are ready.'}
+            </p>
+          </div>
+        ) : null}
+        <div className={`${styles.board} ${solved ? styles.boardSolved : ""} ${sharedMatchGateActive ? styles.boardLocked : ""}`} role="grid" aria-label="Sudoku board">
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => {
               const isFixed = fixedCells[rowIndex][colIndex];

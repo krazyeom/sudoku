@@ -6,6 +6,7 @@ type Cell = { value: number | null; ownerId: string | null; kind: CellKind };
 type PuzzleGrid = (number | null)[][];
 type SolvedGrid = number[][];
 type ParticipantRole = 'host' | 'guest' | 'spectator';
+type RoomPhase = 'lobby' | 'countdown' | 'playing';
 type Participant = {
   id: string;
   role: ParticipantRole;
@@ -19,6 +20,9 @@ type RoomState = {
   puzzle: PuzzleGrid;
   solution: SolvedGrid;
   clueCount: number;
+  phase: RoomPhase;
+  countdownEndsAt: string | null;
+  startedAt: string | null;
   cells: Cell[][];
   participants: Record<string, Participant>;
   solved: boolean;
@@ -29,6 +33,90 @@ type RoomState = {
 };
 
 const STATE_KEY = 'state';
+const MATCH_COUNTDOWN_MS = 5000;
+const matchTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function activeParticipants(state: RoomState): Participant[] {
+  return Object.values(state.participants).filter((participant) => participant.connected && participant.role !== 'spectator');
+}
+
+function clearMatchTimer(roomId: string) {
+  const timer = matchTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    matchTimers.delete(roomId);
+  }
+}
+
+function scheduleMatchStart(room: Room, state: RoomState) {
+  clearMatchTimer(state.roomId);
+  if (state.phase !== 'countdown' || !state.countdownEndsAt) return;
+  const delay = Math.max(0, new Date(state.countdownEndsAt).getTime() - Date.now());
+  const timer = setTimeout(() => {
+    void (async () => {
+      const latest = await room.storage.get<RoomState>(STATE_KEY);
+      if (!latest || latest.roomId !== room.id) return;
+      if (latest.phase !== 'countdown' || !latest.countdownEndsAt) return;
+      if (Date.now() < new Date(latest.countdownEndsAt).getTime()) {
+        scheduleMatchStart(room, latest);
+        return;
+      }
+      latest.phase = 'playing';
+      latest.startedAt = nowIso();
+      latest.countdownEndsAt = null;
+      latest.updatedAt = nowIso();
+      await room.storage.put(STATE_KEY, latest);
+      await broadcastSnapshot(room, latest);
+    })();
+  }, delay);
+  matchTimers.set(state.roomId, timer);
+}
+
+async function syncMatchState(room: Room, state: RoomState): Promise<boolean> {
+  const connectedPlayers = activeParticipants(state);
+  const hasEnoughPlayers = connectedPlayers.length >= 2;
+  const now = Date.now();
+  let changed = false;
+
+  if (!hasEnoughPlayers && state.phase !== 'playing') {
+    if (state.phase !== 'lobby' || state.countdownEndsAt !== null) {
+      state.phase = 'lobby';
+      state.countdownEndsAt = null;
+      state.startedAt = null;
+      changed = true;
+    }
+    clearMatchTimer(state.roomId);
+    return changed;
+  }
+
+  if (state.phase === 'lobby') {
+    state.phase = 'countdown';
+    state.countdownEndsAt = new Date(now + MATCH_COUNTDOWN_MS).toISOString();
+    state.startedAt = null;
+    changed = true;
+    scheduleMatchStart(room, state);
+    return changed;
+  }
+
+  if (state.phase === 'countdown' && state.countdownEndsAt) {
+    const endTime = new Date(state.countdownEndsAt).getTime();
+    if (now >= endTime) {
+      state.phase = 'playing';
+      state.startedAt = nowIso();
+      state.countdownEndsAt = null;
+      clearMatchTimer(state.roomId);
+      changed = true;
+      return changed;
+    }
+    scheduleMatchStart(room, state);
+  }
+
+  return changed;
+}
 
 function cloneGrid<T>(grid: T[][]): T[][] {
   return grid.map((row) => [...row]);
@@ -232,6 +320,9 @@ function createRoomState(options: { roomId?: string; hostId?: string; difficulty
     puzzle: puzzleData.puzzle,
     solution: puzzleData.solution,
     clueCount: puzzleData.clueCount,
+    phase: 'lobby',
+    countdownEndsAt: null,
+    startedAt: null,
     cells,
     participants: {},
     solved: false,
@@ -255,6 +346,10 @@ function normalizeDifficulty(value: unknown): Difficulty {
   return value === 'easy' || value === 'hard' ? value : 'medium';
 }
 
+function createHiddenGrid(): PuzzleGrid {
+  return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => null));
+}
+
 function computeViewerRole(state: RoomState, participantId: string | null): ParticipantRole {
   if (!participantId) return 'spectator';
   const participant = state.participants[participantId];
@@ -264,29 +359,37 @@ function computeViewerRole(state: RoomState, participantId: string | null): Part
 
 function buildViewerSnapshot(state: RoomState, participantId: string | null = null) {
   const viewerRole = computeViewerRole(state, participantId);
-  const board = state.cells.map((row) =>
-    row.map((cell) => {
-      if (cell.kind === 'clue') return cell.value;
-      if (participantId && cell.ownerId === participantId) return cell.value;
-      return null;
-    }),
-  );
+  const revealBoard = state.phase === 'playing';
+  const board = revealBoard
+    ? state.cells.map((row) =>
+        row.map((cell) => {
+          if (cell.kind === 'clue') return cell.value;
+          if (participantId && cell.ownerId === participantId) return cell.value;
+          return null;
+        }),
+      )
+    : createHiddenGrid();
 
-  const occupancy = state.cells.map((row) =>
-    row.map((cell) => {
-      if (cell.kind === 'clue') return 'clue';
-      if (cell.value === null) return 'empty';
-      if (participantId && cell.ownerId === participantId) return 'self';
-      return 'other';
-    }),
-  );
+  const occupancy = revealBoard
+    ? state.cells.map((row) =>
+        row.map((cell) => {
+          if (cell.kind === 'clue') return 'clue';
+          if (cell.value === null) return 'empty';
+          if (participantId && cell.ownerId === participantId) return 'self';
+          return 'other';
+        }),
+      )
+    : createHiddenGrid().map((row) => row.map(() => 'empty' as const));
 
   return {
     roomId: state.roomId,
     difficulty: state.difficulty,
     clueCount: state.clueCount,
-    puzzle: cloneGrid(state.puzzle),
-    solution: cloneGrid(state.solution),
+    phase: state.phase,
+    countdownEndsAt: state.countdownEndsAt,
+    startedAt: state.startedAt,
+    puzzle: revealBoard ? cloneGrid(state.puzzle) : null,
+    solution: revealBoard ? cloneGrid(state.solution) : null,
     board,
     occupancy,
     solved: state.solved,
@@ -352,6 +455,9 @@ function resetRoom(state: RoomState, options: { difficulty?: Difficulty; puzzle?
   state.puzzle = nextPuzzle.puzzle;
   state.solution = nextPuzzle.solution;
   state.clueCount = nextPuzzle.clueCount;
+  state.phase = 'lobby';
+  state.countdownEndsAt = null;
+  state.startedAt = null;
   state.cells = createEmptyCells();
   state.filledCells = 0;
   state.fillableCells = countFillableCells(nextPuzzle.puzzle);
@@ -472,6 +578,7 @@ export default class SudokuParty implements Server {
   async onConnect(connection: Connection) {
     const state = await getState(this.room, connection.id);
     registerParticipant(state, connection.id);
+    await syncMatchState(this.room, state);
     await saveState(this.room, state);
     await broadcastSnapshot(this.room, state);
   }
@@ -494,6 +601,7 @@ export default class SudokuParty implements Server {
           throw new Error('Only the host can create a room');
         }
         resetRoom(state, { difficulty: normalizeDifficulty(payload.difficulty) });
+        await syncMatchState(this.room, state);
         await saveState(this.room, state);
         await broadcastSnapshot(this.room, state);
         return;
@@ -510,6 +618,7 @@ export default class SudokuParty implements Server {
           col: Number(payload.col),
           value: payload.value === null ? null : Number(payload.value),
         });
+        await syncMatchState(this.room, state);
         await saveState(this.room, state);
         await broadcastEvent(this.room, state, event);
         return;
@@ -519,6 +628,7 @@ export default class SudokuParty implements Server {
         const participant = state.participants[sender.id];
         if (!participant || participant.role !== 'host') throw new Error('Only the host can reset the room');
         resetRoom(state, { difficulty: normalizeDifficulty(payload.difficulty) });
+        await syncMatchState(this.room, state);
         await saveState(this.room, state);
         await broadcastSnapshot(this.room, state);
         return;
@@ -526,6 +636,7 @@ export default class SudokuParty implements Server {
 
       if (payload.type === 'leave_room') {
         disconnectParticipant(state, sender.id);
+        await syncMatchState(this.room, state);
         await saveState(this.room, state);
         sender.send(JSON.stringify({ type: 'left_room' }));
         await broadcastSnapshot(this.room, state);
@@ -543,6 +654,7 @@ export default class SudokuParty implements Server {
     const participant = state.participants[connection.id];
     if (!participant || !participant.connected) return;
     disconnectParticipant(state, connection.id);
+    await syncMatchState(this.room, state);
     await saveState(this.room, state);
     await broadcastSnapshot(this.room, state);
   }
