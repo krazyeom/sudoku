@@ -14,7 +14,7 @@ import {
   solveSudoku,
 } from '@/lib/sudoku';
 import { filterAndSortRecords } from '@/lib/recordView';
-import type { SharedRoomCellOccupancy, SharedRoomSnapshot } from '@/lib/shared-room';
+import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
 type Position = { row: number; col: number } | null;
 
 type NoteGrid = number[][][];
@@ -119,9 +119,15 @@ function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | n
 const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
-const PARTYKIT_PARTY = 'sudoku';
+const PARTYKIT_PARTY = process.env.NEXT_PUBLIC_PARTYKIT_PARTY ?? 'sudoku';
+
+function normalizePartykitHost(host: string): string {
+  return host.trim().replace(/^wss?:\/\//, '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+}
 
 function getPartykitHost(): string {
+  const configuredHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST?.trim();
+  if (configuredHost) return normalizePartykitHost(configuredHost);
   if (typeof window === 'undefined') return '127.0.0.1:1999';
   const { hostname, host } = window.location;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -527,7 +533,9 @@ export default function SudokuGame() {
     if (!sharedRoom?.snapshot?.countdownEndsAt || !sharedMatchIsCountdown) return null;
     return Math.max(0, Math.ceil((new Date(sharedRoom.snapshot.countdownEndsAt).getTime() - Date.now()) / 1000));
   }, [sharedRoom?.snapshot?.countdownEndsAt, sharedMatchIsCountdown]);
-  const sharedMatchGateActive = Boolean(sharedRoom?.snapshot && !sharedMatchIsPlaying);
+  const sharedRoomIsActive = Boolean(sharedRoom);
+  const sharedRoomIsHost = sharedRoom?.role === 'host';
+  const sharedMatchGateActive = sharedRoomIsActive && !sharedMatchIsPlaying;
   const sharedBattleMiniMapGrid = sharedRoom?.snapshot?.occupancy ?? createEmptyOwnershipGrid();
 
   function syncOwnershipFromBoard(nextBoard: Grid, participantId: string | null) {
@@ -656,10 +664,10 @@ export default function SudokuGame() {
     if (roomId !== roomInput.trim()) {
       setRoomInput(roomId);
     }
-    connectSharedRoom(roomId);
+    connectSharedRoom(roomId, undefined, 'guest');
   }
 
-  function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty) {
+  function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty, initialRole: RoomRole = 'spectator') {
     if (typeof window === 'undefined') return;
     if (socketRef.current) {
       socketRef.current.close();
@@ -669,6 +677,13 @@ export default function SudokuGame() {
     const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
     const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
     window.localStorage.setItem(participantKey, participantId);
+    setSharedRoom({
+      roomId,
+      participantId,
+      role: initialRole,
+      connected: false,
+      snapshot: null,
+    });
 
     const socket = new PartySocket({
       host: getPartykitHost(),
@@ -725,6 +740,7 @@ export default function SudokuGame() {
 
     socket.addEventListener('close', () => {
       socketRef.current = null;
+      setSharedRoom(null);
     });
   }
 
@@ -732,10 +748,9 @@ export default function SudokuGame() {
     if (typeof window === 'undefined') return;
     const roomId = `room-${Math.random().toString(36).slice(2, 9)}`;
     setRoomInput(roomId);
-    connectSharedRoom(roomId, nextDifficulty);
+    connectSharedRoom(roomId, nextDifficulty, 'host');
   }
 
-  const isSharedMode = Boolean(sharedRoom);
   const normalizedRoomId = useMemo(() => sanitizeRoomIdInput(roomInput), [roomInput]);
   const canJoinRoom = normalizedRoomId.length > 0;
   useEffect(() => {
@@ -821,7 +836,7 @@ export default function SudokuGame() {
     if (!hydrated || typeof window === 'undefined') return;
     const roomId = new URLSearchParams(window.location.search).get('room');
     if (roomId) {
-      connectSharedRoom(roomId);
+      connectSharedRoom(roomId, undefined, 'spectator');
     }
     return () => {
       if (socketRef.current) {
@@ -1424,17 +1439,21 @@ export default function SudokuGame() {
                       <strong>{sharedRoom.roomId}</strong>
                     </button>
                     <small>
-                      {locale === 'ko'
-                        ? sharedRoom.role === 'host'
-                          ? '방장'
-                          : sharedRoom.role === 'guest'
-                            ? '참가자'
-                            : '관전자'
-                        : sharedRoom.role === 'host'
-                          ? 'Host'
-                          : sharedRoom.role === 'guest'
-                            ? 'Guest'
-                            : 'Spectator'}
+                      {sharedRoom.connected
+                        ? locale === 'ko'
+                          ? sharedRoom.role === 'host'
+                            ? '방장'
+                            : sharedRoom.role === 'guest'
+                              ? '참가자'
+                              : '관전자'
+                          : sharedRoom.role === 'host'
+                            ? 'Host'
+                            : sharedRoom.role === 'guest'
+                              ? 'Guest'
+                              : 'Spectator'
+                        : locale === 'ko'
+                          ? '연결 중...'
+                          : 'Connecting...'}
                     </small>
                   </div>
                   <div className={styles.roomActions}>
@@ -1507,6 +1526,7 @@ export default function SudokuGame() {
                   key={item.value}
                   className={`${styles.difficultyButton} ${difficulty === item.value ? styles.difficultyActive : ''}`}
                   onClick={() => resetGame(item.value)}
+                  disabled={Boolean(sharedRoom) && !sharedRoomIsHost}
                 >
                   <span>{locale === 'ko' ? item.koLabel : item.enLabel}</span>
                   <small>{locale === 'ko' ? item.koDetail : item.enDetail}</small>
@@ -1536,27 +1556,27 @@ export default function SudokuGame() {
             <p className={styles.message}>{message}</p>
 
             <div className={styles.actions}>
-              <button type="button" className={styles.actionPrimary} onClick={() => resetGame(difficulty)}>
+              <button type="button" className={styles.actionPrimary} onClick={() => resetGame(difficulty)} disabled={sharedRoomIsActive && !sharedRoomIsHost}>
                 {locale === 'ko' ? '새 퍼즐' : 'New puzzle'}
               </button>
-              <button type="button" className={styles.actionSecondary} onClick={handleHint}>
+              <button type="button" className={styles.actionSecondary} onClick={handleHint} disabled={sharedRoomIsActive}>
                 {locale === 'ko' ? '자동입력' : 'Auto-fill'}
               </button>
-              <button type="button" className={styles.actionSecondary} onClick={handleCheck}>
+              <button type="button" className={styles.actionSecondary} onClick={handleCheck} disabled={sharedRoomIsActive}>
                 {locale === 'ko' ? '검사' : 'Check'}
               </button>
-              <button type="button" className={styles.actionSecondary} onClick={handleUndo}>
+              <button type="button" className={styles.actionSecondary} onClick={handleUndo} disabled={sharedRoomIsActive}>
                 {locale === 'ko' ? '되돌리기' : 'Undo'}
               </button>
             </div>
 
             <div className={styles.keypad}>
               {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
-                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={!selected || solved || (!noteMode && selected ? !selectedCandidates.includes(number) && board[selected.row][selected.col] === null : false)}>
+                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={sharedMatchGateActive || !selected || solved || (!noteMode && selected ? !selectedCandidates.includes(number) && board[selected.row][selected.col] === null : false)}>
                   {number}
                 </button>
               ))}
-              <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={!selected || solved}>
+              <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={sharedMatchGateActive || !selected || solved}>
                 {locale === 'ko' ? '지우기' : 'Clear'}
               </button>
             </div>
@@ -1762,7 +1782,7 @@ export default function SudokuGame() {
             </p>
           </div>
         ) : null}
-        <div className={`${styles.board} ${solved ? styles.boardSolved : ""} ${sharedMatchGateActive ? styles.boardLocked : ""}`} role="grid" aria-label="Sudoku board">
+        <div className={`${styles.board} ${solved ? styles.boardSolved : ""} ${sharedMatchGateActive ? styles.boardLocked : ""} ${sharedMatchGateActive ? styles.boardHidden : ""}`} role="grid" aria-label="Sudoku board">
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => {
               const isFixed = fixedCells[rowIndex][colIndex];

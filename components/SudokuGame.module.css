@@ -615,10 +615,15 @@
   user-select: none;
 }
 
+.boardHidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .boardGate {
   position: absolute;
   inset: 24px;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   justify-content: center;
