@@ -165,7 +165,21 @@ function getDifficultyDetail(locale: Locale, difficulty: Difficulty): string {
 }
 
 function sanitizeRoomIdInput(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    const parsed = new URL(trimmed);
+    const room = parsed.searchParams.get('room');
+    if (room) return room.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  } catch {
+    // fall through to plain text sanitizing
+  }
+
+  const roomParamMatch = trimmed.match(/[?&]room=([a-z0-9-]+)/i);
+  if (roomParamMatch?.[1]) return roomParamMatch[1].toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+  return trimmed.toLowerCase().replace(/[^a-z0-9-]/g, '');
 }
 
 function cloneGrid(grid: Grid): Grid {
@@ -632,11 +646,36 @@ export default function SudokuGame() {
     setOwnership(ownershipFromPuzzle(puzzle.puzzle));
   }
 
-  async function copyRoomInviteLink() {
-    if (typeof window === 'undefined' || !sharedRoom) return;
+  function getRoomInviteUrl(roomId: string): string {
+    if (typeof window === 'undefined') return `?room=${roomId}`;
     const url = new URL(window.location.href);
-    url.searchParams.set('room', sharedRoom.roomId);
-    const invite = url.toString();
+    url.searchParams.set('room', roomId);
+    return url.toString();
+  }
+
+  async function copyRoomId() {
+    if (!sharedRoom || typeof window === 'undefined') return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sharedRoom.roomId);
+        setMessage(locale === 'ko' ? '방 ID를 복사했어요.' : 'Copied the room ID.');
+        return;
+      }
+    } catch {
+      // fall through to prompt fallback
+    }
+
+    const copied = window.prompt(locale === 'ko' ? '아래 방 ID를 복사해 주세요.' : 'Copy this room ID:', sharedRoom.roomId);
+    if (copied !== null) {
+      setMessage(locale === 'ko' ? '방 ID를 표시했어요. 직접 복사해 주세요.' : 'Shown the room ID for manual copy.');
+    } else {
+      setMessage(locale === 'ko' ? '방 ID 복사에 실패했어요.' : 'Could not copy the room ID.');
+    }
+  }
+
+  async function copyRoomInviteLink() {
+    if (!sharedRoom) return;
+    const invite = getRoomInviteUrl(sharedRoom.roomId);
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(invite);
@@ -1432,9 +1471,9 @@ export default function SudokuGame() {
                     <button
                       type="button"
                       className={styles.roomIdButton}
-                      onClick={() => { void copyRoomInviteLink(); }}
-                      aria-label={locale === 'ko' ? '참가 링크 복사' : 'Copy join link'}
-                      title={locale === 'ko' ? '터치하면 참가 링크를 복사해요.' : 'Tap to copy the join link.'}
+                      onClick={() => { void copyRoomId(); }}
+                      aria-label={locale === 'ko' ? '방 ID 복사' : 'Copy room ID'}
+                      title={locale === 'ko' ? '터치하면 방 ID를 복사해요.' : 'Tap to copy the room ID.'}
                     >
                       <strong>{sharedRoom.roomId}</strong>
                     </button>
@@ -1455,6 +1494,9 @@ export default function SudokuGame() {
                           ? '연결 중...'
                           : 'Connecting...'}
                     </small>
+                    <small>
+                      {locale === 'ko' ? '방 ID를 누르면 복사되고, 초대 링크는 옆 버튼으로 복사해요.' : 'Tap the room ID to copy it, or use the invite link button.'}
+                    </small>
                   </div>
                   <div className={styles.roomActions}>
                     <button type="button" className={styles.actionSecondary} onClick={copyRoomInviteLink}>
@@ -1474,6 +1516,13 @@ export default function SudokuGame() {
                       className={styles.roomFieldInput}
                       value={roomInput}
                       onChange={(event) => setRoomInput(sanitizeRoomIdInput(event.target.value))}
+                      onPaste={(event) => {
+                        const pasted = event.clipboardData.getData('text');
+                        if (pasted) {
+                          event.preventDefault();
+                          setRoomInput(sanitizeRoomIdInput(pasted));
+                        }
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
                           event.preventDefault();
@@ -1486,8 +1535,11 @@ export default function SudokuGame() {
                       autoCapitalize="off"
                       spellCheck={false}
                       enterKeyHint="go"
-                      placeholder={locale === 'ko' ? '영문+숫자 방 ID를 입력하거나 붙여넣으세요.' : 'Paste or type an alphanumeric room ID.'}
+                      placeholder={locale === 'ko' ? '링크를 붙여넣어도 room ID만 자동 추출해요.' : 'Paste a link or room ID; we will extract the room ID.'}
                     />
+                    <small className={styles.roomFieldHint}>
+                      {locale === 'ko' ? '방 링크를 그대로 붙여넣어도 방 ID만 남기고 정리합니다.' : 'You can paste the full invite link; only the room ID will be kept.'}
+                    </small>
                   </div>
                   <div className={styles.roomActions}>
                     <button type="button" className={styles.actionPrimary} onClick={() => createSharedRoom(difficulty)}>
