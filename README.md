@@ -118,25 +118,21 @@ http://서버주소:6767/?room=ROOM_ID
 
 ## 환경 변수
 
-### Production / Vercel
+### Production / Home Linux server
 
-다음 환경 변수를 설정하세요.
+기본적으로 같은 호스트의 `/ws` 로 연결합니다. 이 프로젝트는 **HTTP 전용**으로 운영해도 됩니다.
 
-- `NEXT_PUBLIC_PARTYKIT_HOST`
-  - PartyKit WebSocket host, 예: `your-partykit-host.example.com`
-- `NEXT_PUBLIC_PARTYKIT_PARTY`
-  - Party 이름, 기본값은 `sudoku`
+- `NEXT_PUBLIC_WEBSOCKET_URL`
+  - WebSocket 주소, 예: `ws://192.168.0.10:6767/ws` 또는 `ws://example.com/ws`
+  - `http://...` 를 넣어도 내부에서 `ws://...` 로 변환됩니다.
 
 ### Local Development
 
-`NEXT_PUBLIC_PARTYKIT_HOST` 가 없으면 앱은 로컬에서 다음 주소로 fallback 합니다.
-
-- `127.0.0.1:1999`
+`npm start` 또는 `bash scripts/start.sh` 로 띄우면 웹소켓 서버가 함께 올라갑니다.
+`npm run dev` 도 이제 같은 custom server를 사용합니다.
 
 ### 주의 사항
 
-- `NEXT_PUBLIC_PARTYKIT_HOST` 에는 보통 `https://` 또는 `wss://` 를 붙이지 않는 것이 안전합니다.
-- `partykit.json` 에 `parties.sudoku` 매핑이 있어야 합니다.
 - 공유 방 보드는 두 플레이어가 모두 연결될 때까지 숨겨집니다.
 - 두 플레이어가 준비되면 5초 카운트다운 후 같은 보드가 동시에 공개됩니다.
 
@@ -164,7 +160,8 @@ http://서버주소:6767/?room=ROOM_ID
 
 | 명령 | 설명 |
 |---|---|
-| `npm run dev` | 서버 실행 |
+| `npm run dev` | 웹소켓 포함 서버 실행 |
+| `npm run dev:next` | 순수 Next.js 개발 서버 |
 | `npm run build` | 프로덕션 빌드 |
 | `npm start` | 프로덕션 서버 실행 |
 | `bash scripts/start.sh` | 빌드 후 PM2 재시작/시작 |

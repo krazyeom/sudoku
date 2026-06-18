@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PartySocket from 'partysocket';
 import styles from './SudokuGame.module.css';
 import {
   Difficulty,
@@ -119,21 +118,24 @@ function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | n
 const STORAGE_KEY = 'sudoku-studio-state-v3';
 const RECORDS_KEY = 'sudoku-studio-records-v1';
 const ROOM_TOKEN_PREFIX = 'sudoku-room-token-';
-const PARTYKIT_PARTY = process.env.NEXT_PUBLIC_PARTYKIT_PARTY ?? 'sudoku';
 
-function normalizePartykitHost(host: string): string {
-  return host.trim().replace(/^wss?:\/\//, '').replace(/^https?:\/\//, '').replace(/\/$/, '');
-}
-
-function getPartykitHost(): string {
-  const configuredHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST?.trim();
-  if (configuredHost) return normalizePartykitHost(configuredHost);
-  if (typeof window === 'undefined') return '';
-  const { hostname } = window.location;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return '127.0.0.1:1999';
+function getWebSocketUrl(): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL?.trim();
+  if (configuredUrl) {
+    try {
+      const url = new URL(configuredUrl);
+      if (url.protocol === 'http:') url.protocol = 'ws:';
+      if (url.protocol === 'https:') url.protocol = 'wss:';
+      return url.toString().replace(/\/$/, '');
+    } catch {
+      return configuredUrl.replace(/\/$/, '');
+    }
   }
-  return '';
+
+  if (typeof window === 'undefined') return '';
+  const url = new URL('/ws', window.location.href);
+  url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.toString().replace(/\/$/, '');
 }
 
 function makeClientId(prefix = 'p'): string {
@@ -527,8 +529,9 @@ export default function SudokuGame() {
   const [hydrated, setHydrated] = useState(false);
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
   const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
+  const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
 
-  const socketRef = useRef<PartySocket | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
 
@@ -546,7 +549,7 @@ export default function SudokuGame() {
   const sharedMatchCountDownSeconds = useMemo(() => {
     if (!sharedRoom?.snapshot?.countdownEndsAt || !sharedMatchIsCountdown) return null;
     return Math.max(0, Math.ceil((new Date(sharedRoom.snapshot.countdownEndsAt).getTime() - Date.now()) / 1000));
-  }, [sharedRoom?.snapshot?.countdownEndsAt, sharedMatchIsCountdown]);
+  }, [sharedRoom?.snapshot?.countdownEndsAt, sharedMatchIsCountdown, sharedCountdownTick]);
   const sharedRoomIsActive = Boolean(sharedRoom);
   const sharedRoomIsHost = sharedRoom?.role === 'host';
   const sharedMatchGateActive = sharedRoomIsActive && !sharedMatchIsPlaying;
@@ -635,6 +638,12 @@ export default function SudokuGame() {
     socket.send(JSON.stringify(payload));
   }
 
+  useEffect(() => {
+    if (!sharedMatchIsCountdown) return;
+    const intervalId = window.setInterval(() => setSharedCountdownTick((tick) => tick + 1), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [sharedMatchIsCountdown, sharedRoom?.snapshot?.countdownEndsAt]);
+
   function disconnectSharedRoom() {
     const socket = socketRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -708,13 +717,9 @@ export default function SudokuGame() {
 
   function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty, initialRole: RoomRole = 'spectator') {
     if (typeof window === 'undefined') return;
-    const host = getPartykitHost();
-    if (!host) {
-      setMessage(
-        locale === 'ko'
-          ? 'Vercel 환경변수 NEXT_PUBLIC_PARTYKIT_HOST 를 설정해 주세요.'
-          : 'Set NEXT_PUBLIC_PARTYKIT_HOST in Vercel.',
-      );
+    const url = getWebSocketUrl();
+    if (!url) {
+      setMessage(locale === 'ko' ? '웹소켓 주소를 찾을 수 없어요.' : 'Could not determine the websocket URL.');
       return;
     }
     if (socketRef.current) {
@@ -733,24 +738,19 @@ export default function SudokuGame() {
       snapshot: null,
     });
 
-    const socket = new PartySocket({
-      host,
-      party: PARTYKIT_PARTY,
-      room: roomId,
-      id: participantId,
-    });
+    const socket = new WebSocket(url);
     socketRef.current = socket;
 
     socket.addEventListener('open', () => {
       if (seedDifficulty) {
-        sendSharedMessage({ type: 'create_room', difficulty: seedDifficulty });
+        sendSharedMessage({ type: 'create_room', roomId, participantId, difficulty: seedDifficulty });
         return;
       }
 
-      sendSharedMessage({ type: 'request_snapshot' });
+      sendSharedMessage({ type: 'join_room', roomId, participantId });
     });
 
-    socket.addEventListener('message', (event) => {
+    socket.addEventListener('message', (event: MessageEvent) => {
       let payload: any;
       try {
         payload = JSON.parse(String(event.data));

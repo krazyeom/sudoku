@@ -39,6 +39,10 @@ test('shared room snapshots hide other player numbers but keep clues visible', (
   assert.equal(host.role, 'host');
   assert.equal(guest.role, 'guest');
 
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
+
   applyRoomMove(room, 'host-token', { row: 0, col: 2, value: 4 });
 
   const hostSnapshot = buildViewerSnapshot(room, 'host-token');
@@ -55,6 +59,10 @@ test('shared room snapshots hide other player numbers but keep clues visible', (
 test('shared room rejects changes to clue cells and solved board updates', () => {
   const room = createRoomState({ roomId: 'room-2', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
   registerParticipant(room, 'host-token');
+
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
 
   assert.throws(() => applyRoomMove(room, 'host-token', { row: 0, col: 0, value: 9 }), /clue/i);
 

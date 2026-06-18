@@ -21,7 +21,7 @@ const rooms = new Map();
 const socketState = new Map();
 
 function send(socket, payload) {
-  if (socket.readyState !== socket.OPEN) return;
+  if (socket.readyState !== 1) return;
   socket.send(JSON.stringify(payload));
 }
 
@@ -83,23 +83,27 @@ wss.on('connection', (socket) => {
     try {
       if (message.type === 'create_room') {
         const difficulty = normalizeDifficulty(message.difficulty);
-        const room = createRoomState({ difficulty, hostId: randomUUID() });
+        const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : randomUUID();
+        const participantId =
+          typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
+        const room = createRoomState({ roomId, difficulty, hostId: participantId });
         rooms.set(room.roomId, room);
-        const participant = registerParticipant(room, room.participants.keys().next().value);
-        attachSocket(socket, room.roomId, participant.id);
+        attachSocket(socket, room.roomId, participantId);
         send(socket, {
           type: 'room_created',
           roomId: room.roomId,
-          participantId: participant.id,
-          snapshot: snapshotFor(room, participant.id),
+          participantId,
+          snapshot: snapshotFor(room, participantId),
         });
         return;
       }
 
       if (message.type === 'join_room') {
-        const room = getRoom(message.roomId);
+        const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+        const room = getRoom(roomId);
         if (!room) throw new Error('Room not found');
-        const participantId = typeof message.participantId === 'string' && message.participantId ? message.participantId : randomUUID();
+        const participantId =
+          typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
         const participant = registerParticipant(room, participantId);
         attachSocket(socket, room.roomId, participant.id);
         send(socket, {
