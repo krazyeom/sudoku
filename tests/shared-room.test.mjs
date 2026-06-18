@@ -31,6 +31,44 @@ const solution = [
   [3, 4, 5, 2, 8, 6, 1, 7, 9],
 ];
 
+test('shared room stays hidden in lobby and countdown, then reveals the board when playing', () => {
+  const room = createRoomState({ roomId: 'room-0', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
+  const host = registerParticipant(room, 'host-token');
+  const hostLobby = buildViewerSnapshot(room, 'host-token');
+
+  assert.equal(host.role, 'host');
+  assert.equal(room.phase, 'lobby');
+  assert.equal(hostLobby.phase, 'lobby');
+  assert.equal(hostLobby.board, null);
+  assert.equal(hostLobby.puzzle, null);
+  assert.equal(hostLobby.solution, null);
+
+  const guest = registerParticipant(room, 'guest-token');
+  const hostCountdown = buildViewerSnapshot(room, 'host-token');
+  const guestCountdown = buildViewerSnapshot(room, 'guest-token');
+
+  assert.equal(guest.role, 'guest');
+  assert.equal(room.phase, 'countdown');
+  assert.equal(hostCountdown.phase, 'countdown');
+  assert.equal(guestCountdown.phase, 'countdown');
+  assert.equal(hostCountdown.board, null);
+  assert.equal(guestCountdown.board, null);
+  assert.equal(hostCountdown.puzzle, null);
+  assert.equal(guestCountdown.solution, null);
+
+  room.countdownEndsAt = new Date(Date.now() - 1).toISOString();
+  const hostPlaying = buildViewerSnapshot(room, 'host-token');
+  const guestPlaying = buildViewerSnapshot(room, 'guest-token');
+
+  assert.equal(room.phase, 'playing');
+  assert.equal(hostPlaying.phase, 'playing');
+  assert.equal(guestPlaying.phase, 'playing');
+  assert.equal(hostPlaying.board[0][0], 5);
+  assert.equal(guestPlaying.board[0][0], 5);
+  assert.equal(hostPlaying.occupancy[0][0], 'clue');
+  assert.equal(guestPlaying.occupancy[0][0], 'clue');
+});
+
 test('shared room snapshots hide other player numbers but keep clues visible', () => {
   const room = createRoomState({ roomId: 'room-1', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
   const host = registerParticipant(room, 'host-token');

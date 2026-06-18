@@ -87,6 +87,7 @@ wss.on('connection', (socket) => {
         const participantId =
           typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
         const room = createRoomState({ roomId, difficulty, hostId: participantId });
+        room.onStateChange = () => syncRoom(room);
         rooms.set(room.roomId, room);
         attachSocket(socket, room.roomId, participantId);
         send(socket, {

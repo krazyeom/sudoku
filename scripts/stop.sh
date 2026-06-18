@@ -2,13 +2,41 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+PORT="${PORT:-6767}"
+PID_FILE="$ROOT/.sudoku-server.pid"
 
-APP_NAME="sudoku-app"
-PM2="./node_modules/.bin/pm2"
+stop_pid() {
+  local pid="$1"
+  if [[ -z "$pid" ]]; then
+    return 0
+  fi
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    for _ in {1..10}; do
+      if ! kill -0 "$pid" 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  fi
+}
 
-if "$PM2" describe "$APP_NAME" >/dev/null 2>&1; then
-  "$PM2" delete "$APP_NAME"
-else
-  echo "$APP_NAME is not running."
+PID=""
+if [[ -f "$PID_FILE" ]]; then
+  PID="$(cat "$PID_FILE" 2>/dev/null || true)"
 fi
+
+if [[ -n "$PID" ]]; then
+  stop_pid "$PID"
+fi
+
+EXISTING_PID="$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "$EXISTING_PID" ]]; then
+  stop_pid "$EXISTING_PID"
+fi
+
+rm -f "$PID_FILE"
+echo "Stopped Sudoku server (if it was running)"
