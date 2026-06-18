@@ -532,6 +532,7 @@ export default function SudokuGame() {
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
 
   const socketRef = useRef<WebSocket | null>(null);
+  const shouldClearSharedRoomRef = useRef(false);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
 
@@ -646,6 +647,7 @@ export default function SudokuGame() {
 
   function disconnectSharedRoom() {
     const socket = socketRef.current;
+    shouldClearSharedRoomRef.current = true;
     if (socket && socket.readyState === WebSocket.OPEN) {
       sendSharedMessage({ type: 'leave_room' });
       socket.close();
@@ -726,6 +728,7 @@ export default function SudokuGame() {
       socketRef.current.close();
       socketRef.current = null;
     }
+    shouldClearSharedRoomRef.current = false;
 
     const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
     const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
@@ -788,7 +791,12 @@ export default function SudokuGame() {
 
     socket.addEventListener('close', () => {
       socketRef.current = null;
-      setSharedRoom(null);
+      if (shouldClearSharedRoomRef.current) {
+        shouldClearSharedRoomRef.current = false;
+        setSharedRoom(null);
+        return;
+      }
+      setSharedRoom((current) => (current ? { ...current, connected: false } : current));
     });
   }
 
