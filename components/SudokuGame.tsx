@@ -128,12 +128,12 @@ function normalizePartykitHost(host: string): string {
 function getPartykitHost(): string {
   const configuredHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST?.trim();
   if (configuredHost) return normalizePartykitHost(configuredHost);
-  if (typeof window === 'undefined') return '127.0.0.1:1999';
-  const { hostname, host } = window.location;
+  if (typeof window === 'undefined') return '';
+  const { hostname } = window.location;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return '127.0.0.1:1999';
   }
-  return host;
+  return '';
 }
 
 function makeClientId(prefix = 'p'): string {
@@ -708,6 +708,15 @@ export default function SudokuGame() {
 
   function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty, initialRole: RoomRole = 'spectator') {
     if (typeof window === 'undefined') return;
+    const host = getPartykitHost();
+    if (!host) {
+      setMessage(
+        locale === 'ko'
+          ? 'Vercel 환경변수 NEXT_PUBLIC_PARTYKIT_HOST 를 설정해 주세요.'
+          : 'Set NEXT_PUBLIC_PARTYKIT_HOST in Vercel.',
+      );
+      return;
+    }
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
@@ -725,7 +734,7 @@ export default function SudokuGame() {
     });
 
     const socket = new PartySocket({
-      host: getPartykitHost(),
+      host,
       party: PARTYKIT_PARTY,
       room: roomId,
       id: participantId,
