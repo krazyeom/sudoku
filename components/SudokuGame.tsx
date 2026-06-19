@@ -2014,33 +2014,33 @@ export default function SudokuGame() {
             ))}
           </div>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
-            <p className={styles.panelLabel}>{locale === 'ko' ? '완료' : 'Complete'}</p>
+            <p className={styles.panelLabel}>{locale === 'ko' ? '전투 종료' : 'Battle over'}</p>
             <h3 className={styles.modalTitle}>
               {sharedCompletionSummary
                 ? locale === 'ko'
-                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 완성했어요 🎉`
-                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} solved it 🎉`
+                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 전장을 제압했어요 ⚔️`
+                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} won the duel ⚔️`
                 : locale === 'ko'
-                  ? '퍼즐을 완성했어요 🎉'
-                  : 'Puzzle complete 🎉'}
+                  ? '전장을 제압했어요 ⚔️'
+                  : 'Battle won ⚔️'}
             </h3>
             <p className={styles.modalText}>
               {sharedCompletionSummary
                 ? locale === 'ko'
-                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 ${formatTime(sharedCompletionSummary.elapsedSeconds)} 만에 끝냈습니다.`
-                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} finished the puzzle in ${formatTime(sharedCompletionSummary.elapsedSeconds)}.`
+                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 ${formatTime(sharedCompletionSummary.elapsedSeconds)} 만에 승리를 거뒀습니다.`
+                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} claimed victory in ${formatTime(sharedCompletionSummary.elapsedSeconds)}.`
                 : locale === 'ko'
                   ? `${getDifficultyLabel(locale, difficulty)} 난이도를 ${formatTime(elapsedSeconds)} 만에 끝냈습니다.`
                   : `Finished the ${getDifficultyLabel(locale, difficulty)} puzzle in ${formatTime(elapsedSeconds)}.`}
             </p>
             {sharedCompletionSummary ? (
               <div className={styles.shareCard}>
-                <span>{locale === 'ko' ? '완료 기록' : 'Completion record'}</span>
+                <span>{locale === 'ko' ? '전투 기록' : 'Battle record'}</span>
                 <strong>{getDifficultyLabel(locale, sharedCompletionSummary.difficulty)} · {formatTime(sharedCompletionSummary.elapsedSeconds)}</strong>
                 <small>
                   {locale === 'ko'
-                    ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 완성했어요`
-                    : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} solved it`}
+                    ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 승리했어요`
+                    : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} won the duel`}
                 </small>
               </div>
             ) : completionSummary ? (

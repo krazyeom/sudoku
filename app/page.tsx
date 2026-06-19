@@ -13,20 +13,21 @@ export default function HomePage() {
       <SudokuGame />
 
       <footer className={styles.footer}>
-        <p className={styles.footerMeta}>
+        <span className={styles.footerMeta}>
           <a href="https://github.com/krazyeom" target="_blank" rel="noreferrer">
             krazyeom
-          </a>{' '}
-          made by krazyeom
-        </p>
-        <div className={styles.footerLinks}>
+          </a>
+          <span>made by krazyeom</span>
+        </span>
+        <span className={styles.footerLinks}>
           <a href="https://github.com/krazyeom/sudoku" target="_blank" rel="noreferrer">
             GitHub
           </a>
+          <span aria-hidden="true">·</span>
           <a href="https://github.com/krazyeom/sudoku" target="_blank" rel="noreferrer">
             open source
           </a>
-        </div>
+        </span>
       </footer>
     </main>
   );
