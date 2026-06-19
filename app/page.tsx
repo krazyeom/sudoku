@@ -6,15 +6,28 @@ export default function HomePage() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <h1 className={styles.title}>ZenGrid 스도쿠</h1>
-          <p className={styles.description}>
-            Easy / Medium / Hard 난이도의 스도쿠를 차분하게 풀어보세요.
-            모든 퍼즐은 공개되기 전에 해답이 하나뿐인지 검증됩니다.
-          </p>
+          <h1 className={styles.title}>스도쿠 듀얼</h1>
         </div>
       </section>
 
       <SudokuGame />
+
+      <footer className={styles.footer}>
+        <p className={styles.footerMeta}>
+          <a href="https://github.com/krazyeom" target="_blank" rel="noreferrer">
+            krazyeom
+          </a>{' '}
+          made by krazyeom
+        </p>
+        <div className={styles.footerLinks}>
+          <a href="https://github.com/krazyeom/sudoku" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+          <a href="https://github.com/krazyeom/sudoku" target="_blank" rel="noreferrer">
+            open source
+          </a>
+        </div>
+      </footer>
     </main>
   );
 }

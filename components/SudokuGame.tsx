@@ -68,6 +68,15 @@ type CompletionSummary = RecordEntry & {
   total: number;
 };
 
+type SharedCompletionSummary = {
+  difficulty: Difficulty;
+  clueCount: number;
+  elapsedSeconds: number;
+  completedAt: string;
+  completedBy: string | null;
+  completedByRole: RoomRole | null;
+};
+
 type SharedRoomState = {
   roomId: string;
   participantId: string;
@@ -220,14 +229,14 @@ function buildShareText(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        'ZenGrid Sudoku에서 퍼즐을 완성했어요! 🎉',
+        '스도쿠 듀얼에서 퍼즐을 완성했어요! 🎉',
         `난이도: ${difficultyLabel}`,
         `기록: ${formatTime(summary.elapsedSeconds)}`,
         `클루 수: ${summary.clueCount}`,
         `랭크: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
-        'I completed a ZenGrid Sudoku puzzle! 🎉',
+        'I completed a Sudoku Duel puzzle! 🎉',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
@@ -240,14 +249,14 @@ function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
   const textLines =
     locale === 'ko'
       ? [
-          'ZenGrid Sudoku',
+          '스도쿠 듀얼',
           `${difficultyLabel} 난이도 완료`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
         ]
       : [
-          'ZenGrid Sudoku',
+          '스도쿠 듀얼',
           `${difficultyLabel} puzzle complete`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
@@ -526,6 +535,7 @@ export default function SudokuGame() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
+  const [sharedCompletionSummary, setSharedCompletionSummary] = useState<SharedCompletionSummary | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
@@ -596,10 +606,29 @@ export default function SudokuGame() {
     setSolved(snapshot.phase === 'playing' ? snapshot.solved : false);
     setChecks([]);
     setHintPreview(null);
-    setCompletionSummary(null);
-    setShowCompleteModal(false);
-    setConfettiPieces([]);
-    completionSavedRef.current = false;
+
+    if (snapshot.solved) {
+      setSharedCompletionSummary(
+        snapshot.completedAt && snapshot.completedElapsedSeconds !== null
+          ? {
+              difficulty: snapshot.difficulty,
+              clueCount: snapshot.clueCount,
+              elapsedSeconds: snapshot.completedElapsedSeconds,
+              completedAt: snapshot.completedAt,
+              completedBy: snapshot.completedBy,
+              completedByRole: snapshot.completedByRole,
+            }
+          : null,
+      );
+      setCompletionSummary(null);
+      completionSavedRef.current = true;
+    } else {
+      setSharedCompletionSummary(null);
+      setCompletionSummary(null);
+      setShowCompleteModal(false);
+      setConfettiPieces([]);
+      completionSavedRef.current = false;
+    }
     setSharedRoom((current) =>
       current
         ? { ...current, connected: true, role: snapshot.viewerRole, snapshot }
@@ -923,7 +952,17 @@ export default function SudokuGame() {
       })),
     );
 
-    if (!completionSavedRef.current) {
+    if (sharedRoom?.snapshot?.solved && sharedRoom.snapshot.completedAt && sharedRoom.snapshot.completedElapsedSeconds !== null) {
+      setSharedCompletionSummary({
+        difficulty: sharedRoom.snapshot.difficulty,
+        clueCount: sharedRoom.snapshot.clueCount,
+        elapsedSeconds: sharedRoom.snapshot.completedElapsedSeconds,
+        completedAt: sharedRoom.snapshot.completedAt,
+        completedBy: sharedRoom.snapshot.completedBy,
+        completedByRole: sharedRoom.snapshot.completedByRole,
+      });
+      setCompletionSummary(null);
+    } else if (!completionSavedRef.current) {
       completionSavedRef.current = true;
       const record: RecordEntry = {
         difficulty,
@@ -944,8 +983,17 @@ export default function SudokuGame() {
       void playCompletionSound();
     }
 
-    setMessage('정답입니다. 퍼즐을 완성했어요!');
-  }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled]);
+    if (sharedRoom?.snapshot?.solved) {
+      const solverLabel = sharedRoom.snapshot.completedByRole === 'host' ? (locale === 'ko' ? '방장' : 'host') : sharedRoom.snapshot.completedByRole === 'guest' ? (locale === 'ko' ? '게스트' : 'guest') : (locale === 'ko' ? '누군가' : 'Someone');
+      setMessage(
+        locale === 'ko'
+          ? `${solverLabel}가 ${formatTime(sharedRoom.snapshot.completedElapsedSeconds ?? elapsedSeconds)} 만에 퍼즐을 완성했어요!`
+          : `${solverLabel} finished the puzzle in ${formatTime(sharedRoom.snapshot.completedElapsedSeconds ?? elapsedSeconds)}!`,
+      );
+    } else {
+      setMessage('정답입니다. 퍼즐을 완성했어요!');
+    }
+  }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled, sharedRoom?.snapshot?.solved, sharedRoom?.snapshot?.completedAt, sharedRoom?.snapshot?.completedElapsedSeconds, sharedRoom?.snapshot?.completedByRole]);
 
   function handleCellClick(rowIndex: number, colIndex: number) {
     if (selected?.row === rowIndex && selected?.col === colIndex) {
@@ -1043,6 +1091,7 @@ export default function SudokuGame() {
     setShowCompleteModal(false);
     setConfettiPieces([]);
     setCompletionSummary(null);
+    setSharedCompletionSummary(null);
     completionSavedRef.current = false;
     setNoteMode(false);
     setItems({ hint: 3, autoFill: 1 });
@@ -1182,6 +1231,49 @@ export default function SudokuGame() {
   }
 
   async function handleShareCompletion() {
+    if (sharedCompletionSummary) {
+      const text = [
+        locale === 'ko' ? '스도쿠 듀얼에서 퍼즐을 완성했어요! 🎉' : 'I completed a Sudoku Duel puzzle! 🎉',
+        `Difficulty: ${getDifficultyLabel(locale, sharedCompletionSummary.difficulty)}`,
+        `Time: ${formatTime(sharedCompletionSummary.elapsedSeconds)}`,
+        `Clues: ${sharedCompletionSummary.clueCount}`,
+      ].join('\n');
+      const shareCardSummary: CompletionSummary = {
+        difficulty: sharedCompletionSummary.difficulty,
+        elapsedSeconds: sharedCompletionSummary.elapsedSeconds,
+        clueCount: sharedCompletionSummary.clueCount,
+        completedAt: sharedCompletionSummary.completedAt,
+        rank: 1,
+        total: 1,
+      };
+
+      try {
+        if (navigator.share) {
+          const svg = buildShareCardSvg(shareCardSummary, locale);
+          const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
+          await navigator.share({
+            title: locale === 'ko' ? '스도쿠 듀얼 완료 카드' : 'Sudoku Duel completion card',
+            text,
+            files: [file],
+          });
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          setMessage('완료 요약을 클립보드에 복사했어요.');
+        } else {
+          downloadTextFile(`sudoku-completion-${new Date().toISOString().slice(0, 10)}.txt`, text, 'text/plain');
+          setMessage('완료 요약 파일을 내려받았어요.');
+        }
+      } catch {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          setMessage('완료 요약을 클립보드에 복사했어요.');
+        } else {
+          setMessage('공유를 완료하지 못했어요.');
+        }
+      }
+      return;
+    }
+
     if (!completionSummary) return;
     const text = buildShareText(completionSummary, locale);
     try {
@@ -1189,7 +1281,7 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: locale === 'ko' ? 'ZenGrid Sudoku 완료 카드' : 'ZenGrid Sudoku completion card',
+          title: locale === 'ko' ? '스도쿠 듀얼 완료 카드' : 'Sudoku Duel completion card',
           text,
           files: [file],
         });
@@ -1923,13 +2015,35 @@ export default function SudokuGame() {
           </div>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
             <p className={styles.panelLabel}>{locale === 'ko' ? '완료' : 'Complete'}</p>
-            <h3 className={styles.modalTitle}>{locale === 'ko' ? '퍼즐을 완성했어요 🎉' : 'Puzzle complete 🎉'}</h3>
+            <h3 className={styles.modalTitle}>
+              {sharedCompletionSummary
+                ? locale === 'ko'
+                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 완성했어요 🎉`
+                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} solved it 🎉`
+                : locale === 'ko'
+                  ? '퍼즐을 완성했어요 🎉'
+                  : 'Puzzle complete 🎉'}
+            </h3>
             <p className={styles.modalText}>
-              {locale === 'ko'
-                ? `${getDifficultyLabel(locale, difficulty)} 난이도를 ${formatTime(elapsedSeconds)} 만에 끝냈습니다.`
-                : `Finished the ${getDifficultyLabel(locale, difficulty)} puzzle in ${formatTime(elapsedSeconds)}.`}
+              {sharedCompletionSummary
+                ? locale === 'ko'
+                  ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 ${formatTime(sharedCompletionSummary.elapsedSeconds)} 만에 끝냈습니다.`
+                  : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} finished the puzzle in ${formatTime(sharedCompletionSummary.elapsedSeconds)}.`
+                : locale === 'ko'
+                  ? `${getDifficultyLabel(locale, difficulty)} 난이도를 ${formatTime(elapsedSeconds)} 만에 끝냈습니다.`
+                  : `Finished the ${getDifficultyLabel(locale, difficulty)} puzzle in ${formatTime(elapsedSeconds)}.`}
             </p>
-            {completionSummary ? (
+            {sharedCompletionSummary ? (
+              <div className={styles.shareCard}>
+                <span>{locale === 'ko' ? '완료 기록' : 'Completion record'}</span>
+                <strong>{getDifficultyLabel(locale, sharedCompletionSummary.difficulty)} · {formatTime(sharedCompletionSummary.elapsedSeconds)}</strong>
+                <small>
+                  {locale === 'ko'
+                    ? `${sharedCompletionSummary.completedByRole === 'host' ? '방장' : sharedCompletionSummary.completedByRole === 'guest' ? '게스트' : '누군가'}가 완성했어요`
+                    : `${sharedCompletionSummary.completedByRole === 'host' ? 'Host' : sharedCompletionSummary.completedByRole === 'guest' ? 'Guest' : 'Someone'} solved it`}
+                </small>
+              </div>
+            ) : completionSummary ? (
               <div className={styles.shareCard}>
                 <span>{locale === 'ko' ? '공유 카드' : 'Share card'}</span>
                 <strong>{locale === 'ko' ? getDifficultyLabel(locale, completionSummary.difficulty) : getDifficultyLabel(locale, completionSummary.difficulty)} · {formatTime(completionSummary.elapsedSeconds)}</strong>

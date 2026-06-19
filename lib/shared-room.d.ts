@@ -25,6 +25,10 @@ export type SharedRoomSnapshot = {
   board: Grid | null;
   occupancy: SharedRoomCellOccupancy[][] | null;
   solved: boolean;
+  completedAt: string | null;
+  completedBy: string | null;
+  completedByRole: RoomRole | null;
+  completedElapsedSeconds: number | null;
   viewerRole: RoomRole;
   participants: RoomParticipant[];
   updatedAt: string;
@@ -42,6 +46,10 @@ export type SharedRoomState = {
   cells: Array<Array<{ value: number | null; ownerId: string | null; kind: 'clue' | 'move' | 'empty'; claims: Array<{ participantId: string; value: number }> }>>;
   participants: Map<string, RoomParticipant>;
   solved: boolean;
+  completedAt: string | null;
+  completedBy: string | null;
+  completedByRole: RoomRole | null;
+  completedElapsedSeconds: number | null;
   filledCells: number;
   fillableCells: number;
   createdAt: string;
@@ -71,5 +79,9 @@ export declare function applyRoomMove(room: SharedRoomState, participantId: stri
   value?: number | null;
   ownerId: string;
   solved?: boolean;
+  completedAt?: string | null;
+  completedBy?: string | null;
+  completedByRole?: RoomRole | null;
+  completedElapsedSeconds?: number | null;
 };
 export declare function buildViewerSnapshot(room: SharedRoomState, participantId?: string | null): SharedRoomSnapshot;

@@ -121,3 +121,35 @@ test('shared room keeps both players numbers in the same cell and marks overlap'
   assert.equal(afterClearHostSnapshot.board[0][2], 4);
   assert.equal(afterClearHostSnapshot.occupancy[0][2], 'self');
 });
+
+test('shared room completion is broadcast to both players', () => {
+  const solvedPuzzle = solution.map((row) => row.slice());
+  solvedPuzzle[0][0] = null;
+  const room = createRoomState({ roomId: 'room-4', difficulty: 'medium', puzzle: solvedPuzzle, solution, hostId: 'host-token' });
+  registerParticipant(room, 'host-token');
+  registerParticipant(room, 'guest-token');
+
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
+
+  const result = applyRoomMove(room, 'host-token', { row: 0, col: 0, value: 5 });
+  assert.equal(result.solved, true);
+  assert.equal(room.solved, true);
+  assert.equal(room.completedBy, 'host-token');
+  assert.equal(room.completedByRole, 'host');
+  assert.equal(typeof room.completedAt, 'string');
+  assert.equal(typeof room.completedElapsedSeconds, 'number');
+
+  const hostSnapshot = buildViewerSnapshot(room, 'host-token');
+  const guestSnapshot = buildViewerSnapshot(room, 'guest-token');
+
+  assert.equal(hostSnapshot.solved, true);
+  assert.equal(guestSnapshot.solved, true);
+  assert.equal(hostSnapshot.completedAt, guestSnapshot.completedAt);
+  assert.equal(hostSnapshot.completedBy, 'host-token');
+  assert.equal(guestSnapshot.completedBy, 'host-token');
+  assert.equal(hostSnapshot.completedElapsedSeconds, guestSnapshot.completedElapsedSeconds);
+  assert.equal(hostSnapshot.board[0][0], 5);
+  assert.equal(guestSnapshot.board[0][0], null);
+});

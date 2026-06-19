@@ -28,10 +28,37 @@
   letter-spacing: -0.05em;
 }
 
-.description {
-  max-width: 720px;
-  margin: 16px 0 0;
+.footer {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   color: rgba(226, 232, 240, 0.82);
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.footerMeta {
+  margin: 0;
+}
+
+.footerMeta a,
+.footerLinks a {
+  color: #7dd3fc;
+  text-decoration: none;
+}
+
+.footerMeta a:hover,
+.footerLinks a:hover {
+  text-decoration: underline;
+}
+
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
