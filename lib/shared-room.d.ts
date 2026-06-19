@@ -10,7 +10,7 @@ export type RoomParticipant = {
   lastSeenAt?: string | null;
 };
 
-export type SharedRoomCellOccupancy = 'clue' | 'self' | 'other' | 'empty';
+export type SharedRoomCellOccupancy = 'clue' | 'self' | 'other' | 'both' | 'empty';
 export type SharedRoomPhase = 'lobby' | 'countdown' | 'playing';
 
 export type SharedRoomSnapshot = {
@@ -39,7 +39,7 @@ export type SharedRoomState = {
   phase: SharedRoomPhase;
   countdownEndsAt: string | null;
   startedAt: string | null;
-  cells: Array<Array<{ value: number | null; ownerId: string | null; kind: 'clue' | 'move' | 'empty' }>>;
+  cells: Array<Array<{ value: number | null; ownerId: string | null; kind: 'clue' | 'move' | 'empty'; claims: Array<{ participantId: string; value: number }> }>>;
   participants: Map<string, RoomParticipant>;
   solved: boolean;
   filledCells: number;

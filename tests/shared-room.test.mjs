@@ -94,26 +94,30 @@ test('shared room snapshots hide other player numbers but keep clues visible', (
   assert.equal(guestSnapshot.occupancy[0][0], 'clue');
 });
 
-test('shared room accepts non-solution values but keeps solved false until the board matches', () => {
-  const room = createRoomState({ roomId: 'room-2', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
+test('shared room keeps both players numbers in the same cell and marks overlap', () => {
+  const room = createRoomState({ roomId: 'room-3', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
   registerParticipant(room, 'host-token');
+  registerParticipant(room, 'guest-token');
 
   room.phase = 'playing';
   room.startedAt = new Date().toISOString();
   room.countdownEndsAt = room.startedAt;
 
-  assert.throws(() => applyRoomMove(room, 'host-token', { row: 0, col: 0, value: 9 }), /clue/i);
-
-  assert.doesNotThrow(() => applyRoomMove(room, 'host-token', { row: 0, col: 2, value: 9 }));
-  let snapshot = buildViewerSnapshot(room, 'host-token');
-  assert.equal(snapshot.board[0][2], 9);
-  assert.equal(snapshot.solved, false);
-
   applyRoomMove(room, 'host-token', { row: 0, col: 2, value: 4 });
-  applyRoomMove(room, 'host-token', { row: 0, col: 3, value: 6 });
+  applyRoomMove(room, 'guest-token', { row: 0, col: 2, value: 9 });
 
-  snapshot = buildViewerSnapshot(room, 'host-token');
-  assert.equal(snapshot.solved, false);
-  assert.equal(snapshot.board[0][2], 4);
-  assert.equal(snapshot.board[0][3], 6);
+  const hostSnapshot = buildViewerSnapshot(room, 'host-token');
+  const guestSnapshot = buildViewerSnapshot(room, 'guest-token');
+
+  assert.equal(room.filledCells, 1);
+  assert.equal(hostSnapshot.board[0][2], 4);
+  assert.equal(guestSnapshot.board[0][2], 9);
+  assert.equal(hostSnapshot.occupancy[0][2], 'both');
+  assert.equal(guestSnapshot.occupancy[0][2], 'both');
+
+  applyRoomMove(room, 'guest-token', { row: 0, col: 2, value: null });
+  const afterClearHostSnapshot = buildViewerSnapshot(room, 'host-token');
+
+  assert.equal(afterClearHostSnapshot.board[0][2], 4);
+  assert.equal(afterClearHostSnapshot.occupancy[0][2], 'self');
 });

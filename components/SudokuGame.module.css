@@ -840,6 +840,11 @@
   box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.16);
 }
 
+.battleMiniBoth {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(34, 197, 94, 0.95) 38%, rgba(250, 204, 21, 0.96) 38%, rgba(250, 204, 21, 0.96) 62%, rgba(249, 115, 22, 0.95) 62%, rgba(249, 115, 22, 0.95) 100%);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.18), inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
 .battleLegend {
   display: flex;
   flex-wrap: wrap;
@@ -868,6 +873,10 @@
 
 .battleLegendOther {
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.96), rgba(251, 146, 60, 0.94));
+}
+
+.battleLegendBoth {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(34, 197, 94, 0.95) 38%, rgba(250, 204, 21, 0.96) 38%, rgba(250, 204, 21, 0.96) 62%, rgba(249, 115, 22, 0.95) 62%, rgba(249, 115, 22, 0.95) 100%);
 }
 
 .battleLegendClue {

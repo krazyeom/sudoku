@@ -87,8 +87,9 @@ function ownershipFromPuzzle(puzzle: Grid): SharedRoomCellOccupancy[][] {
 function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | null) {
   const cells = snapshot.occupancy?.flat() ?? [];
   const clueCells = cells.filter((cell) => cell === 'clue').length;
-  const selfCells = cells.filter((cell) => cell === 'self').length;
-  const otherCells = cells.filter((cell) => cell === 'other').length;
+  const bothCells = cells.filter((cell) => cell === 'both').length;
+  const selfCells = cells.filter((cell) => cell === 'self' || cell === 'both').length;
+  const otherCells = cells.filter((cell) => cell === 'other' || cell === 'both').length;
   const fillableCells = 81 - clueCells;
   const rivalsConnected = snapshot.participants.filter(
     (participant) => participant.connected && participant.role !== 'spectator' && participant.id !== participantId,
@@ -106,6 +107,7 @@ function summarizeBattle(snapshot: SharedRoomSnapshot, participantId: string | n
     clueCells,
     selfCells,
     otherCells,
+    bothCells,
     fillableCells,
     rivalsConnected,
     battleActive: rivalsConnected > 0,
@@ -1788,10 +1790,12 @@ export default function SudokuGame() {
                             ? styles.battleMiniClue
                             : cell === 'self'
                               ? styles.battleMiniSelf
-                              : cell === 'other'
-                                ? styles.battleMiniOther
-                                : styles.battleMiniEmpty
-                        }`}
+                              : cell === 'both'
+                                ? styles.battleMiniBoth
+                                : cell === 'other'
+                                  ? styles.battleMiniOther
+                                  : styles.battleMiniEmpty
+}`}
                         aria-hidden="true"
                       />
                     )),
@@ -1800,6 +1804,7 @@ export default function SudokuGame() {
                 <div className={styles.battleLegend}>
                   <span><i className={styles.battleLegendSelf} />{locale === 'ko' ? '내 수' : 'Mine'}</span>
                   <span><i className={styles.battleLegendOther} />{locale === 'ko' ? '상대 수' : 'Rival'}</span>
+                  <span><i className={styles.battleLegendBoth} />{locale === 'ko' ? '겹침' : 'Overlap'}</span>
                   <span><i className={styles.battleLegendClue} />{locale === 'ko' ? '주어진 숫자' : 'Clue'}</span>
                 </div>
               </div>
