@@ -51,12 +51,16 @@
 }
 
 .footerMeta a,
-.footerLinks a {
+.footerLinks {
   color: inherit;
   text-decoration: none;
 }
 
 .footerMeta a:hover,
-.footerLinks a:hover {
+.footerLinks:hover {
   color: #e2e8f0;
+}
+
+.footerLinks svg {
+  flex: 0 0 auto;
 }

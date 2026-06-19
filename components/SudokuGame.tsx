@@ -229,14 +229,14 @@ function buildShareText(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        '스도쿠 듀얼에서 퍼즐을 완성했어요! 🎉',
+        'Dual Sudoku에서 퍼즐을 완성했어요! 🎉',
         `난이도: ${difficultyLabel}`,
         `기록: ${formatTime(summary.elapsedSeconds)}`,
         `클루 수: ${summary.clueCount}`,
         `랭크: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
-        'I completed a Sudoku Duel puzzle! 🎉',
+        'I completed a Dual Sudoku puzzle! 🎉',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
@@ -249,14 +249,14 @@ function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
   const textLines =
     locale === 'ko'
       ? [
-          '스도쿠 듀얼',
+          'Dual Sudoku',
           `${difficultyLabel} 난이도 완료`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
         ]
       : [
-          '스도쿠 듀얼',
+          'Dual Sudoku',
           `${difficultyLabel} puzzle complete`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
@@ -875,7 +875,7 @@ export default function SudokuGame() {
       setChecks([]);
       setRecords(savedRecords);
       setLastBackupAt(new Date().toISOString());
-      setMessage('이전 진행상태를 불러왔어요.');
+      setMessage(saved.locale === 'en' ? 'Loaded your previous progress.' : '이전 진행상태를 불러왔어요.');
     } catch {
       // ignore broken save data
     }
@@ -1233,7 +1233,7 @@ export default function SudokuGame() {
   async function handleShareCompletion() {
     if (sharedCompletionSummary) {
       const text = [
-        locale === 'ko' ? '스도쿠 듀얼에서 퍼즐을 완성했어요! 🎉' : 'I completed a Sudoku Duel puzzle! 🎉',
+        locale === 'ko' ? 'Dual Sudoku에서 퍼즐을 완성했어요! 🎉' : 'I completed a Dual Sudoku puzzle! 🎉',
         `Difficulty: ${getDifficultyLabel(locale, sharedCompletionSummary.difficulty)}`,
         `Time: ${formatTime(sharedCompletionSummary.elapsedSeconds)}`,
         `Clues: ${sharedCompletionSummary.clueCount}`,
@@ -1252,7 +1252,7 @@ export default function SudokuGame() {
           const svg = buildShareCardSvg(shareCardSummary, locale);
           const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
           await navigator.share({
-            title: locale === 'ko' ? '스도쿠 듀얼 완료 카드' : 'Sudoku Duel completion card',
+            title: locale === 'ko' ? 'Dual Sudoku 완료 카드' : 'Sudoku Duel completion card',
             text,
             files: [file],
           });
@@ -1281,7 +1281,7 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: locale === 'ko' ? '스도쿠 듀얼 완료 카드' : 'Sudoku Duel completion card',
+          title: locale === 'ko' ? 'Dual Sudoku 완료 카드' : 'Sudoku Duel completion card',
           text,
           files: [file],
         });

@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '스도쿠 듀얼',
-  description: '1:1로 겨루는 스도쿠 듀얼 게임',
+  title: 'Dual Sudoku',
+  description: 'A 1v1 Sudoku duel game',
 };
 
 export default function RootLayout({
