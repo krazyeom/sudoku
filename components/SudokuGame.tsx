@@ -229,11 +229,11 @@ function buildShareText(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        'Dual Sudoku에서 퍼즐을 완성했어요! 🎉',
-        `난이도: ${difficultyLabel}`,
-        `기록: ${formatTime(summary.elapsedSeconds)}`,
-        `클루 수: ${summary.clueCount}`,
-        `랭크: ${summary.rank}/${summary.total}`,
+        'Dual Sudoku',
+        `Difficulty: ${difficultyLabel}`,
+        `Time: ${formatTime(summary.elapsedSeconds)}`,
+        `Clues: ${summary.clueCount}`,
+        `Rank: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
         'I completed a Dual Sudoku puzzle! 🎉',
@@ -250,7 +250,7 @@ function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
     locale === 'ko'
       ? [
           'Dual Sudoku',
-          `${difficultyLabel} 난이도 완료`,
+          `${difficultyLabel} puzzle complete`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
@@ -401,8 +401,8 @@ function hasNotes(notes: NoteGrid, row: number, col: number): boolean {
 }
 
 function getSelectedCellLabel(position: Position): string {
-  if (!position) return '선택 없음';
-  return `${position.row + 1}행 ${position.col + 1}열`;
+  if (!position) return '';
+  return `${position.row + 1}, ${position.col + 1}`;
 }
 
 function getConflictCells(board: Grid): Set<string> {
@@ -516,7 +516,7 @@ export default function SudokuGame() {
   const [board, setBoard] = useState<Grid>(() => cloneGrid(puzzle.puzzle));
   const [notes, setNotes] = useState<NoteGrid>(() => createEmptyNotesGrid());
   const [selected, setSelected] = useState<Position>(null);
-  const [message, setMessage] = useState('빈 칸을 눌러 숫자를 입력해보세요.');
+  const [message, setMessage] = useState('Tap an empty cell to enter a number.');
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [checks, setChecks] = useState<{ row: number; col: number }[]>([]);
   const [solved, setSolved] = useState(false);
@@ -529,7 +529,7 @@ export default function SudokuGame() {
   const [noteMode, setNoteMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [items, setItems] = useState<ItemCounts>({ hint: 3, autoFill: 1 });
-  const [locale, setLocale] = useState<Locale>('ko');
+  const [locale, setLocale] = useState<Locale>('en');
   const [hintPreview, setHintPreview] = useState<{ row: number; col: number; value: number } | null>(null);
   const [roomInput, setRoomInput] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -655,11 +655,11 @@ export default function SudokuGame() {
       return;
     }
     setMessage(
-      snapshot.solved
-        ? '공유 퍼즐이 완료됐어요.'
-        : snapshot.participants.filter((participant) => participant.connected && participant.role !== 'spectator').length > 1
-          ? '상대방과 동기화됐어요. 함께 시작해요.'
-          : '공유 퍼즐에 연결됐어요.',
+    snapshot.solved
+      ? 'The shared puzzle is already complete.'
+      : snapshot.participants.filter((participant) => participant.connected && participant.role !== 'spectator').length > 1
+        ? 'Synced with your opponent. Let’s start together.'
+        : 'Connected to the shared puzzle.',
     );
   }
 
@@ -673,7 +673,7 @@ export default function SudokuGame() {
       });
       const data = (await response.json().catch(() => null)) as any;
       if (!response.ok) {
-        throw new Error(data?.message ?? '공유 방 요청에 실패했어요.');
+        throw new Error(data?.message ?? 'Shared-room request failed.');
       }
       return data;
     } catch {
@@ -867,7 +867,7 @@ export default function SudokuGame() {
         hint: Number.isInteger(saved.items?.hint) ? Math.max(0, saved.items!.hint!) : 3,
         autoFill: Number.isInteger(saved.items?.autoFill) ? Math.max(0, saved.items!.autoFill!) : 1,
       });
-      setLocale(saved.locale === 'en' ? 'en' : 'ko');
+      setLocale('en');
       setHintPreview(null);
       setElapsedSeconds(Number.isFinite(saved.elapsedSeconds) ? Math.max(0, Math.floor(saved.elapsedSeconds ?? 0)) : 0);
       setTimerRunning(Boolean(saved.timerRunning));
@@ -991,7 +991,7 @@ export default function SudokuGame() {
           : `${solverLabel} finished the puzzle in ${formatTime(sharedRoom.snapshot.completedElapsedSeconds ?? elapsedSeconds)}!`,
       );
     } else {
-      setMessage('정답입니다. 퍼즐을 완성했어요!');
+      setMessage('Correct! You completed the puzzle!');
     }
   }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled, sharedRoom?.snapshot?.solved, sharedRoom?.snapshot?.completedAt, sharedRoom?.snapshot?.completedElapsedSeconds, sharedRoom?.snapshot?.completedByRole]);
 
@@ -1071,11 +1071,11 @@ export default function SudokuGame() {
   function resetGame(nextDifficulty: Difficulty = difficulty) {
     if (sharedRoom) {
       if (sharedRoom.role !== 'host') {
-        setMessage('방장만 새 퍼즐을 시작할 수 있어요.');
+        setMessage('Only the host can start a new puzzle.');
         return;
       }
       sendSharedMessage({ type: 'reset_room', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId, difficulty: nextDifficulty });
-      setMessage('공유 방에 새 퍼즐을 요청했어요.');
+      setMessage('Requested a new puzzle for the shared room.');
       return;
     }
 
@@ -1100,7 +1100,7 @@ export default function SudokuGame() {
     setTimerRunning(false);
     timerOriginRef.current = null;
     setOwnership(ownershipFromPuzzle(nextPuzzle.puzzle));
-    setMessage(`${nextDifficulty === 'easy' ? '하' : nextDifficulty === 'medium' ? '중' : '상'} 난이도 새 게임을 시작했어요.`);
+    setMessage(`Started a new ${nextDifficulty === 'easy' ? 'easy' : nextDifficulty === 'medium' ? 'medium' : 'hard'} game.`);
   }
 
   function pushHistory(nextBoard: Grid, nextNotes: NoteGrid) {
@@ -1130,7 +1130,7 @@ export default function SudokuGame() {
       setNotes(nextNotes);
       setHistory((current) => [...current, captureSnapshot()].slice(-30));
       setHintPreview(null);
-      setMessage(`(${row + 1}, ${col + 1}) 메모에 ${value}를 ${hasNotes(nextNotes, row, col) ? '추가/삭제' : '반영'}했어요.`);
+      setMessage(`(${row + 1}, ${col + 1}) note ${hasNotes(nextNotes, row, col) ? 'toggled' : 'updated'} with ${value}.`);
       return;
     }
 
@@ -1146,7 +1146,7 @@ export default function SudokuGame() {
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
       setSolved(true);
     }
-    setMessage(`(${row + 1}, ${col + 1})에 ${value}를 입력했어요.`);
+    setMessage(`Entered ${value} at (${row + 1}, ${col + 1}).`);
   }
 
   function clearCell() {
@@ -1168,22 +1168,22 @@ export default function SudokuGame() {
     if (sharedRoom) {
       sendSharedMessage({ type: 'move', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId, row, col, value: null });
     }
-    setMessage('칸과 메모를 비웠어요.');
+    setMessage('Cleared the board and notes.');
   }
 
   function handleUndo() {
     if (sharedMatchGateActive) {
-      setMessage(locale === 'ko' ? '카운트다운이 끝난 뒤에만 조작할 수 있어요.' : 'You can only edit after the countdown finishes.');
+      setMessage('You can only edit after the countdown finishes.');
       return;
     }
     if (sharedRoom) {
-      setMessage('공유 모드에서는 되돌리기를 사용할 수 없어요.');
+      setMessage('Undo is unavailable in shared mode.');
       return;
     }
 
     setHistory((current) => {
       if (current.length === 0) {
-        setMessage('되돌릴 수 있는 수가 없어요.');
+        setMessage('No moves to undo.');
         return current;
       }
       const previous = current[current.length - 1];
@@ -1198,16 +1198,16 @@ export default function SudokuGame() {
       completionSavedRef.current = false;
       setHintPreview(null);
       setOwnership(ownershipFromPuzzle(previous.board));
-      setMessage('마지막 수를 되돌렸어요.');
+      setMessage('Reverted the last move.');
       return current.slice(0, -1);
     });
   }
 
   function handleClearRecords() {
-    if (typeof window !== 'undefined' && !window.confirm('저장된 기록을 모두 삭제할까요?')) return;
+    if (typeof window !== 'undefined' && !window.confirm('Delete all saved records?')) return;
     setRecords([]);
     window.localStorage.removeItem(RECORDS_KEY);
-    setMessage('기록을 모두 삭제했어요.');
+    setMessage('Deleted all records.');
   }
 
   function handleExportRecords() {
@@ -1217,7 +1217,7 @@ export default function SudokuGame() {
       settings: { soundEnabled },
     };
     downloadTextFile(`sudoku-records-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
-    setMessage('기록 파일을 내려받았어요.');
+    setMessage('Downloaded the record file.');
   }
 
   function handleExportCsv() {
@@ -1227,7 +1227,7 @@ export default function SudokuGame() {
       .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
       .join('\n');
     downloadTextFile(`sudoku-records-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv');
-    setMessage('CSV 파일을 내려받았어요.');
+    setMessage('Downloaded the CSV file.');
   }
 
   async function handleShareCompletion() {
@@ -1252,23 +1252,23 @@ export default function SudokuGame() {
           const svg = buildShareCardSvg(shareCardSummary, locale);
           const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
           await navigator.share({
-            title: locale === 'ko' ? 'Dual Sudoku 완료 카드' : 'Sudoku Duel completion card',
+            title: 'Dual Sudoku completion card',
             text,
             files: [file],
           });
         } else if (navigator.clipboard?.writeText) {
           await navigator.clipboard.writeText(text);
-          setMessage('완료 요약을 클립보드에 복사했어요.');
+          setMessage('Copied the completion summary to the clipboard.');
         } else {
           downloadTextFile(`sudoku-completion-${new Date().toISOString().slice(0, 10)}.txt`, text, 'text/plain');
-          setMessage('완료 요약 파일을 내려받았어요.');
+          setMessage('Downloaded the completion summary file.');
         }
       } catch {
         if (navigator.clipboard?.writeText) {
           await navigator.clipboard.writeText(text);
-          setMessage('완료 요약을 클립보드에 복사했어요.');
+          setMessage('Copied the completion summary to the clipboard.');
         } else {
-          setMessage('공유를 완료하지 못했어요.');
+          setMessage('Could not complete sharing.');
         }
       }
       return;
@@ -1281,29 +1281,29 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: locale === 'ko' ? 'Dual Sudoku 완료 카드' : 'Sudoku Duel completion card',
+          title: 'Dual Sudoku completion card',
           text,
           files: [file],
         });
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
-        setMessage('완료 요약을 클립보드에 복사했어요.');
+        setMessage('Copied the completion summary to the clipboard.');
       } else {
         downloadTextFile(`sudoku-completion-${new Date().toISOString().slice(0, 10)}.txt`, text, 'text/plain');
-        setMessage('완료 요약 파일을 내려받았어요.');
+        setMessage('Downloaded the completion summary file.');
       }
     } catch {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
-        setMessage('완료 요약을 클립보드에 복사했어요.');
+        setMessage('Copied the completion summary to the clipboard.');
       } else {
-        setMessage('공유를 완료하지 못했어요.');
+        setMessage('Could not complete sharing.');
       }
     }
   }
 
   function handleImportRecords() {
-    const input = window.prompt('내보낸 JSON을 붙여넣어 주세요.');
+    const input = window.prompt('Paste the exported JSON here.');
     if (!input) return;
 
     try {
@@ -1319,9 +1319,9 @@ export default function SudokuGame() {
         setSoundEnabled(payload.settings.soundEnabled);
       }
       setActivePanel('records');
-      setMessage(`${importedRecords.length}개의 기록을 불러왔어요.`);
+      setMessage(`${importedRecords.length} records imported.`);
     } catch {
-      setMessage('기록 JSON을 불러오지 못했어요. 형식을 확인해 주세요.');
+      setMessage('Could not import the records JSON. Please check the format.');
     }
   }
 
@@ -1335,7 +1335,7 @@ export default function SudokuGame() {
 
     if (!solvedBoard) {
       setChecks(conflictList);
-      setMessage('현재 배치는 아직 완성될 수 있지만, 입력을 다시 확인해보세요.');
+      setMessage('This board can still be completed, but please double-check your inputs.');
       return;
     }
 
@@ -1356,9 +1356,9 @@ export default function SudokuGame() {
     if (nextChecks.length === 0 && isFilled(board)) {
       setSolved(true);
     } else if (nextChecks.length === 0) {
-      setMessage('충돌은 없어요. 계속 진행해보세요.');
+      setMessage('No conflicts here. Keep going.');
     } else {
-      setMessage(`${nextChecks.length}개의 칸이 해답과 달라요.`);
+      setMessage(`${nextChecks.length} cells differ from the solution.`);
     }
   }
 
@@ -1373,13 +1373,13 @@ export default function SudokuGame() {
     }
     if (solved) return;
     if (items.hint <= 0) {
-      setMessage('힌트 아이템이 없어요.');
+      setMessage('No auto-fill items left.');
       return;
     }
 
     const solvedBoard = solveSudoku(board);
     if (!solvedBoard) {
-      setMessage('힌트를 줄 수 없는 상태예요. 먼저 입력을 정리해보세요.');
+      setMessage('This board cannot be hinted right now. Please clean up the inputs first.');
       return;
     }
 
@@ -1397,20 +1397,20 @@ export default function SudokuGame() {
     }
 
     if (!target) {
-      setMessage('더 이상 힌트를 줄 칸이 없어요.');
+      setMessage('No more cells can receive hints.');
       return;
     }
 
     const value = solvedBoard[target.row][target.col];
     if (value === null) {
-      setMessage('힌트를 계산했지만 값을 찾지 못했어요.');
+      setMessage('Hint calculation failed to find a value.');
       return;
     }
 
     setSelected(target);
     setHintPreview({ row: target.row, col: target.col, value });
     setItems((current) => ({ ...current, hint: Math.max(0, current.hint - 1) }));
-    setMessage(`힌트: (${target.row + 1}, ${target.col + 1})에는 ${value}가 들어가요.`);
+    setMessage(`Hint: (${target.row + 1}, ${target.col + 1}) should be ${value}.`);
   }
 
   function handleHint() {
@@ -1424,13 +1424,13 @@ export default function SudokuGame() {
     }
     if (solved) return;
     if (items.autoFill <= 0) {
-      setMessage('자동입력 아이템이 없어요.');
+      setMessage('No auto-fill items left.');
       return;
     }
 
     const solvedBoard = solveSudoku(board);
     if (!solvedBoard) {
-      setMessage('힌트를 줄 수 없는 상태예요. 먼저 입력을 정리해보세요.');
+      setMessage('This board cannot be hinted right now. Please clean up the inputs first.');
       return;
     }
 
@@ -1450,7 +1450,7 @@ export default function SudokuGame() {
     }
 
     if (!target) {
-      setMessage('더 이상 채울 칸이 없어요.');
+      setMessage('No auto-fill items left.');
       return;
     }
 
@@ -1465,7 +1465,7 @@ export default function SudokuGame() {
     setHintPreview(null);
     setItems((current) => ({ ...current, autoFill: Math.max(0, current.autoFill - 1) }));
     setChecks([]);
-    setMessage(`자동입력: (${target.row + 1}, ${target.col + 1})에 ${solvedBoard[target.row][target.col]}를 넣었어요.`);
+    setMessage(`Auto-fill: placed ${solvedBoard[target.row][target.col]} at (${target.row + 1}, ${target.col + 1}).`);
   }
 
   const hasSavedState = hydrated && window.localStorage.getItem(STORAGE_KEY) !== null;
@@ -1497,16 +1497,16 @@ export default function SudokuGame() {
           <div className={styles.panelHeader}>
             <div>
               <p className={styles.panelLabel}>Sudoku</p>
-              <h2 className={styles.panelTitle}>로딩 중...</h2>
+              <h2 className={styles.panelTitle}>Loading…</h2>
             </div>
           </div>
-          <p className={styles.message}>게임 상태를 준비하는 중이에요...</p>
+          <p className={styles.message}>Preparing the game state…</p>
         </aside>
         <section className={styles.boardWrap}>
           <div className={styles.boardMeta}>
             <div>
               <p className={styles.panelLabel}>Sudoku Board</p>
-              <h3 className={styles.boardTitle}>퍼즐과 스타일을 불러오는 중입니다.</h3>
+              <h3 className={styles.boardTitle}>Loading the puzzle and styling…</h3>
             </div>
           </div>
         </section>
@@ -1763,9 +1763,9 @@ export default function SudokuGame() {
               </div>
               <div className={styles.recordSorts}>
                 {([
-                  ['fastest', '빠름'],
-                  ['newest', '최신'],
-                  ['oldest', '오래된'],
+                  ['fastest', 'Fastest'],
+                  ['newest', 'Newest'],
+                  ['oldest', 'Oldest'],
                 ] as const).map(([mode, label]) => (
                   <button
                     key={mode}
@@ -1995,7 +1995,7 @@ export default function SudokuGame() {
     </section>
 
       {showCompleteModal ? (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="퍼즐 완료" onClick={() => setShowCompleteModal(false)}>
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Puzzle complete" onClick={() => setShowCompleteModal(false)}>
           <div className={styles.confettiLayer} aria-hidden="true">
             {confettiPieces.map((piece, index) => (
               <span
