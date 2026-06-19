@@ -9,7 +9,6 @@ import {
   countSolutions,
   generatePuzzle,
   getCandidates,
-  isValidPlacement,
   solveSudoku,
 } from '@/lib/sudoku';
 import { filterAndSortRecords } from '@/lib/recordView';
@@ -1084,17 +1083,12 @@ export default function SudokuGame() {
       return;
     }
 
-    if (!isValidPlacement(board, row, col, value)) {
-      setChecks([{ row, col }]);
-      setMessage(`그 자리에는 ${value}를 둘 수 없어요.`);
-      return;
-    }
-
     const nextBoard = cloneGrid(board);
     const nextNotes = cloneNotes(notes);
     nextBoard[row][col] = value;
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
+    setChecks([]);
     if (sharedRoom) {
       sendSharedMessage({ type: 'move', roomId: sharedRoom?.roomId, participantId: sharedRoom?.participantId, row, col, value });
     }
@@ -1402,8 +1396,6 @@ export default function SudokuGame() {
     return { total, average, best, hardestSolved };
   }, [records]);
 
-  const selectedCandidates = selected ? buildNotes(board, selected.row, selected.col) : [];
-
   if (!hydrated) {
     return (
       <section className={styles.shell}>
@@ -1639,7 +1631,7 @@ export default function SudokuGame() {
 
             <div className={styles.keypad}>
               {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
-                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={sharedMatchGateActive || !selected || solved || (!noteMode && selected ? !selectedCandidates.includes(number) && board[selected.row][selected.col] === null : false)}>
+                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={sharedMatchGateActive || !selected || solved}>
                   {number}
                 </button>
               ))}

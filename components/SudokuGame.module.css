@@ -1051,10 +1051,29 @@
 }
 
 @media (max-width: 640px) {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .panel,
   .boardWrap {
     padding: 18px;
     border-radius: 22px;
+  }
+
+  .panel {
+    order: 2;
+  }
+
+  .boardWrap {
+    order: 1;
+  }
+
+  .keypad {
+    order: -1;
+    margin-bottom: 12px;
   }
 
   .statusRow,

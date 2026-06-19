@@ -94,7 +94,7 @@ test('shared room snapshots hide other player numbers but keep clues visible', (
   assert.equal(guestSnapshot.occupancy[0][0], 'clue');
 });
 
-test('shared room rejects changes to clue cells and solved board updates', () => {
+test('shared room accepts non-solution values but keeps solved false until the board matches', () => {
   const room = createRoomState({ roomId: 'room-2', difficulty: 'medium', puzzle, solution, hostId: 'host-token' });
   registerParticipant(room, 'host-token');
 
@@ -104,10 +104,15 @@ test('shared room rejects changes to clue cells and solved board updates', () =>
 
   assert.throws(() => applyRoomMove(room, 'host-token', { row: 0, col: 0, value: 9 }), /clue/i);
 
+  assert.doesNotThrow(() => applyRoomMove(room, 'host-token', { row: 0, col: 2, value: 9 }));
+  let snapshot = buildViewerSnapshot(room, 'host-token');
+  assert.equal(snapshot.board[0][2], 9);
+  assert.equal(snapshot.solved, false);
+
   applyRoomMove(room, 'host-token', { row: 0, col: 2, value: 4 });
   applyRoomMove(room, 'host-token', { row: 0, col: 3, value: 6 });
 
-  const snapshot = buildViewerSnapshot(room, 'host-token');
+  snapshot = buildViewerSnapshot(room, 'host-token');
   assert.equal(snapshot.solved, false);
   assert.equal(snapshot.board[0][2], 4);
   assert.equal(snapshot.board[0][3], 6);
