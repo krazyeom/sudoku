@@ -532,6 +532,7 @@ export default function SudokuGame() {
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
 
   const socketRef = useRef<WebSocket | null>(null);
+  const sharedRoomPollRef = useRef<number | null>(null);
   const shouldClearSharedRoomRef = useRef(false);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
@@ -592,7 +593,6 @@ export default function SudokuGame() {
     if (nextBoard) setBoard(nextBoard);
     setOwnership(nextOccupancy);
     setSolved(snapshot.phase === 'playing' ? snapshot.solved : false);
-    setSelected(null);
     setChecks([]);
     setHintPreview(null);
     setCompletionSummary(null);
@@ -633,10 +633,52 @@ export default function SudokuGame() {
     );
   }
 
-  function sendSharedMessage(payload: Record<string, unknown>) {
-    const socket = socketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(JSON.stringify(payload));
+  async function sendSharedMessage(payload: Record<string, unknown>) {
+    if (typeof window === 'undefined') return null;
+    try {
+      const response = await fetch('/api/shared-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = (await response.json().catch(() => null)) as any;
+      if (!response.ok) {
+        throw new Error(data?.message ?? '공유 방 요청에 실패했어요.');
+      }
+      return data;
+    } catch {
+      setMessage(locale === 'ko' ? '공유 방 요청에 실패했어요.' : 'Shared-room request failed.');
+      return null;
+    }
+  }
+
+  function stopSharedRoomPolling() {
+    if (sharedRoomPollRef.current !== null) {
+      window.clearInterval(sharedRoomPollRef.current);
+      sharedRoomPollRef.current = null;
+    }
+  }
+
+  async function pollSharedRoom(roomId: string, participantId: string) {
+    const query = new URLSearchParams({ roomId, participantId });
+    try {
+      const response = await fetch(`/api/shared-room?${query.toString()}`);
+      if (!response.ok) return;
+      const payload = (await response.json().catch(() => null)) as any;
+      if (payload?.snapshot) {
+        applySharedSnapshot(payload.snapshot, participantId);
+      }
+    } catch {
+      // ignore polling errors and try again on the next tick
+    }
+  }
+
+  function startSharedRoomPolling(roomId: string, participantId: string) {
+    stopSharedRoomPolling();
+    void pollSharedRoom(roomId, participantId);
+    sharedRoomPollRef.current = window.setInterval(() => {
+      void pollSharedRoom(roomId, participantId);
+    }, 1000);
   }
 
   useEffect(() => {
@@ -646,11 +688,10 @@ export default function SudokuGame() {
   }, [sharedMatchIsCountdown, sharedRoom?.snapshot?.countdownEndsAt]);
 
   function disconnectSharedRoom() {
-    const socket = socketRef.current;
     shouldClearSharedRoomRef.current = true;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      sendSharedMessage({ type: 'leave_room' });
-      socket.close();
+    stopSharedRoomPolling();
+    if (sharedRoom) {
+      void sendSharedMessage({ type: 'leave_room', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId });
     }
     socketRef.current = null;
     setSharedRoom(null);
@@ -719,16 +760,8 @@ export default function SudokuGame() {
 
   function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty, initialRole: RoomRole = 'spectator') {
     if (typeof window === 'undefined') return;
-    const url = getWebSocketUrl();
-    if (!url) {
-      setMessage(locale === 'ko' ? '웹소켓 주소를 찾을 수 없어요.' : 'Could not determine the websocket URL.');
-      return;
-    }
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
     shouldClearSharedRoomRef.current = false;
+    stopSharedRoomPolling();
 
     const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
     const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
@@ -741,62 +774,19 @@ export default function SudokuGame() {
       snapshot: null,
     });
 
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
-
-    socket.addEventListener('open', () => {
-      if (seedDifficulty) {
-        sendSharedMessage({ type: 'create_room', roomId, participantId, difficulty: seedDifficulty });
-        return;
+    const action = seedDifficulty ? 'create_room' : 'join_room';
+    void sendSharedMessage({ type: action, roomId, participantId, difficulty: seedDifficulty }).then((payload) => {
+      if (!payload) return;
+      if (payload.roomId) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('room', payload.roomId);
+        window.history.replaceState(null, '', nextUrl.toString());
+        setRoomInput(payload.roomId);
       }
-
-      sendSharedMessage({ type: 'join_room', roomId, participantId });
-    });
-
-    socket.addEventListener('message', (event: MessageEvent) => {
-      let payload: any;
-      try {
-        payload = JSON.parse(String(event.data));
-      } catch {
-        return;
-      }
-
-      if (payload.type === 'room_created' || payload.type === 'room_joined' || payload.type === 'room_snapshot' || payload.type === 'room_reset') {
-        if (payload.roomId) {
-          const nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.set('room', payload.roomId);
-          window.history.replaceState(null, '', nextUrl.toString());
-          setRoomInput(payload.roomId);
-        }
-        if (payload.snapshot) {
-          applySharedSnapshot(payload.snapshot, participantId);
-        }
-        return;
-      }
-
-      if (payload.type === 'room_event' && payload.snapshot) {
+      if (payload.snapshot) {
         applySharedSnapshot(payload.snapshot, participantId);
-        return;
       }
-
-      if (payload.type === 'left_room') {
-        setSharedRoom(null);
-        return;
-      }
-
-      if (payload.type === 'error') {
-        setMessage(payload.message ?? '공유 방에서 오류가 발생했어요.');
-      }
-    });
-
-    socket.addEventListener('close', () => {
-      socketRef.current = null;
-      if (shouldClearSharedRoomRef.current) {
-        shouldClearSharedRoomRef.current = false;
-        setSharedRoom(null);
-        return;
-      }
-      setSharedRoom((current) => (current ? { ...current, connected: false } : current));
+      startSharedRoomPolling(roomId, participantId);
     });
   }
 
@@ -956,6 +946,14 @@ export default function SudokuGame() {
     setMessage('정답입니다. 퍼즐을 완성했어요!');
   }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled]);
 
+  function handleCellClick(rowIndex: number, colIndex: number) {
+    if (selected?.row === rowIndex && selected?.col === colIndex) {
+      setSelected(null);
+      return;
+    }
+    setSelected({ row: rowIndex, col: colIndex });
+  }
+
   function moveSelection(deltaRow: number, deltaCol: number) {
     const current = selected ?? { row: 0, col: 0 };
     const next = {
@@ -1027,7 +1025,7 @@ export default function SudokuGame() {
         setMessage('방장만 새 퍼즐을 시작할 수 있어요.');
         return;
       }
-      sendSharedMessage({ type: 'reset_room', difficulty: nextDifficulty });
+      sendSharedMessage({ type: 'reset_room', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId, difficulty: nextDifficulty });
       setMessage('공유 방에 새 퍼즐을 요청했어요.');
       return;
     }
@@ -1098,7 +1096,7 @@ export default function SudokuGame() {
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
     if (sharedRoom) {
-      sendSharedMessage({ type: 'move', row, col, value });
+      sendSharedMessage({ type: 'move', roomId: sharedRoom?.roomId, participantId: sharedRoom?.participantId, row, col, value });
     }
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
       setSolved(true);
@@ -1123,7 +1121,7 @@ export default function SudokuGame() {
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
     if (sharedRoom) {
-      sendSharedMessage({ type: 'move', row, col, value: null });
+      sendSharedMessage({ type: 'move', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId, row, col, value: null });
     }
     setMessage('칸과 메모를 비웠어요.');
   }
@@ -1883,8 +1881,7 @@ export default function SudokuGame() {
                   type="button"
                   aria-label={`row ${rowIndex + 1} column ${colIndex + 1}`}
                   className={classes}
-                  onPointerDown={() => setSelected({ row: rowIndex, col: colIndex })}
-                  onClick={() => setSelected({ row: rowIndex, col: colIndex })}
+                  onClick={() => handleCellClick(rowIndex, colIndex)}
                 >
                   {cell !== null ? (
                     <span className={styles.cellValue}>{cell}</span>

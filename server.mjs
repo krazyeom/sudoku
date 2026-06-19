@@ -60,14 +60,167 @@ function syncRoom(room) {
 
 await app.prepare();
 
-const server = http.createServer((req, res) => {
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
+  return text ? JSON.parse(text) : {};
+}
+
+function sendJson(res, statusCode, payload) {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(payload));
+}
+
+function touchParticipant(room, participantId) {
+  if (!participantId) return;
+  const participant = room.participants.get(participantId);
+  if (!participant) return;
+  participant.connected = true;
+  participant.lastSeenAt = new Date().toISOString();
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  if (url.pathname === '/api/shared-room') {
+    try {
+      if (req.method === 'GET') {
+        const roomId = url.searchParams.get('roomId')?.trim() ?? '';
+        const participantId = url.searchParams.get('participantId')?.trim() ?? '';
+        const room = roomId ? getRoom(roomId) : null;
+        if (!room) {
+          sendJson(res, 404, { type: 'error', message: 'Room not found' });
+          return;
+        }
+        touchParticipant(room, participantId);
+        sendJson(res, 200, { type: 'room_snapshot', roomId: room.roomId, participantId, snapshot: snapshotFor(room, participantId) });
+        return;
+      }
+
+      if (req.method === 'POST') {
+        const message = await readJsonBody(req);
+        const action = message?.type;
+        if (action === 'create_room') {
+          const difficulty = normalizeDifficulty(message.difficulty);
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : randomUUID();
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
+          const room = createRoomState({ roomId, difficulty, hostId: participantId });
+          room.onStateChange = () => syncRoom(room);
+          touchParticipant(room, participantId);
+          rooms.set(room.roomId, room);
+          sendJson(res, 200, {
+            type: 'room_created',
+            roomId: room.roomId,
+            participantId,
+            snapshot: snapshotFor(room, participantId),
+          });
+          return;
+        }
+
+        if (action === 'join_room') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const room = getRoom(roomId);
+          if (!room) throw new Error('Room not found');
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
+          const participant = registerParticipant(room, participantId);
+          touchParticipant(room, participant.id);
+          sendJson(res, 200, {
+            type: 'room_joined',
+            roomId: room.roomId,
+            participantId: participant.id,
+            snapshot: snapshotFor(room, participant.id),
+          });
+          return;
+        }
+
+        if (action === 'request_snapshot') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : '';
+          const room = roomId ? getRoom(roomId) : null;
+          if (!room) throw new Error('Not in a room');
+          touchParticipant(room, participantId);
+          sendJson(res, 200, {
+            type: 'room_snapshot',
+            roomId: room.roomId,
+            participantId,
+            snapshot: snapshotFor(room, participantId),
+          });
+          return;
+        }
+
+        if (action === 'move') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : '';
+          const room = roomId ? getRoom(roomId) : null;
+          if (!room) throw new Error('Not in a room');
+          touchParticipant(room, participantId);
+          const event = applyRoomMove(room, participantId, {
+            row: message.row,
+            col: message.col,
+            value: message.value,
+          });
+          sendJson(res, 200, {
+            type: 'room_event',
+            event,
+            roomId: room.roomId,
+            participantId,
+            snapshot: snapshotFor(room, participantId),
+          });
+          return;
+        }
+
+        if (action === 'reset_room') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : '';
+          const room = roomId ? getRoom(roomId) : null;
+          if (!room) throw new Error('Not in a room');
+          touchParticipant(room, participantId);
+          const participant = room.participants.get(participantId);
+          if (!participant || participant.role !== 'host') throw new Error('Only the host can reset the room');
+          resetRoom(room, { difficulty: normalizeDifficulty(message.difficulty) });
+          sendJson(res, 200, {
+            type: 'room_reset',
+            roomId: room.roomId,
+            participantId,
+            snapshot: snapshotFor(room, participantId),
+          });
+          return;
+        }
+
+        if (action === 'leave_room') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : '';
+          const room = roomId ? getRoom(roomId) : null;
+          if (room && participantId) {
+            disconnectParticipant(room, participantId);
+          }
+          sendJson(res, 200, { type: 'left_room', roomId, participantId });
+          return;
+        }
+
+        throw new Error(`Unknown message type: ${action}`);
+      }
+
+      sendJson(res, 405, { type: 'error', message: 'Method not allowed' });
+    } catch (error) {
+      sendJson(res, 400, { type: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+    return;
+  }
   handle(req, res);
 });
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-wss.on('connection', (socket) => {
+wss.on('connection', (socket, request) => {
+  console.log('ws connection', request.url);
   socketState.set(socket, { roomId: null, participantId: null });
+
+  socket.on('error', (error) => {
+    console.error('ws socket error', error);
+  });
 
   socket.on('message', (raw) => {
     let message;
