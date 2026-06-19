@@ -1629,16 +1629,6 @@ export default function SudokuGame() {
               </button>
             </div>
 
-            <div className={styles.keypad}>
-              {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
-                <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={sharedMatchGateActive || !selected || solved}>
-                  {number}
-                </button>
-              ))}
-              <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={sharedMatchGateActive || !selected || solved}>
-                {locale === 'ko' ? '지우기' : 'Clear'}
-              </button>
-            </div>
           </>
         ) : (
           <>
@@ -1852,7 +1842,7 @@ export default function SudokuGame() {
                 selected &&
                 Math.floor(selected.row / 3) === Math.floor(rowIndex / 3) &&
                 Math.floor(selected.col / 3) === Math.floor(colIndex / 3);
-              const isWrong = checks.some((item) => item.row === rowIndex && item.col === colIndex);
+              const isWrong = difficulty === 'easy' && checks.some((item) => item.row === rowIndex && item.col === colIndex);
               const noteDigits = notes[rowIndex][colIndex];
               const classes = [
                 styles.cell,
@@ -1892,6 +1882,17 @@ export default function SudokuGame() {
               );
             }),
           )}
+        </div>
+
+        <div className={styles.keypad}>
+          {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
+            <button type="button" key={number} onClick={() => updateCell(number)} className={styles.keypadButton} disabled={sharedMatchGateActive || !selected || solved}>
+              {number}
+            </button>
+          ))}
+          <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={sharedMatchGateActive || !selected || solved}>
+            {locale === 'ko' ? '지우기' : 'Clear'}
+          </button>
         </div>
       </section>
     </section>
