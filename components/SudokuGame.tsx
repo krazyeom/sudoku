@@ -538,6 +538,7 @@ export default function SudokuGame() {
   const [sharedCompletionSummary, setSharedCompletionSummary] = useState<SharedCompletionSummary | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [isVercelAppHost, setIsVercelAppHost] = useState(false);
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
   const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
@@ -910,6 +911,7 @@ export default function SudokuGame() {
 
   useEffect(() => {
     if (!hydrated || typeof window === 'undefined') return;
+    setIsVercelAppHost(window.location.hostname.endsWith('vercel.app'));
     const roomId = new URLSearchParams(window.location.search).get('room');
     if (roomId) {
       connectSharedRoom(roomId, undefined, 'spectator');
@@ -1574,7 +1576,7 @@ export default function SudokuGame() {
                       className={styles.roomIdButton}
                       onClick={() => { void copyRoomId(); }}
                       aria-label={locale === 'ko' ? '방 ID 복사' : 'Copy room ID'}
-                      title={locale === 'ko' ? '터치하면 방 ID를 복사해요.' : 'Tap to copy the room ID.'}
+                      title="Tap to copy the room ID."
                     >
                       <strong>{sharedRoom.roomId}</strong>
                     </button>
@@ -1608,10 +1610,16 @@ export default function SudokuGame() {
                     </button>
                   </div>
                 </>
+              ) : isVercelAppHost ? (
+                <div className={styles.roomMeta}>
+                  <span>{locale === 'ko' ? '공유 방' : 'Shared room'}</span>
+                  <strong>{locale === 'ko' ? 'Vercel 미리보기에서는 비활성화됨' : 'Disabled on Vercel preview builds'}</strong>
+                  <small>{locale === 'ko' ? '방 만들기와 참가 기능은 배포된 PartyKit 호스트에서만 사용하세요.' : 'Create/join is available only on the deployed PartyKit host.'}</small>
+                </div>
               ) : (
                 <>
                   <div className={styles.roomField}>
-                    <label htmlFor="room-id-input">{locale === 'ko' ? '방 ID' : 'Room ID'}</label>
+                    <label htmlFor="room-id-input">Room ID</label>
                     <input
                       id="room-id-input"
                       className={styles.roomFieldInput}
@@ -1644,7 +1652,7 @@ export default function SudokuGame() {
                   </div>
                   <div className={styles.roomActions}>
                     <button type="button" className={styles.actionPrimary} onClick={() => createSharedRoom(difficulty)}>
-                      {locale === 'ko' ? '방 만들기' : 'Create room'}
+                      Create room
                     </button>
                     <button
                       type="button"
@@ -1652,7 +1660,7 @@ export default function SudokuGame() {
                       onClick={joinRoomFromInput}
                       disabled={!canJoinRoom}
                     >
-                      {locale === 'ko' ? '방 참가' : 'Join room'}
+                      Join room
                     </button>
                   </div>
                 </>
@@ -1833,7 +1841,6 @@ export default function SudokuGame() {
         <div className={styles.boardMeta}>
           <div>
             <p className={styles.panelLabel}>Sudoku Board</p>
-            <h3 className={styles.boardTitle}>{locale === 'ko' ? '집중하기 좋은 클린한 레이아웃' : 'A clean layout for focused play'}</h3>
           </div>
           <div className={styles.boardMetaSide}>
             {sharedRoom?.snapshot ? (

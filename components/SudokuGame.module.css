@@ -638,6 +638,7 @@
 
 .keypad {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
@@ -682,6 +683,9 @@
 .boardWrap {
   padding: 24px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .boardLocked {
@@ -894,9 +898,10 @@
   grid-template-columns: repeat(9, minmax(0, 1fr));
   grid-template-rows: repeat(9, minmax(0, 1fr));
   align-content: stretch;
-  width: min(100%, 680px);
+  width: 100%;
+  max-width: none;
   aspect-ratio: 1;
-  margin: 0 auto;
+  margin: 0;
   border-radius: 26px;
   overflow: hidden;
   border: 2px solid rgba(148, 163, 184, 0.26);
