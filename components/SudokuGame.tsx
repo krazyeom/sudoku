@@ -539,6 +539,7 @@ export default function SudokuGame() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [isVercelAppHost, setIsVercelAppHost] = useState(false);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
   const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
@@ -548,6 +549,7 @@ export default function SudokuGame() {
   const shouldClearSharedRoomRef = useRef(false);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
+  const copyToastTimerRef = useRef<number | null>(null);
 
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
 
@@ -718,6 +720,14 @@ export default function SudokuGame() {
     return () => window.clearInterval(intervalId);
   }, [sharedMatchIsCountdown, sharedRoom?.snapshot?.countdownEndsAt]);
 
+  useEffect(() => {
+    return () => {
+      if (copyToastTimerRef.current !== null) {
+        window.clearTimeout(copyToastTimerRef.current);
+      }
+    };
+  }, []);
+
   function disconnectSharedRoom() {
     shouldClearSharedRoomRef.current = true;
     stopSharedRoomPolling();
@@ -736,21 +746,61 @@ export default function SudokuGame() {
     return url.toString();
   }
 
-  async function copyRoomId() {
-    if (!sharedRoom || typeof window === 'undefined') return;
+  function flashCopyToast(text: string) {
+    setCopyToast(text);
+    if (copyToastTimerRef.current !== null) {
+      window.clearTimeout(copyToastTimerRef.current);
+    }
+    copyToastTimerRef.current = window.setTimeout(() => {
+      setCopyToast(null);
+      copyToastTimerRef.current = null;
+    }, 2200);
+  }
+
+  async function copyTextToClipboard(text: string): Promise<boolean> {
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(sharedRoom.roomId);
-        setMessage(locale === 'ko' ? '방 ID를 복사했어요.' : 'Copied the room ID.');
-        return;
+        await navigator.clipboard.writeText(text);
+        return true;
       }
     } catch {
-      // fall through to prompt fallback
+      // continue to legacy fallback
     }
 
-    const copied = window.prompt(locale === 'ko' ? '아래 방 ID를 복사해 주세요.' : 'Copy this room ID:', sharedRoom.roomId);
-    if (copied !== null) {
-      setMessage(locale === 'ko' ? '방 ID를 표시했어요. 직접 복사해 주세요.' : 'Shown the room ID for manual copy.');
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', 'true');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
+  }
+
+  async function copyRoomId() {
+    if (!sharedRoom || typeof window === 'undefined') return;
+    const copied = await copyTextToClipboard(sharedRoom.roomId);
+    if (copied) {
+      const copyMessage = locale === 'ko' ? '방 ID를 복사했어요.' : 'Copied the room ID.';
+      setMessage(copyMessage);
+      flashCopyToast(copyMessage);
+      return;
+    }
+
+    const copiedManually = window.prompt(locale === 'ko' ? '아래 방 ID를 복사해 주세요.' : 'Copy this room ID:', sharedRoom.roomId);
+    if (copiedManually !== null) {
+      const copyMessage = locale === 'ko' ? '방 ID를 표시했어요. 직접 복사해 주세요.' : 'Shown the room ID for manual copy.';
+      setMessage(copyMessage);
+      flashCopyToast(copyMessage);
     } else {
       setMessage(locale === 'ko' ? '방 ID 복사에 실패했어요.' : 'Could not copy the room ID.');
     }
@@ -759,19 +809,19 @@ export default function SudokuGame() {
   async function copyRoomInviteLink() {
     if (!sharedRoom) return;
     const invite = getRoomInviteUrl(sharedRoom.roomId);
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(invite);
-        setMessage(locale === 'ko' ? '참가 링크를 복사했어요.' : 'Copied the join link.');
-        return;
-      }
-    } catch {
-      // fall through to manual copy fallback
+    const copied = await copyTextToClipboard(invite);
+    if (copied) {
+      const copyMessage = locale === 'ko' ? '참가 링크를 복사했어요.' : 'Copied the join link.';
+      setMessage(copyMessage);
+      flashCopyToast(copyMessage);
+      return;
     }
 
-    const copied = window.prompt(locale === 'ko' ? '아래 참가 링크를 복사해 주세요.' : 'Copy this join link:', invite);
-    if (copied !== null) {
-      setMessage(locale === 'ko' ? '참가 링크를 표시했어요. 직접 복사해 주세요.' : 'Shown the join link for manual copy.');
+    const copiedManually = window.prompt(locale === 'ko' ? '아래 참가 링크를 복사해 주세요.' : 'Copy this join link:', invite);
+    if (copiedManually !== null) {
+      const copyMessage = locale === 'ko' ? '참가 링크를 표시했어요. 직접 복사해 주세요.' : 'Shown the join link for manual copy.';
+      setMessage(copyMessage);
+      flashCopyToast(copyMessage);
     } else {
       setMessage(locale === 'ko' ? '링크 복사에 실패했어요.' : 'Could not copy the link.');
     }
@@ -2000,6 +2050,8 @@ export default function SudokuGame() {
         </div>
       </section>
     </section>
+
+    {copyToast ? <div className={styles.toast} role="status" aria-live="polite">{copyToast}</div> : null}
 
       {showCompleteModal ? (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Puzzle complete" onClick={() => setShowCompleteModal(false)}>

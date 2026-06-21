@@ -522,6 +522,26 @@
   line-height: 1.6;
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 80;
+  transform: translateX(-50%);
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.45);
+  color: #f8fafc;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  backdrop-filter: blur(18px);
+}
+
 .roomPanel {
   display: grid;
   gap: 12px;
@@ -546,6 +566,7 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   text-align: left;
+  touch-action: manipulation;
 }
 
 .roomIdButton:hover,
