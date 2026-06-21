@@ -827,6 +827,36 @@ export default function SudokuGame() {
     }
   }
 
+  async function shareRoomInviteLink() {
+    if (!sharedRoom || typeof window === 'undefined') return;
+    const invite = getRoomInviteUrl(sharedRoom.roomId);
+    const shareTitle = locale === 'ko' ? 'Dual Sudoku 초대 링크' : 'Dual Sudoku invite link';
+    const shareText = locale === 'ko' ? '같이 풀자!' : 'Join me in Dual Sudoku!';
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: invite,
+        });
+        setMessage(locale === 'ko' ? '초대 링크 공유 창을 열었어요.' : 'Opened the invite share sheet.');
+        return;
+      }
+    } catch {
+      // fall through to copy fallback
+    }
+
+    const copied = await copyTextToClipboard(invite);
+    if (copied) {
+      const copyMessage = locale === 'ko' ? '공유할 수 있도록 초대 링크를 복사했어요.' : 'Copied the invite link for sharing.';
+      setMessage(copyMessage);
+      flashCopyToast(copyMessage);
+    } else {
+      setMessage(locale === 'ko' ? '초대 링크 공유를 열 수 없어요.' : 'Could not open invite sharing.');
+    }
+  }
+
   function joinRoomFromInput() {
     const roomId = sanitizeRoomIdInput(roomInput.trim());
     if (!roomId) {
@@ -1654,6 +1684,9 @@ export default function SudokuGame() {
                   <div className={styles.roomActions}>
                     <button type="button" className={styles.actionSecondary} onClick={copyRoomInviteLink}>
                       {locale === 'ko' ? '초대 링크 복사' : 'Copy invite link'}
+                    </button>
+                    <button type="button" className={styles.actionSecondary} onClick={() => { void shareRoomInviteLink(); }}>
+                      {locale === 'ko' ? '초대 링크 공유' : 'Share invite'}
                     </button>
                     <button type="button" className={styles.actionSecondary} onClick={disconnectSharedRoom}>
                       {locale === 'ko' ? '방 나가기' : 'Leave room'}
