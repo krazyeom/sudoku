@@ -229,14 +229,14 @@ function buildShareText(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        'Dual Sudoku',
+        'Dual Sudoku 결과',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
         `Rank: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
-        'I completed a Dual Sudoku puzzle! 🎉',
+        'Dual Sudoku result',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
@@ -249,15 +249,15 @@ function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
   const textLines =
     locale === 'ko'
       ? [
-          'Dual Sudoku',
-          `${difficultyLabel} puzzle complete`,
+          'Dual Sudoku 결과',
+          `${difficultyLabel} 완료`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
         ]
       : [
-          'Dual Sudoku',
-          `${difficultyLabel} puzzle complete`,
+          'Dual Sudoku result',
+          `${difficultyLabel} complete`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
@@ -1285,7 +1285,7 @@ export default function SudokuGame() {
   async function handleShareCompletion() {
     if (sharedCompletionSummary) {
       const text = [
-        locale === 'ko' ? 'Dual Sudoku에서 퍼즐을 완성했어요! 🎉' : 'I completed a Dual Sudoku puzzle! 🎉',
+        locale === 'ko' ? 'Dual Sudoku 전투를 끝냈어요! ⚔️' : 'I finished a Dual Sudoku duel! ⚔️',
         `Difficulty: ${getDifficultyLabel(locale, sharedCompletionSummary.difficulty)}`,
         `Time: ${formatTime(sharedCompletionSummary.elapsedSeconds)}`,
         `Clues: ${sharedCompletionSummary.clueCount}`,
@@ -1304,7 +1304,7 @@ export default function SudokuGame() {
           const svg = buildShareCardSvg(shareCardSummary, locale);
           const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
           await navigator.share({
-            title: 'Dual Sudoku completion card',
+            title: 'Dual Sudoku result',
             text,
             files: [file],
           });
@@ -1333,7 +1333,7 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: 'Dual Sudoku completion card',
+          title: 'Dual Sudoku result',
           text,
           files: [file],
         });
@@ -2094,7 +2094,7 @@ export default function SudokuGame() {
             </p>
             {sharedCompletionSummary ? (
               <div className={styles.shareCard}>
-                <span>{locale === 'ko' ? '전투 기록' : 'Battle record'}</span>
+                <span>{locale === 'ko' ? '결과 카드' : 'Result card'}</span>
                 <strong>{getDifficultyLabel(locale, sharedCompletionSummary.difficulty)} · {formatTime(sharedCompletionSummary.elapsedSeconds)}</strong>
                 <small>
                   {locale === 'ko'
@@ -2104,7 +2104,7 @@ export default function SudokuGame() {
               </div>
             ) : completionSummary ? (
               <div className={styles.shareCard}>
-                <span>{locale === 'ko' ? '공유 카드' : 'Share card'}</span>
+                <span>{locale === 'ko' ? '결과 카드' : 'Result card'}</span>
                 <strong>{locale === 'ko' ? getDifficultyLabel(locale, completionSummary.difficulty) : getDifficultyLabel(locale, completionSummary.difficulty)} · {formatTime(completionSummary.elapsedSeconds)}</strong>
                 <small>{locale === 'ko' ? `${completionSummary.clueCount} clues · #${completionSummary.rank}/${completionSummary.total}` : `${completionSummary.clueCount} clues · #${completionSummary.rank}/${completionSummary.total}`}</small>
               </div>
@@ -2114,7 +2114,7 @@ export default function SudokuGame() {
                 {locale === 'ko' ? '새 퍼즐' : 'New puzzle'}
               </button>
               <button className={styles.actionSecondary} onClick={() => { void handleShareCompletion(); }}>
-                {locale === 'ko' ? '공유하기' : 'Share'}
+                {locale === 'ko' ? '공유' : 'Share'}
               </button>
               <button className={styles.actionSecondary} onClick={() => { setShowCompleteModal(false); setConfettiPieces([]); }}>
                 {locale === 'ko' ? '계속 보기' : 'Keep playing'}
