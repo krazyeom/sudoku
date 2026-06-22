@@ -229,14 +229,14 @@ function buildShareText(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        'Dual Sudoku 결과',
+        'SudokuDuo 결과',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
         `Rank: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
-        'Dual Sudoku result',
+        'SudokuDuo result',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
@@ -249,14 +249,14 @@ function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
   const textLines =
     locale === 'ko'
       ? [
-          'Dual Sudoku 결과',
+          'SudokuDuo 결과',
           `${difficultyLabel} 완료`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
           `Rank #${summary.rank}/${summary.total}`,
         ]
       : [
-          'Dual Sudoku result',
+          'SudokuDuo result',
           `${difficultyLabel} complete`,
           `Time ${formatTime(summary.elapsedSeconds)}`,
           `Clues ${summary.clueCount}`,
@@ -1286,7 +1286,7 @@ export default function SudokuGame() {
   async function handleShareCompletion() {
     if (sharedCompletionSummary) {
       const text = [
-        locale === 'ko' ? 'Dual Sudoku 전투를 끝냈어요! ⚔️' : 'I finished a Dual Sudoku duel! ⚔️',
+        locale === 'ko' ? 'SudokuDuo 전투를 끝냈어요! ⚔️' : 'I finished a SudokuDuo duel! ⚔️',
         `Difficulty: ${getDifficultyLabel(locale, sharedCompletionSummary.difficulty)}`,
         `Time: ${formatTime(sharedCompletionSummary.elapsedSeconds)}`,
         `Clues: ${sharedCompletionSummary.clueCount}`,
@@ -1305,7 +1305,7 @@ export default function SudokuGame() {
           const svg = buildShareCardSvg(shareCardSummary, locale);
           const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
           await navigator.share({
-            title: 'Dual Sudoku result',
+            title: 'SudokuDuo result',
             text,
             files: [file],
           });
@@ -1334,7 +1334,7 @@ export default function SudokuGame() {
         const svg = buildShareCardSvg(completionSummary, locale);
         const file = new File([svg], `sudoku-completion-${Date.now()}.svg`, { type: 'image/svg+xml' });
         await navigator.share({
-          title: 'Dual Sudoku result',
+          title: 'SudokuDuo result',
           text,
           files: [file],
         });

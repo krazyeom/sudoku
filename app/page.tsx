@@ -5,8 +5,10 @@ export default function HomePage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <div>
-          <h1 className={styles.title}>Dual Sudoku</h1>
+        <div className={styles.heroCopy}>
+          <p className={styles.kicker}>1v1 sudoku duel</p>
+          <h1 className={styles.title}>SudokuDuo</h1>
+          <p className={styles.subtitle}>Fast matches, synced rooms, clean mobile play.</p>
         </div>
       </section>
 

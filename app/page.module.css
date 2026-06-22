@@ -12,20 +12,40 @@
   margin: 0 auto;
 }
 
+.heroCopy {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px 0;
+}
+
 .kicker {
-  margin: 0 0 10px;
-  color: rgba(226, 232, 240, 0.78);
+  margin: 0;
+  color: rgba(125, 211, 252, 0.9);
   text-transform: uppercase;
   letter-spacing: 0.24em;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
+
+.subtitle {
+  margin: 0;
+  max-width: 42rem;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+
 
 .title {
   margin: 0;
   font-size: clamp(2.4rem, 5vw, 4.8rem);
   line-height: 0.96;
   letter-spacing: -0.05em;
+  background: linear-gradient(90deg, #e2e8f0 0%, #7dd3fc 42%, #c084fc 78%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .footer {

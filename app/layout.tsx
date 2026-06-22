@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Dual Sudoku',
+  title: 'SudokuDuo',
   description: 'A 1v1 Sudoku duel game',
 };
 
