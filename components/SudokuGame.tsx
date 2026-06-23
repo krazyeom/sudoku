@@ -1960,6 +1960,11 @@ export default function SudokuGame() {
               </div>
             ) : null}
             <span className={styles.boardHint}>{locale === 'ko' ? '클릭하거나 키보드 1~9를 사용하세요. I = 힌트, H = 자동입력' : 'Click a cell or press 1–9. I = hint, H = auto-fill.'}</span>
+            <div className={styles.numberLegend} aria-label={locale === 'ko' ? '숫자 표시 범례' : 'Number style legend'}>
+              <span className={styles.numberLegendGiven}><i />{locale === 'ko' ? '기본 숫자' : 'Given'}</span>
+              <span className={styles.numberLegendUser}><i />{locale === 'ko' ? '내가 입력한 숫자' : 'My input'}</span>
+              <span className={styles.numberLegendNote}><i />{locale === 'ko' ? '메모 숫자' : 'Notes'}</span>
+            </div>
           </div>
         </div>
 
@@ -2002,6 +2007,7 @@ export default function SudokuGame() {
               const classes = [
                 styles.cell,
                 isFixed ? styles.cellFixed : '',
+                !isFixed && cell !== null ? styles.cellUserFilled : '',
                 isSelected ? styles.cellSelected : '',
                 solved ? styles.cellSolved : '',
                 (inSameRow || inSameCol || inSameBox) && !isSelected ? styles.cellFocus : '',
@@ -2021,7 +2027,7 @@ export default function SudokuGame() {
                   onClick={() => handleCellClick(rowIndex, colIndex)}
                 >
                   {cell !== null ? (
-                    <span className={styles.cellValue}>{cell}</span>
+                    <span className={isFixed ? styles.cellGivenValue : styles.cellUserValue}>{cell}</span>
                   ) : noteDigits.length > 0 ? (
                     <span className={styles.cellNotesGrid}>
                       {getNoteCellValue(noteDigits).map((value, index) => (
