@@ -673,8 +673,25 @@
 }
 
 .keypadClear {
-  grid-column: span 3;
+  grid-column: span 2;
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(239, 68, 68, 0.28));
+}
+
+.keypadNote {
+  background: rgba(15, 23, 42, 0.84);
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  color: #e2e8f0;
+}
+
+.keypadNote strong {
+  margin-left: 6px;
+  color: #7dd3fc;
+}
+
+.keypadNoteActive {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.34), rgba(168, 85, 247, 0.28));
+  border-color: rgba(125, 211, 252, 0.58);
+  box-shadow: 0 10px 26px rgba(14, 165, 233, 0.18);
 }
 
 

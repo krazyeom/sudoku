@@ -1187,8 +1187,35 @@ export default function SudokuGame() {
       return;
     }
 
+    const currentValue = board[row][col];
+    const currentNotes = notes[row][col];
     const nextBoard = cloneGrid(board);
     const nextNotes = cloneNotes(notes);
+
+    if (currentValue === value && currentNotes.length === 0) {
+      nextBoard[row][col] = null;
+      nextNotes[row][col] = [value];
+      pushHistory(nextBoard, nextNotes);
+      setChecks([]);
+      setMessage(`Moved ${value} at (${row + 1}, ${col + 1}) into notes.`);
+      return;
+    }
+
+    if (currentValue === null && currentNotes.length === 1 && currentNotes[0] === value) {
+      nextBoard[row][col] = value;
+      nextNotes[row][col] = [];
+      pushHistory(nextBoard, nextNotes);
+      setChecks([]);
+      if (sharedRoom) {
+        sendSharedMessage({ type: 'move', roomId: sharedRoom?.roomId, participantId: sharedRoom?.participantId, row, col, value });
+      }
+      if (boardMatchesSolution(nextBoard, puzzle.solution)) {
+        setSolved(true);
+      }
+      setMessage(`Restored ${value} at (${row + 1}, ${col + 1}).`);
+      return;
+    }
+
     nextBoard[row][col] = value;
     nextNotes[row][col] = [];
     pushHistory(nextBoard, nextNotes);
@@ -1595,14 +1622,10 @@ export default function SudokuGame() {
                 <span>{locale === 'ko' ? '타이머' : 'Timer'}</span>
                 <strong>{formatTime(elapsedSeconds)}</strong>
               </div>
-              <button
-                type="button"
-                className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`}
-                onClick={() => setNoteMode((current) => !current)}
-              >
+              <div className={`${styles.statusChip} ${noteMode ? styles.statusChipActive : ''}`} aria-live="polite">
                 <span>{locale === 'ko' ? '메모 모드' : 'Notes'}</span>
                 <strong>{noteMode ? 'ON' : 'OFF'}</strong>
-              </button>
+              </div>
               <button
                 type="button"
                 className={`${styles.statusChip} ${soundEnabled ? styles.statusChipActive : ''}`}
@@ -2053,6 +2076,16 @@ export default function SudokuGame() {
           ))}
           <button type="button" onClick={clearCell} className={`${styles.keypadButton} ${styles.keypadClear}`} disabled={sharedMatchGateActive || !selected || solved}>
             {locale === 'ko' ? '지우기' : 'Clear'}
+          </button>
+          <button
+            type="button"
+            className={`${styles.keypadButton} ${styles.keypadNote} ${noteMode ? styles.keypadNoteActive : ''}`}
+            onClick={() => setNoteMode((current) => !current)}
+            disabled={sharedMatchGateActive || !selected || solved}
+            aria-pressed={noteMode}
+          >
+            {locale === 'ko' ? '메모' : 'Notes'}
+            <strong>{noteMode ? 'ON' : 'OFF'}</strong>
           </button>
         </div>
       </section>
