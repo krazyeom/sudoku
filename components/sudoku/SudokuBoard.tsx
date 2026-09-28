@@ -67,7 +67,9 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         </div>
 
         <div
-          className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''}`}
+          className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
+            sharedMatchGateActive ? styles.boardGridHidden : ''
+          }`}
           role="grid"
           aria-label="Sudoku board"
         >
@@ -154,9 +156,14 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                   role="gridcell"
                   aria-label={`row ${r + 1} column ${c + 1}`}
                   className={cellClasses}
-                  onClick={() => onCellClick(r, c)}
+                  onClick={() => {
+                    if (!sharedMatchGateActive) {
+                      onCellClick(r, c);
+                    }
+                  }}
+                  disabled={sharedMatchGateActive}
                 >
-                  {cell !== null ? (
+                  {!sharedMatchGateActive && cell !== null ? (
                     <span
                       className={`${isFixed ? styles.givenDigit : styles.userDigit} ${
                         isConflict ? styles.conflictDigit : ''
@@ -164,7 +171,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                     >
                       {cell}
                     </span>
-                  ) : noteDigits.length > 0 ? (
+                  ) : !sharedMatchGateActive && noteDigits.length > 0 ? (
                     <div className={styles.notesGrid}>
                       {getNoteCellValue(noteDigits).map((val, idx) => (
                         <span
