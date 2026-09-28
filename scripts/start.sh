@@ -34,5 +34,6 @@ fi
 npm run build
 NODE_ENV=production PORT="$PORT" nohup node server.mjs >> "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
+disown "$SERVER_PID" 2>/dev/null || true
 echo "$SERVER_PID" > "$PID_FILE"
 echo "Started Sudoku server (pid $SERVER_PID) on port $PORT"

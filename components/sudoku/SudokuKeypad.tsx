@@ -1,0 +1,81 @@
+import React, { useMemo } from 'react';
+import styles from './sudoku.module.css';
+import type { Grid } from '@/lib/sudoku';
+import type { Locale } from './types';
+import { getRemainingCounts } from './helpers';
+
+interface SudokuKeypadProps {
+  board: Grid;
+  noteMode: boolean;
+  disabled: boolean;
+  locale: Locale;
+  onNumberClick: (num: number) => void;
+  onClearClick: () => void;
+  onToggleNoteMode: () => void;
+  onUndoClick: () => void;
+  canUndo: boolean;
+}
+
+export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
+  board,
+  noteMode,
+  disabled,
+  locale,
+  onNumberClick,
+  onClearClick,
+  onToggleNoteMode,
+  onUndoClick,
+  canUndo,
+}) => {
+  const remainingCounts = useMemo(() => getRemainingCounts(board), [board]);
+
+  return (
+    <div className={styles.keypadWrap}>
+      {/* Numbers 1-9 */}
+      <div className={styles.keypadGrid}>
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => {
+          const remaining = remainingCounts[number] ?? 0;
+          const isCompleted = remaining <= 0;
+
+          return (
+            <button
+              key={number}
+              type="button"
+              className={`${styles.keyBtn} ${isCompleted ? styles.keyBtnCompleted : ''}`}
+              onClick={() => onNumberClick(number)}
+              disabled={disabled}
+            >
+              <span>{number}</span>
+              <span className={styles.keyRemainingBadge}>
+                {isCompleted ? '✓' : remaining}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Action Controls: Erase, Notes Mode, Undo */}
+      <div className={styles.keypadActions}>
+        <button
+          type="button"
+          className={`${styles.keyActionBtn} ${noteMode ? styles.keyActionNotesActive : ''}`}
+          onClick={onToggleNoteMode}
+          disabled={disabled}
+          aria-pressed={noteMode}
+        >
+          <span>✏️ {locale === 'ko' ? '메모 모드' : 'Notes'}</span>
+          <span className={styles.notesActiveIndicator}>{noteMode ? 'ON' : 'OFF'}</span>
+        </button>
+
+        <button
+          type="button"
+          className={styles.keyActionBtn}
+          onClick={onClearClick}
+          disabled={disabled}
+        >
+          <span>⌫ {locale === 'ko' ? '지우기' : 'Erase'}</span>
+        </button>
+      </div>
+    </div>
+  );
+};

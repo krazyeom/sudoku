@@ -1,86 +1,110 @@
 .page {
   min-height: 100vh;
-  padding: 32px 20px 48px;
+  padding: 24px 20px 48px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.hero {
-  max-width: 1180px;
-  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-.heroCopy {
-  display: grid;
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 4px;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.logoBadge {
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
-  padding: 18px 20px 0;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
 }
 
-.kicker {
-  margin: 0;
-  color: rgba(125, 211, 252, 0.9);
-  text-transform: uppercase;
-  letter-spacing: 0.24em;
-  font-size: 12px;
-  font-weight: 800;
+.logoSymbol {
+  font-size: 1.15rem;
 }
 
-.subtitle {
-  margin: 0;
-  max-width: 42rem;
-  color: rgba(226, 232, 240, 0.76);
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-
-
-.title {
-  margin: 0;
-  font-size: clamp(2.4rem, 5vw, 4.8rem);
-  line-height: 0.96;
-  letter-spacing: -0.05em;
-  background: linear-gradient(90deg, #e2e8f0 0%, #7dd3fc 42%, #c084fc 78%, #f59e0b 100%);
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 50%, #c084fc 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.footer {
-  max-width: 1180px;
-  width: 100%;
-  margin: 0 auto;
-  padding-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  color: rgba(226, 232, 240, 0.72);
-  font-size: 0.88rem;
-  letter-spacing: 0.01em;
+.kicker {
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.footerMeta,
-.footerLinks {
+.gitHubBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-}
-
-.footerMeta a,
-.footerLinks {
-  color: inherit;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
   text-decoration: none;
 }
 
-.footerMeta a:hover,
-.footerLinks:hover {
-  color: #e2e8f0;
+.gitHubBtn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  transform: translateY(-1px);
 }
 
-.footerLinks svg {
-  flex: 0 0 auto;
+.footer {
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.footerMeta a {
+  color: #94a3b8;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footerMeta a:hover {
+  color: #38bdf8;
+}
+
+.footerHint {
+  font-size: 0.78rem;
+  color: #475569;
 }

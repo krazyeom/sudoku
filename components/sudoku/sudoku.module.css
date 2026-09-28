@@ -1,0 +1,1082 @@
+/* Modern Glassmorphic Cyber-Sudoku UI */
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Two-column layout on desktop, single on mobile */
+.layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Glassmorphism Panel Cards */
+.card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 20px 45px -10px rgba(2, 6, 23, 0.7);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Segmented Tab Navigation */
+.tabNav {
+  display: flex;
+  background: rgba(11, 17, 33, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tabBtn:hover {
+  color: #f1f5f9;
+}
+
+.tabBtnActive {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.25));
+  color: #f8fafc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* Section Titles & Badges */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #38bdf8;
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Difficulty Selector Pills */
+.difficultyGroup {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.diffPill {
+  position: relative;
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diffPill:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.diffPillActive {
+  background: rgba(56, 189, 248, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.diffPill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.diffDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-bottom: 2px;
+}
+
+.diffDotEasy { background: #34d399; box-shadow: 0 0 8px #34d399; }
+.diffDotMedium { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+.diffDotHard { background: #f43f5e; box-shadow: 0 0 8px #f43f5e; }
+
+/* Status HUD Grid (Timer, Notes, Sound, Lang) */
+.hudGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.hudCard {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.hudCardInteractive {
+  cursor: pointer;
+}
+
+.hudCardInteractive:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.hudCardActive {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(168, 85, 247, 0.18)) !important;
+  border-color: rgba(129, 140, 248, 0.35) !important;
+}
+
+.hudLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hudValue {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timerActive {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* Quick Action Toolbar */
+.actionToolbar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.btnPrimary {
+  grid-column: span 2;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0284c7 0%, #6366f1 50%, #9333ea 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px -4px rgba(2, 132, 199, 0.5);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(2, 132, 199, 0.7);
+  filter: brightness(1.08);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnSecondary {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: rgba(51, 65, 85, 0.7);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.countBadge {
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+/* Status Message Alert */
+.statusBar {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   SUDOKU BOARD STYLING - High Precision & Luminous Geometry
+   ========================================================================= */
+
+.boardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.boardFrame {
+  position: relative;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 20px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 24px 60px -15px rgba(2, 6, 23, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.boardTopInfo {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.legendBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legendDotGiven { background: #cbd5e1; }
+.legendDotUser { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+.legendDotNote { background: #94a3b8; }
+
+/* The 9x9 Board Grid */
+.boardGrid {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  background: rgba(3, 7, 18, 0.85);
+  border: 2px solid rgba(56, 189, 248, 0.35);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 
+    0 0 30px rgba(56, 189, 248, 0.08),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.boardGridSolved {
+  border-color: rgba(52, 211, 153, 0.7) !important;
+  box-shadow: 0 0 40px rgba(52, 211, 153, 0.3) !important;
+}
+
+/* Individual Cell */
+.cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  user-select: none;
+  outline: none;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+  
+  /* Delicate inner borders */
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* 3x3 Block Boundary Demarcation (Luminous Thicker Dividers) */
+.cellColBreak {
+  border-right: 2px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.cellRowBreak {
+  border-bottom: 2px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.cellNoRightBorder {
+  border-right: none;
+}
+
+.cellNoBottomBorder {
+  border-bottom: none;
+}
+
+/* Cell States */
+.cell:hover:not(.cellLocked) {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+/* Crosshair Highlight (Row, Col, or 3x3 block related to selected cell) */
+.cellRelated {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+/* Same Digit Highlight: All instances of the selected digit across the board glow */
+.cellMatchingDigit {
+  background: rgba(168, 85, 247, 0.18) !important;
+}
+
+.cellMatchingDigit::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.12);
+  pointer-events: none;
+}
+
+/* Active Selected Cell */
+.cellSelected {
+  background: rgba(56, 189, 248, 0.24) !important;
+  z-index: 2;
+}
+
+.cellSelected::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 2px solid #38bdf8;
+  border-radius: 8px;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.5), inset 0 0 8px rgba(56, 189, 248, 0.25);
+  pointer-events: none;
+}
+
+/* Conflict / Wrong Input State */
+.cellConflict {
+  background: rgba(244, 63, 94, 0.2) !important;
+  animation: pulseError 1.5s infinite;
+}
+
+@keyframes pulseError {
+  0%, 100% { background: rgba(244, 63, 94, 0.15); }
+  50% { background: rgba(244, 63, 94, 0.3); }
+}
+
+/* Hint Preview Cell */
+.cellHintPreview {
+  background: rgba(234, 179, 8, 0.22) !important;
+}
+
+.cellHintPreview::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 2px dashed #facc15;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* Cell Digits Styling */
+.givenDigit {
+  font-size: clamp(1.2rem, 3.8vw, 1.85rem);
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+}
+
+.userDigit {
+  font-size: clamp(1.2rem, 3.8vw, 1.85rem);
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+.conflictDigit {
+  color: #fb7185 !important;
+  text-shadow: 0 0 10px rgba(244, 63, 94, 0.45) !important;
+}
+
+/* Notes 3x3 Micro-Grid inside Cell */
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 90%;
+  height: 90%;
+  pointer-events: none;
+}
+
+.noteSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.55rem, 1.4vw, 0.72rem);
+  font-weight: 700;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.noteSlotMatching {
+  color: #c084fc;
+  font-weight: 900;
+  text-shadow: 0 0 6px rgba(192, 132, 252, 0.6);
+}
+
+/* Board Lock / Lobby Gate Overlay */
+.boardGateOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+  padding: 32px;
+  text-align: center;
+}
+
+.countdownNumber {
+  font-size: 5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #38bdf8, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.gateTitle {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.gateSubtitle {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   KEYPAD & INPUT CONTROLS - Modern Card Keys
+   ========================================================================= */
+
+.keypadWrap {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keypadGrid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 540px) {
+  .keypadGrid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+}
+
+.keyBtn {
+  position: relative;
+  aspect-ratio: 1 / 1.15;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: #f8fafc;
+  font-size: 1.35rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.keyBtn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(56, 189, 248, 0.25);
+}
+
+.keyBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.keyBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.keyBtnCompleted {
+  opacity: 0.35 !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.keyRemainingBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #7dd3fc;
+  line-height: 1;
+}
+
+/* Secondary Keypad Controls: Erase, Notes toggle, Undo */
+.keypadActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.keyActionBtn {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+}
+
+.keyActionBtn:hover:not(:disabled) {
+  background: rgba(51, 65, 85, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.keyActionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.keyActionNotesActive {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(56, 189, 248, 0.24)) !important;
+  border-color: rgba(168, 85, 247, 0.5) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+}
+
+.notesActiveIndicator {
+  padding: 2px 6px;
+  border-radius: 9999px;
+  background: #a855f7;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+/* =========================================================================
+   1v1 BATTLE / MULTIPLAYER PANEL
+   ========================================================================= */
+
+.battleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(11, 17, 33, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.battleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.battleDuelPills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.playerPillSelf {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.playerPillOther {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+/* Progress Tug-of-War Bar */
+.battleProgressBar {
+  width: 100%;
+  height: 10px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.8);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
+
+.barSelf {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  transition: width 0.3s ease;
+}
+
+.barOther {
+  height: 100%;
+  background: linear-gradient(90deg, #9333ea, #c084fc);
+  transition: width 0.3s ease;
+  margin-left: auto;
+}
+
+/* 9x9 Battle Minimap */
+.minimapGrid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  background: rgba(3, 7, 18, 0.9);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.miniCell {
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.miniCellClue { background: #334155; }
+.miniCellSelf { background: #38bdf8; box-shadow: 0 0 4px #38bdf8; }
+.miniCellOther { background: #c084fc; box-shadow: 0 0 4px #c084fc; }
+.miniCellBoth { background: #f59e0b; box-shadow: 0 0 4px #f59e0b; }
+.miniCellEmpty { background: rgba(30, 41, 59, 0.4); }
+
+.battleRoomInputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.roomInput {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.roomInput:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+/* =========================================================================
+   RECORDS & LEADERBOARD PANEL
+   ========================================================================= */
+
+.statsSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.statCard {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statCardLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.statCardValue {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.filterPillsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filterPill:hover {
+  color: #f1f5f9;
+}
+
+.filterPillActive {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #38bdf8 !important;
+}
+
+.recordItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background-color 0.15s ease;
+}
+
+.recordItemRow:hover {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+/* =========================================================================
+   COMPLETION MODAL & CELEBRATION
+   ========================================================================= */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalDialog {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 32px;
+  padding: 32px;
+  box-shadow: 
+    0 0 50px rgba(56, 189, 248, 0.25),
+    0 25px 60px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  animation: modalEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.92) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modalIcon {
+  font-size: 3.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.5));
+}
+
+.modalTitle {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.modalSubtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.summaryBox {
+  width: 100%;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.summaryLabel {
+  color: #94a3b8;
+}
+
+.summaryValue {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.modalActions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Toast Floating Alert */
+.toastAlert {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #f8fafc;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.25);
+  z-index: 2000;
+  animation: toastFade 0.25s ease;
+}
+
+@keyframes toastFade {
+  from { opacity: 0; transform: translate(-50%, 15px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Confetti Falling Animation */
+.confettiContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1001;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: -20px;
+  border-radius: 3px;
+  opacity: 0.9;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}

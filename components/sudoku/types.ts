@@ -1,0 +1,87 @@
+import type { Difficulty, Grid } from '@/lib/sudoku';
+import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
+
+export type Position = { row: number; col: number } | null;
+
+export type NoteGrid = number[][][];
+
+export type Snapshot = {
+  board: Grid;
+  notes: NoteGrid;
+  elapsedSeconds: number;
+};
+
+export type ConfettiPiece = {
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+  hue: number;
+  rotation: number;
+};
+
+export type RecordEntry = {
+  difficulty: Difficulty;
+  elapsedSeconds: number;
+  clueCount: number;
+  completedAt: string;
+};
+
+export type ItemCounts = {
+  hint: number;
+  autoFill: number;
+};
+
+export type Locale = 'ko' | 'en';
+
+export type SavedGame = {
+  difficulty: Difficulty;
+  puzzle: Grid;
+  solution: Grid;
+  board: Grid;
+  notes: NoteGrid;
+  history: Snapshot[];
+  selected: Position;
+  noteMode: boolean;
+  soundEnabled: boolean;
+  items: ItemCounts;
+  locale: Locale;
+  elapsedSeconds: number;
+  timerRunning: boolean;
+  solved: boolean;
+};
+
+export type CompletionSummary = RecordEntry & {
+  rank: number;
+  total: number;
+};
+
+export type SharedCompletionSummary = {
+  difficulty: Difficulty;
+  clueCount: number;
+  elapsedSeconds: number;
+  completedAt: string;
+  completedBy: string | null;
+  completedByRole: RoomRole | null;
+};
+
+export type SharedRoomState = {
+  roomId: string;
+  participantId: string;
+  role: 'host' | 'guest' | 'spectator';
+  connected: boolean;
+  snapshot: SharedRoomSnapshot | null;
+};
+
+export type BattleSummary = {
+  totalCells: number;
+  fillableCells: number;
+  clueCells: number;
+  bothCells: number;
+  selfCells: number;
+  otherCells: number;
+  selfProgress: number;
+  otherProgress: number;
+  battleActive: boolean;
+  stage: { ko: string; en: string };
+};

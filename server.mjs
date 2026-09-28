@@ -338,6 +338,6 @@ wss.on('connection', (socket, request) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`> Sudoku server ready on http://localhost:${port}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`> Sudoku server ready on http://0.0.0.0:${port}`);
 });
