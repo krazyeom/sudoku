@@ -165,15 +165,15 @@ export const RecordsPanel: React.FC<RecordsPanelProps> = ({
                     borderRadius: '8px',
                     background:
                       record.difficulty === 'easy'
-                        ? 'rgba(52, 211, 153, 0.2)'
+                        ? 'rgba(16, 185, 129, 0.15)'
                         : record.difficulty === 'medium'
-                          ? 'rgba(56, 189, 248, 0.2)'
-                          : 'rgba(244, 63, 94, 0.2)',
+                          ? 'rgba(99, 102, 241, 0.15)'
+                          : 'rgba(244, 63, 94, 0.15)',
                     color:
                       record.difficulty === 'easy'
-                        ? '#34d399'
+                        ? '#10b981'
                         : record.difficulty === 'medium'
-                          ? '#38bdf8'
+                          ? '#818cf8'
                           : '#fb7185',
                   }}
                 >
