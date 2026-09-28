@@ -50,45 +50,27 @@ export function buildShareCardSvg(summary: CompletionSummary, locale: Locale): s
     .map(
       (item, i) => `
     <g transform="translate(${80 + i * 340}, 300)">
-      <rect width="300" height="120" rx="20" fill="rgba(23, 31, 48, 0.65)" stroke="rgba(255, 255, 255, 0.08)"/>
-      <text x="24" y="44" fill="#94a3b8" font-size="20" font-weight="600" font-family="Inter, sans-serif">${escapeXml(item.label)}</text>
-      <text x="24" y="92" fill="#818cf8" font-size="34" font-weight="800" font-family="Inter, sans-serif">${escapeXml(item.val)}</text>
+      <rect width="300" height="120" rx="0" fill="#151820" stroke="#232733"/>
+      <text x="24" y="44" fill="#71717a" font-size="18" font-weight="700" font-family="-apple-system, sans-serif">${escapeXml(item.label)}</text>
+      <text x="24" y="92" fill="#f59e0b" font-size="34" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(item.val)}</text>
     </g>`
     )
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs>
-    <radialGradient id="mesh" cx="15%" cy="15%" r="75%">
-      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.25"/>
-      <stop offset="60%" stop-color="#7c3aed" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#07090e" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="card-border" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.4"/>
-      <stop offset="50%" stop-color="#a855f7" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.4"/>
-    </linearGradient>
-    <linearGradient id="title-grad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="60%" stop-color="#e0e7ff"/>
-      <stop offset="100%" stop-color="#c7d2fe"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="630" fill="#07090e"/>
-  <rect width="1200" height="630" fill="url(#mesh)"/>
-  <rect x="40" y="40" width="1120" height="550" rx="32" fill="rgba(16, 22, 36, 0.85)" stroke="url(#card-border)" stroke-width="2"/>
+  <rect width="1200" height="630" fill="#090a0d"/>
+  <rect x="40" y="40" width="1120" height="550" rx="0" fill="#101217" stroke="#232733" stroke-width="2"/>
   
-  <rect x="80" y="80" width="150" height="34" rx="17" fill="rgba(99, 102, 241, 0.15)" stroke="rgba(129, 140, 248, 0.35)"/>
-  <text x="155" y="103" fill="#a5b4fc" font-size="16" font-weight="700" text-anchor="middle" font-family="Inter, sans-serif">SUDOKUDUO</text>
+  <rect x="80" y="80" width="140" height="32" rx="0" fill="rgba(245, 158, 11, 0.12)" stroke="#f59e0b"/>
+  <text x="150" y="102" fill="#fbbf24" font-size="15" font-weight="800" text-anchor="middle" font-family="-apple-system, sans-serif">SUDOKUDUO</text>
   
-  <text x="80" y="180" fill="url(#title-grad)" font-size="52" font-weight="900" font-family="Inter, sans-serif">${escapeXml(title)}</text>
-  <text x="80" y="232" fill="#cbd5e1" font-size="28" font-weight="500" font-family="Inter, sans-serif">${escapeXml(subtitle)}</text>
+  <text x="80" y="180" fill="#ffffff" font-size="52" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(title)}</text>
+  <text x="80" y="232" fill="#a1a1aa" font-size="26" font-weight="600" font-family="-apple-system, sans-serif">${escapeXml(subtitle)}</text>
   
   ${statsSvg}
 
-  <text x="80" y="520" fill="#64748b" font-size="20" font-family="Inter, sans-serif">Single-solution verified • 1v1 Real-time Duel • SudokuDuo</text>
+  <text x="80" y="520" fill="#52525b" font-size="18" font-family="-apple-system, sans-serif">Single-solution verified • 1v1 Real-time Duel • SudokuDuo</text>
 </svg>`;
 }
 
