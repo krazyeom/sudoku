@@ -15,7 +15,7 @@
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #1e2026;
+  border-bottom: 1px solid #27272a;
 }
 
 .logoGroup {
@@ -29,15 +29,15 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: #111318;
-  border: 1px solid #2a2e39;
+  background: #18181b;
+  border: 1px solid #3f3f46;
   padding: 6px 14px;
-  border-radius: 2px;
+  border-radius: 0;
 }
 
 .logoSymbol {
-  font-size: 1rem;
-  color: #f59e0b;
+  font-size: 0.95rem;
+  color: #ffffff;
 }
 
 .logoText {
@@ -60,9 +60,9 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  border-radius: 2px;
-  background: #111318;
-  border: 1px solid #2a2e39;
+  border-radius: 0;
+  background: #18181b;
+  border: 1px solid #3f3f46;
   color: #a1a1aa;
   font-size: 0.82rem;
   font-weight: 600;
@@ -71,16 +71,16 @@
 }
 
 .gitHubBtn:hover {
-  background: #fafafa;
-  border-color: #fafafa;
-  color: #090a0d;
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #09090b;
 }
 
 .footer {
   width: 100%;
   margin-top: 20px;
   padding-top: 18px;
-  border-top: 1px solid #1e2026;
+  border-top: 1px solid #27272a;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -91,13 +91,15 @@
 }
 
 .footerMeta a {
-  color: #f59e0b;
+  color: #e4e4e7;
   font-weight: 600;
   text-decoration: none;
+  border-bottom: 1px solid #3f3f46;
 }
 
 .footerMeta a:hover {
-  text-decoration: underline;
+  color: #ffffff;
+  border-bottom-color: #ffffff;
 }
 
 .footerHint {

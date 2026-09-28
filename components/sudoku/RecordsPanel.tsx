@@ -159,22 +159,18 @@ export const RecordsPanel: React.FC<RecordsPanelProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span
                   style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
-                    padding: '2px 7px',
+                    padding: '2px 8px',
                     borderRadius: 0,
-                    background:
-                      record.difficulty === 'easy'
-                        ? 'rgba(16, 185, 129, 0.15)'
-                        : record.difficulty === 'medium'
-                          ? 'rgba(245, 158, 11, 0.15)'
-                          : 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid #3f3f46',
+                    background: '#18181b',
                     color:
                       record.difficulty === 'easy'
-                        ? '#10b981'
+                        ? '#ffffff'
                         : record.difficulty === 'medium'
-                          ? '#f59e0b'
-                          : '#ef4444',
+                          ? '#d4d4d8'
+                          : '#a1a1aa',
                   }}
                 >
                   {record.difficulty.toUpperCase()}

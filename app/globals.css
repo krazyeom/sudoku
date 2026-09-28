@@ -13,8 +13,8 @@ body {
 }
 
 body {
-  color: #fafafa;
-  background-color: #090a0d;
+  color: #f4f4f5;
+  background-color: #09090b;
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
@@ -24,8 +24,8 @@ body {
 }
 
 ::selection {
-  background: #f59e0b;
-  color: #090a0d;
+  background: #ffffff;
+  color: #09090b;
 }
 
 a {

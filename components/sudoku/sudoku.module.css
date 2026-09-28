@@ -1,6 +1,6 @@
 /* =========================================================================
-   SUDOKUDUO - Sharp Geometric Minimalist & Precision Amber Design System
-   (Zero Rounded Corners, Architectural Grid, Crisp Contrast)
+   SUDOKUDUO - Monochrome & Silver Gray Minimalist Design System
+   (Vercel / Braun Aesthetic: Sharp Geometric, Deep Matte Zinc & High-Contrast Silver)
    ========================================================================= */
 
 .container {
@@ -27,12 +27,12 @@
   }
 }
 
-/* Sharp Architectural Panels */
+/* Sharp Matte Zinc Panels */
 .card {
-  background: #101217;
-  border: 1px solid #232733;
+  background: #121215;
+  border: 1px solid #27272a;
   border-radius: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -41,14 +41,14 @@
 }
 
 .card:hover {
-  border-color: #323849;
+  border-color: #3f3f46;
 }
 
-/* Segmented Tab Navigation - Sharp Blocks */
+/* Segmented Tab Navigation - Sharp Monochrome Blocks */
 .tabNav {
   display: flex;
-  background: #090a0d;
-  border: 1px solid #232733;
+  background: #09090b;
+  border: 1px solid #27272a;
   border-radius: 0;
   padding: 2px;
   gap: 2px;
@@ -73,13 +73,13 @@
 
 .tabBtn:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.03);
+  background: #18181b;
 }
 
 .tabBtnActive {
-  background: #1c202a !important;
-  color: #f59e0b !important;
-  border: 1px solid #f59e0b;
+  background: #ffffff !important;
+  color: #09090b !important;
+  border: 1px solid #ffffff;
 }
 
 /* Header Text & Badges */
@@ -102,7 +102,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #f59e0b;
+  color: #a1a1aa;
 }
 
 .title {
@@ -119,15 +119,15 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 0;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  color: #e4e4e7;
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
-/* Difficulty Selector - Sharp Blocks */
+/* Difficulty Selector - Sharp Minimalist Blocks */
 .difficultyGroup {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -138,8 +138,8 @@
   position: relative;
   padding: 8px 6px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   color: #71717a;
   font-size: 0.8rem;
   font-weight: 700;
@@ -152,15 +152,15 @@
 }
 
 .diffPill:hover:not(:disabled) {
-  background: #1c202a;
-  border-color: #3b4255;
+  background: #27272a;
+  border-color: #52525b;
   color: #ffffff;
 }
 
 .diffPillActive {
-  background: #1c202a !important;
-  border-color: #f59e0b !important;
-  color: #f59e0b !important;
+  background: #27272a !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 .diffPill:disabled {
@@ -174,9 +174,9 @@
   border-radius: 0;
 }
 
-.diffDotEasy { background: #10b981; }
-.diffDotMedium { background: #f59e0b; }
-.diffDotHard { background: #ef4444; }
+.diffDotEasy { background: #e4e4e7; }
+.diffDotMedium { background: #a1a1aa; }
+.diffDotHard { background: #52525b; }
 
 /* Status HUD Grid (Timer, Notes, Sound, Lang) */
 .hudGrid {
@@ -186,8 +186,8 @@
 }
 
 .hudCard {
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   border-radius: 0;
   padding: 8px 12px;
   display: flex;
@@ -202,12 +202,12 @@
 }
 
 .hudCardInteractive:hover {
-  background: #1c202a;
-  border-color: #3b4255;
+  background: #27272a;
+  border-color: #52525b;
 }
 
 .hudCardActive {
-  border-color: #f59e0b !important;
+  border-color: #ffffff !important;
 }
 
 .hudLabel {
@@ -232,7 +232,7 @@
 }
 
 .timerActive {
-  color: #f59e0b;
+  color: #ffffff;
 }
 
 /* Action Toolbar */
@@ -248,7 +248,7 @@
   border-radius: 0;
   background: #ffffff;
   border: 1px solid #ffffff;
-  color: #090a0d;
+  color: #09090b;
   font-weight: 800;
   font-size: 0.88rem;
   cursor: pointer;
@@ -260,9 +260,9 @@
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: #f59e0b;
-  border-color: #f59e0b;
-  color: #090a0d;
+  background: #e4e4e7;
+  border-color: #e4e4e7;
+  color: #09090b;
 }
 
 .btnPrimary:active:not(:disabled) {
@@ -278,8 +278,8 @@
 .btnSecondary {
   padding: 9px 12px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   color: #a1a1aa;
   font-weight: 700;
   font-size: 0.82rem;
@@ -292,7 +292,7 @@
 }
 
 .btnSecondary:hover:not(:disabled) {
-  background: #1c202a;
+  background: #27272a;
   border-color: #ffffff;
   color: #ffffff;
 }
@@ -309,9 +309,9 @@
 .countBadge {
   padding: 1px 6px;
   border-radius: 0;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  color: #ffffff;
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -320,8 +320,8 @@
 .statusBar {
   padding: 10px 12px;
   border-radius: 0;
-  background: #090a0d;
-  border: 1px solid #232733;
+  background: #09090b;
+  border: 1px solid #27272a;
   color: #a1a1aa;
   font-size: 0.82rem;
   display: flex;
@@ -333,12 +333,12 @@
   width: 6px;
   height: 6px;
   border-radius: 0;
-  background: #f59e0b;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
 /* =========================================================================
-   SUDOKU BOARD STYLING - Sharp Architectural Grid
+   SUDOKU BOARD STYLING - High-Contrast Monochromatic Grid
    ========================================================================= */
 
 .boardSection {
@@ -349,8 +349,8 @@
 
 .boardFrame {
   position: relative;
-  background: #101217;
-  border: 1px solid #232733;
+  background: #121215;
+  border: 1px solid #27272a;
   border-radius: 0;
   padding: 16px;
   display: flex;
@@ -390,9 +390,9 @@
   border-radius: 0;
 }
 
-.legendDotGiven { background: #ffffff; }
-.legendDotUser { background: #fbbf24; }
-.legendDotNote { background: #71717a; }
+.legendDotGiven { background: #71717a; }
+.legendDotUser { background: #ffffff; border: 1px solid #ffffff; }
+.legendDotNote { background: #52525b; }
 
 /* The 9x9 Board Grid */
 .boardGrid {
@@ -403,14 +403,14 @@
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
-  background: #090a0d;
-  border: 2px solid #3f4659;
+  background: #09090b;
+  border: 2px solid #52525b;
   border-radius: 0;
   overflow: hidden;
 }
 
 .boardGridSolved {
-  border-color: #10b981 !important;
+  border-color: #ffffff !important;
 }
 
 /* Individual Cell */
@@ -432,17 +432,17 @@
   transition: background-color 0.1s ease;
   
   /* Delicate inner borders */
-  border-right: 1px solid #1a1d26;
-  border-bottom: 1px solid #1a1d26;
+  border-right: 1px solid #1f1f23;
+  border-bottom: 1px solid #1f1f23;
 }
 
-/* 3x3 Block Boundary Demarcation (Crisp Thick Dividers) */
+/* 3x3 Block Boundary Demarcation (Crisp Silver Dividers) */
 .cellColBreak {
-  border-right: 2px solid #4a5268 !important;
+  border-right: 2px solid #52525b !important;
 }
 
 .cellRowBreak {
-  border-bottom: 2px solid #4a5268 !important;
+  border-bottom: 2px solid #52525b !important;
 }
 
 .cellNoRightBorder {
@@ -455,31 +455,31 @@
 
 /* Hover State */
 .cell:hover:not(.cellLocked) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Crosshair Highlight (Row, Col, or 3x3 block related to selected cell) */
 .cellRelated {
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Same Digit Highlight: All instances of selected number */
 .cellMatchingDigit {
-  background: rgba(245, 158, 11, 0.08) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .cellMatchingDigit::after {
   content: '';
   position: absolute;
   inset: 2px;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0;
   pointer-events: none;
 }
 
 /* Active Selected Cell */
 .cellSelected {
-  background: rgba(245, 158, 11, 0.15) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
   z-index: 2;
 }
 
@@ -487,7 +487,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 2px solid #f59e0b;
+  border: 2px solid #ffffff;
   border-radius: 0;
   pointer-events: none;
 }
@@ -508,30 +508,30 @@
 
 /* Hint Preview Cell */
 .cellHintPreview {
-  background: rgba(245, 158, 11, 0.2) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .cellHintPreview::before {
   content: '';
   position: absolute;
   inset: 1px;
-  border: 1px dashed #f59e0b;
+  border: 1px dashed #ffffff;
   border-radius: 0;
   pointer-events: none;
 }
 
-/* Cell Digits */
+/* Cell Digits: Given vs User Input */
 .givenDigit {
   font-size: clamp(1.15rem, 3.5vw, 1.7rem);
-  font-weight: 800;
-  color: #ffffff;
+  font-weight: 600;
+  color: #71717a;
   letter-spacing: -0.02em;
 }
 
 .userDigit {
   font-size: clamp(1.15rem, 3.5vw, 1.7rem);
   font-weight: 800;
-  color: #fbbf24;
+  color: #ffffff;
   letter-spacing: -0.02em;
 }
 
@@ -560,7 +560,7 @@
 }
 
 .noteSlotMatching {
-  color: #f59e0b;
+  color: #ffffff;
   font-weight: 900;
 }
 
@@ -569,7 +569,7 @@
   position: absolute;
   inset: 0;
   border-radius: 0;
-  background: rgba(9, 10, 13, 0.94);
+  background: rgba(9, 9, 11, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -583,7 +583,7 @@
 .countdownNumber {
   font-size: 4rem;
   font-weight: 900;
-  color: #f59e0b;
+  color: #ffffff;
   line-height: 1;
 }
 
@@ -603,7 +603,7 @@
 }
 
 /* =========================================================================
-   KEYPAD & INPUT CONTROLS - Sharp Geometric Blocks
+   KEYPAD & INPUT CONTROLS - Sharp Monochrome Keys
    ========================================================================= */
 
 .keypadWrap {
@@ -631,8 +631,8 @@
 .keyBtn {
   position: relative;
   aspect-ratio: 1 / 1.15;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   border-radius: 0;
   color: #ffffff;
   font-size: 1.25rem;
@@ -647,14 +647,13 @@
 }
 
 .keyBtn:hover:not(:disabled) {
-  background: #232733;
-  border-color: #f59e0b;
-  color: #f59e0b;
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #09090b;
 }
 
 .keyBtn:active:not(:disabled) {
-  background: #f59e0b;
-  color: #090a0d;
+  transform: translateY(1px);
 }
 
 .keyBtn:disabled {
@@ -663,16 +662,21 @@
 }
 
 .keyBtnCompleted {
-  opacity: 0.3 !important;
-  background: #0d0f14 !important;
-  border-color: #1a1d26 !important;
+  opacity: 0.25 !important;
+  background: #09090b !important;
+  border-color: #18181b !important;
+  color: #52525b !important;
 }
 
 .keyRemainingBadge {
   font-size: 0.62rem;
   font-weight: 700;
-  color: #f59e0b;
+  color: #71717a;
   line-height: 1;
+}
+
+.keyBtn:hover .keyRemainingBadge {
+  color: #09090b;
 }
 
 /* Secondary Keypad Controls: Erase, Notes toggle */
@@ -685,8 +689,8 @@
 .keyActionBtn {
   padding: 10px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   color: #a1a1aa;
   font-size: 0.82rem;
   font-weight: 700;
@@ -699,7 +703,7 @@
 }
 
 .keyActionBtn:hover:not(:disabled) {
-  background: #1c202a;
+  background: #27272a;
   border-color: #ffffff;
   color: #ffffff;
 }
@@ -714,16 +718,16 @@
 }
 
 .keyActionNotesActive {
-  background: #1c202a !important;
-  border-color: #f59e0b !important;
-  color: #f59e0b !important;
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #09090b !important;
 }
 
 .notesActiveIndicator {
   padding: 1px 5px;
   border-radius: 0;
-  background: #f59e0b;
-  color: #090a0d;
+  background: #09090b;
+  color: #ffffff;
   font-size: 0.65rem;
   font-weight: 900;
 }
@@ -738,8 +742,8 @@
   gap: 12px;
   padding: 14px;
   border-radius: 0;
-  background: #0d0e12;
-  border: 1px solid #232733;
+  background: #09090b;
+  border: 1px solid #27272a;
 }
 
 .battleHeader {
@@ -759,25 +763,25 @@
 .playerPillSelf {
   padding: 2px 8px;
   border-radius: 0;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid #f59e0b;
-  color: #fbbf24;
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  color: #09090b;
 }
 
 .playerPillOther {
   padding: 2px 8px;
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid #71717a;
+  background: #18181b;
+  border: 1px solid #3f3f46;
   color: #d4d4d8;
 }
 
-/* Progress Tug-of-War Bar */
+/* Progress Bar */
 .battleProgressBar {
   width: 100%;
   height: 6px;
   border-radius: 0;
-  background: #1a1d26;
+  background: #18181b;
   overflow: hidden;
   position: relative;
   display: flex;
@@ -785,13 +789,13 @@
 
 .barSelf {
   height: 100%;
-  background: #f59e0b;
+  background: #ffffff;
   transition: width 0.3s ease;
 }
 
 .barOther {
   height: 100%;
-  background: #d4d4d8;
+  background: #71717a;
   transition: width 0.3s ease;
   margin-left: auto;
 }
@@ -806,10 +810,10 @@
   max-width: 180px;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
-  background: #090a0d;
+  background: #09090b;
   padding: 4px;
   border-radius: 0;
-  border: 1px solid #232733;
+  border: 1px solid #27272a;
 }
 
 .miniCell {
@@ -818,11 +822,11 @@
   border-radius: 0;
 }
 
-.miniCellClue { background: #3f4659; }
-.miniCellSelf { background: #f59e0b; }
-.miniCellOther { background: #d4d4d8; }
-.miniCellBoth { background: #3b82f6; }
-.miniCellEmpty { background: #151820; }
+.miniCellClue { background: #3f3f46; }
+.miniCellSelf { background: #ffffff; }
+.miniCellOther { background: #71717a; }
+.miniCellBoth { background: #a1a1aa; }
+.miniCellEmpty { background: #18181b; }
 
 .battleRoomInputRow {
   display: flex;
@@ -833,15 +837,15 @@
   flex: 1;
   padding: 8px 10px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   color: #ffffff;
   font-size: 0.82rem;
   outline: none;
 }
 
 .roomInput:focus {
-  border-color: #f59e0b;
+  border-color: #ffffff;
 }
 
 /* =========================================================================
@@ -855,8 +859,8 @@
 }
 
 .statCard {
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   border-radius: 0;
   padding: 10px 12px;
   display: flex;
@@ -887,8 +891,8 @@
 .filterPill {
   padding: 4px 10px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   color: #71717a;
   font-size: 0.72rem;
   font-weight: 700;
@@ -898,13 +902,13 @@
 
 .filterPill:hover {
   color: #ffffff;
-  border-color: #3f4659;
+  border-color: #52525b;
 }
 
 .filterPillActive {
-  background: #1c202a !important;
-  border-color: #f59e0b !important;
-  color: #f59e0b !important;
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #09090b !important;
 }
 
 .recordItemRow {
@@ -913,14 +917,14 @@
   justify-content: space-between;
   padding: 9px 12px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   transition: background-color 0.15s ease;
 }
 
 .recordItemRow:hover {
-  background: #1c202a;
-  border-color: #3f4659;
+  background: #27272a;
+  border-color: #3f3f46;
 }
 
 /* =========================================================================
@@ -930,7 +934,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.88);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -942,8 +946,8 @@
   position: relative;
   width: 100%;
   max-width: 420px;
-  background: #101217;
-  border: 2px solid #f59e0b;
+  background: #121215;
+  border: 2px solid #ffffff;
   border-radius: 0;
   padding: 28px;
   display: flex;
@@ -956,7 +960,7 @@
 .modalIcon {
   font-size: 2.8rem;
   line-height: 1;
-  color: #f59e0b;
+  color: #ffffff;
 }
 
 .modalTitle {
@@ -978,8 +982,8 @@
   width: 100%;
   padding: 14px;
   border-radius: 0;
-  background: #151820;
-  border: 1px solid #232733;
+  background: #18181b;
+  border: 1px solid #27272a;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1018,7 +1022,7 @@
   background: #ffffff;
   border: 1px solid #ffffff;
   border-radius: 0;
-  color: #090a0d;
+  color: #09090b;
   padding: 8px 18px;
   font-size: 0.84rem;
   font-weight: 800;

@@ -50,20 +50,20 @@ export function buildShareCardSvg(summary: CompletionSummary, locale: Locale): s
     .map(
       (item, i) => `
     <g transform="translate(${80 + i * 340}, 300)">
-      <rect width="300" height="120" rx="0" fill="#151820" stroke="#232733"/>
+      <rect width="300" height="120" rx="0" fill="#18181b" stroke="#27272a"/>
       <text x="24" y="44" fill="#71717a" font-size="18" font-weight="700" font-family="-apple-system, sans-serif">${escapeXml(item.label)}</text>
-      <text x="24" y="92" fill="#f59e0b" font-size="34" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(item.val)}</text>
+      <text x="24" y="92" fill="#ffffff" font-size="34" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(item.val)}</text>
     </g>`
     )
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#090a0d"/>
-  <rect x="40" y="40" width="1120" height="550" rx="0" fill="#101217" stroke="#232733" stroke-width="2"/>
+  <rect width="1200" height="630" fill="#09090b"/>
+  <rect x="40" y="40" width="1120" height="550" rx="0" fill="#121215" stroke="#27272a" stroke-width="2"/>
   
-  <rect x="80" y="80" width="140" height="32" rx="0" fill="rgba(245, 158, 11, 0.12)" stroke="#f59e0b"/>
-  <text x="150" y="102" fill="#fbbf24" font-size="15" font-weight="800" text-anchor="middle" font-family="-apple-system, sans-serif">SUDOKUDUO</text>
+  <rect x="80" y="80" width="140" height="32" rx="0" fill="#18181b" stroke="#3f3f46"/>
+  <text x="150" y="102" fill="#ffffff" font-size="15" font-weight="800" text-anchor="middle" font-family="-apple-system, sans-serif">SUDOKUDUO</text>
   
   <text x="80" y="180" fill="#ffffff" font-size="52" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(title)}</text>
   <text x="80" y="232" fill="#a1a1aa" font-size="26" font-weight="600" font-family="-apple-system, sans-serif">${escapeXml(subtitle)}</text>
