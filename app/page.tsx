@@ -7,10 +7,10 @@ export default function HomePage() {
       <header className={styles.header}>
         <div className={styles.logoGroup}>
           <div className={styles.logoBadge}>
-            <span className={styles.logoSymbol}>⚡</span>
-            <span className={styles.logoText}>SudokuDuo</span>
+            <span className={styles.logoSymbol}>⚔️</span>
+            <span className={styles.logoText}>배틀 스도쿠</span>
           </div>
-          <span className={styles.kicker}>Tactile Cyber Sudoku</span>
+          <span className={styles.kicker}>실시간 1v1 대결 & 방해 기믹</span>
         </div>
         <div>
           <a

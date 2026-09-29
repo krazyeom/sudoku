@@ -5,6 +5,7 @@ import {
   buildViewerSnapshot,
   createRoomState,
   registerParticipant,
+  setBattleMode,
 } from '../lib/shared-room.js';
 
 const puzzle = [
@@ -152,4 +153,90 @@ test('shared room completion is broadcast to both players', () => {
   assert.equal(hostSnapshot.completedElapsedSeconds, guestSnapshot.completedElapsedSeconds);
   assert.equal(hostSnapshot.board[0][0], 5);
   assert.equal(guestSnapshot.board[0][0], null);
+});
+
+test('shared room generates attack debuff when row, col, or box is completed in battle modes', () => {
+  // Setup a puzzle where row 0 only needs col 8 to complete, but row 8 has an empty cell
+  const almostRow0Puzzle = solution.map((r) => r.slice());
+  almostRow0Puzzle[0][8] = null;
+  almostRow0Puzzle[8][8] = null;
+
+  const room = createRoomState({
+    roomId: 'room-battle-hard',
+    difficulty: 'medium',
+    puzzle: almostRow0Puzzle,
+    solution,
+    hostId: 'host-token',
+    battleMode: 'hard',
+  });
+  registerParticipant(room, 'host-token');
+  registerParticipant(room, 'guest-token');
+
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
+
+  // Filling incorrect number does NOT trigger attack
+  const wrongMove = applyRoomMove(room, 'host-token', { row: 0, col: 8, value: 7 });
+  assert.equal(wrongMove.completedUnits.length, 0);
+  assert.equal(wrongMove.attack, null);
+
+  // Clearing cell does not trigger attack
+  applyRoomMove(room, 'host-token', { row: 0, col: 8, value: null });
+
+  // Filling the correct number completes row 0, col 8, and box 2!
+  const correctVal = solution[0][8]; // 2
+  const moveResult = applyRoomMove(room, 'host-token', { row: 0, col: 8, value: correctVal });
+
+  assert.ok(moveResult.completedUnits.length > 0);
+  assert.ok(moveResult.attack !== null);
+  assert.equal(moveResult.attack.attackerId, 'host-token');
+  assert.equal(moveResult.attack.battleMode, 'hard');
+  assert.ok(['freeze', 'scramble', 'blind', 'quake'].includes(moveResult.attack.debuffType));
+  assert.ok(moveResult.attack.durationMs > 0);
+
+  // Clearing and refilling does NOT re-trigger attack for already completed units (anti-spam protection)
+  applyRoomMove(room, 'host-token', { row: 0, col: 8, value: null });
+  const repeatMove = applyRoomMove(room, 'host-token', { row: 0, col: 8, value: correctVal });
+  assert.equal(repeatMove.completedUnits.length, 0);
+  assert.equal(repeatMove.attack, null);
+});
+
+test('battleMode "off" does not produce attack debuffs', () => {
+  const almostRow0Puzzle = solution.map((r) => r.slice());
+  almostRow0Puzzle[0][8] = null;
+  almostRow0Puzzle[8][8] = null;
+
+  const room = createRoomState({
+    roomId: 'room-battle-off',
+    difficulty: 'medium',
+    puzzle: almostRow0Puzzle,
+    solution,
+    hostId: 'host-token',
+    battleMode: 'off',
+  });
+  registerParticipant(room, 'host-token');
+  registerParticipant(room, 'guest-token');
+
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
+
+  const result = applyRoomMove(room, 'host-token', { row: 0, col: 8, value: solution[0][8] });
+  assert.ok(result.completedUnits.length > 0);
+  assert.equal(result.attack, null); // attack is suppressed in 'off' mode
+});
+
+test('setBattleMode correctly updates room state and snapshot', () => {
+  const room = createRoomState({ roomId: 'room-mode-test', hostId: 'host-token' });
+  assert.equal(room.battleMode, 'normal');
+
+  setBattleMode(room, 'hard');
+  assert.equal(room.battleMode, 'hard');
+
+  const snapshot = buildViewerSnapshot(room, 'host-token');
+  assert.equal(snapshot.battleMode, 'hard');
+
+  setBattleMode(room, 'off');
+  assert.equal(room.battleMode, 'off');
 });

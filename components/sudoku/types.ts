@@ -1,5 +1,15 @@
 import type { Difficulty, Grid } from '@/lib/sudoku';
-import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
+import type {
+  SharedRoomCellOccupancy,
+  SharedRoomSnapshot,
+  RoomRole,
+  BattleMode,
+  DebuffType,
+  RoomAttack,
+  CompletedUnit,
+} from '@/lib/shared-room';
+
+export type { BattleMode, DebuffType, RoomAttack, CompletedUnit };
 
 export type Position = { row: number; col: number } | null;
 
@@ -34,6 +44,22 @@ export type ItemCounts = {
 
 export type Locale = 'ko' | 'en';
 
+export type ActiveDebuff = {
+  type: DebuffType;
+  endsAt: number;
+  label: string;
+  attackerId?: string;
+} | null;
+
+export type BattleToast = {
+  id: string;
+  type: 'attack_launched' | 'attack_received' | 'line_cleared';
+  title: string;
+  subtitle: string;
+  debuffType?: DebuffType;
+  timestamp: number;
+};
+
 export type SavedGame = {
   difficulty: Difficulty;
   puzzle: Grid;
@@ -49,6 +75,7 @@ export type SavedGame = {
   elapsedSeconds: number;
   timerRunning: boolean;
   solved: boolean;
+  battleMode?: BattleMode;
 };
 
 export type CompletionSummary = RecordEntry & {
@@ -71,6 +98,7 @@ export type SharedRoomState = {
   role: 'host' | 'guest' | 'spectator';
   connected: boolean;
   snapshot: SharedRoomSnapshot | null;
+  battleMode: BattleMode;
 };
 
 export type BattleSummary = {
@@ -85,3 +113,4 @@ export type BattleSummary = {
   battleActive: boolean;
   stage: { ko: string; en: string };
 };
+

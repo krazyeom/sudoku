@@ -9,6 +9,7 @@ interface SudokuKeypadProps {
   noteMode: boolean;
   disabled: boolean;
   locale: Locale;
+  scrambleActive?: boolean;
   onNumberClick: (num: number) => void;
   onClearClick: () => void;
   onToggleNoteMode: () => void;
@@ -21,6 +22,7 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
   noteMode,
   disabled,
   locale,
+  scrambleActive = false,
   onNumberClick,
   onClearClick,
   onToggleNoteMode,
@@ -29,11 +31,22 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
 }) => {
   const remainingCounts = useMemo(() => getRemainingCounts(board), [board]);
 
+  const keypadNumbers = useMemo(() => {
+    if (!scrambleActive) return [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    return [7, 3, 9, 2, 8, 4, 1, 6, 5];
+  }, [scrambleActive]);
+
   return (
-    <div className={styles.keypadWrap}>
+    <div className={`${styles.keypadWrap} ${scrambleActive ? styles.keypadScrambled : ''}`}>
+      {scrambleActive && (
+        <div className={styles.keypadScrambleAlert}>
+          <span>⚠️ {locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Debuff!'}</span>
+        </div>
+      )}
+
       {/* Numbers 1-9 */}
       <div className={styles.keypadGrid}>
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => {
+        {keypadNumbers.map((number) => {
           const remaining = remainingCounts[number] ?? 0;
           const isCompleted = remaining <= 0;
 
@@ -41,7 +54,9 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
             <button
               key={number}
               type="button"
-              className={`${styles.keyBtn} ${isCompleted ? styles.keyBtnCompleted : ''}`}
+              className={`${styles.keyBtn} ${isCompleted ? styles.keyBtnCompleted : ''} ${
+                scrambleActive ? styles.keyBtnScrambled : ''
+              }`}
               onClick={() => onNumberClick(number)}
               disabled={disabled}
             >

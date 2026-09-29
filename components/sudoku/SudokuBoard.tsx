@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import styles from './sudoku.module.css';
 import type { Difficulty, Grid } from '@/lib/sudoku';
-import type { Locale, NoteGrid, Position } from './types';
+import type { ActiveDebuff, BattleToast, Locale, NoteGrid, Position } from './types';
 import { getNoteCellValue } from './helpers';
 
 interface SudokuBoardProps {
@@ -18,6 +18,8 @@ interface SudokuBoardProps {
   sharedMatchGateActive: boolean;
   sharedMatchIsCountdown: boolean;
   sharedMatchCountDownSeconds: number | null;
+  activeDebuff?: ActiveDebuff;
+  battleToast?: BattleToast | null;
   onCellClick: (row: number, col: number) => void;
 }
 
@@ -35,6 +37,8 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   sharedMatchGateActive,
   sharedMatchIsCountdown,
   sharedMatchCountDownSeconds,
+  activeDebuff = null,
+  battleToast = null,
   onCellClick,
 }) => {
   // If a cell is selected and has a number, highlight all identical numbers across the board!
@@ -43,9 +47,27 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     return board[selected.row][selected.col];
   }, [selected, board]);
 
+  const isFrozen = activeDebuff?.type === 'freeze';
+  const isQuake = activeDebuff?.type === 'quake';
+  const isBlind = activeDebuff?.type === 'blind';
+  const isMist = activeDebuff?.type === 'mist';
+  const isBoardLocked = sharedMatchGateActive || isFrozen;
+
   return (
     <section className={styles.boardSection}>
-      <div className={styles.boardFrame}>
+      {battleToast && (
+        <div className={`${styles.battleBanner} ${styles[`battleBanner_${battleToast.type}`]}`}>
+          <span className={styles.battleBannerIcon}>
+            {battleToast.type === 'attack_launched' ? '⚡' : battleToast.type === 'attack_received' ? '🚨' : '✨'}
+          </span>
+          <div className={styles.battleBannerContent}>
+            <strong className={styles.battleBannerTitle}>{battleToast.title}</strong>
+            <span className={styles.battleBannerSubtitle}>{battleToast.subtitle}</span>
+          </div>
+        </div>
+      )}
+
+      <div className={`${styles.boardFrame} ${isQuake ? styles.boardQuake : ''}`}>
         <div className={styles.boardTopInfo}>
           <div className={styles.legendBar}>
             <span className={styles.legendItem}>
@@ -69,7 +91,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         <div
           className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
             sharedMatchGateActive ? styles.boardGridHidden : ''
-          }`}
+          } ${isBlind ? styles.boardBlind : ''} ${isMist ? styles.boardMist : ''}`}
           role="grid"
           aria-label="Sudoku board"
         >
@@ -104,6 +126,33 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                 </>
               )}
             </div>
+          )}
+
+          {/* Frozen Debuff Overlay */}
+          {!sharedMatchGateActive && isFrozen && (
+            <div className={styles.freezeOverlay} role="status">
+              <span className={styles.freezeIcon}>❄️</span>
+              <strong className={styles.freezeTitle}>
+                {locale === 'ko' ? '보드 빙결!' : 'Board Frozen!'}
+              </strong>
+              <span className={styles.freezeSubtitle}>
+                {locale === 'ko' ? '잠시 동안 숫자를 입력할 수 없습니다.' : 'Input temporarily locked.'}
+              </span>
+            </div>
+          )}
+
+          {/* Blind Ink Splatters */}
+          {!sharedMatchGateActive && isBlind && (
+            <div className={styles.blindInkContainer} aria-hidden="true">
+              <div className={`${styles.inkSplat} ${styles.inkSplat1}`} />
+              <div className={`${styles.inkSplat} ${styles.inkSplat2}`} />
+              <div className={`${styles.inkSplat} ${styles.inkSplat3}`} />
+            </div>
+          )}
+
+          {/* Smoke Mist Overlay */}
+          {!sharedMatchGateActive && isMist && (
+            <div className={styles.mistOverlay} aria-hidden="true" />
           )}
 
           {/* 81 Cells */}
@@ -157,11 +206,11 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                   aria-label={`row ${r + 1} column ${c + 1}`}
                   className={cellClasses}
                   onClick={() => {
-                    if (!sharedMatchGateActive) {
+                    if (!isBoardLocked) {
                       onCellClick(r, c);
                     }
                   }}
-                  disabled={sharedMatchGateActive}
+                  disabled={isBoardLocked}
                 >
                   {!sharedMatchGateActive && cell !== null ? (
                     <span

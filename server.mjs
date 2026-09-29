@@ -10,6 +10,7 @@ import {
   disconnectParticipant,
   registerParticipant,
   resetRoom,
+  setBattleMode,
 } from './lib/shared-room.js';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -38,6 +39,10 @@ function snapshotFor(room, participantId) {
 
 function normalizeDifficulty(value) {
   return value === 'easy' || value === 'hard' ? value : 'medium';
+}
+
+function normalizeBattleMode(value) {
+  return ['hard', 'normal', 'easy', 'off'].includes(value) ? value : 'normal';
 }
 
 function getRoom(roomId) {
@@ -104,9 +109,10 @@ const server = http.createServer(async (req, res) => {
         const action = message?.type;
         if (action === 'create_room') {
           const difficulty = normalizeDifficulty(message.difficulty);
+          const battleMode = normalizeBattleMode(message.battleMode);
           const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : randomUUID();
           const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
-          const room = createRoomState({ roomId, difficulty, hostId: participantId });
+          const room = createRoomState({ roomId, difficulty, hostId: participantId, battleMode });
           room.onStateChange = () => syncRoom(room);
           touchParticipant(room, participantId);
           rooms.set(room.roomId, room);
@@ -114,6 +120,24 @@ const server = http.createServer(async (req, res) => {
             type: 'room_created',
             roomId: room.roomId,
             participantId,
+            snapshot: snapshotFor(room, participantId),
+          });
+          return;
+        }
+
+        if (action === 'set_battle_mode') {
+          const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : '';
+          const participantId = typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : '';
+          const room = roomId ? getRoom(roomId) : null;
+          if (!room) throw new Error('Not in a room');
+          touchParticipant(room, participantId);
+          const participant = room.participants.get(participantId);
+          if (!participant || participant.role !== 'host') throw new Error('Only the host can change battle mode');
+          setBattleMode(room, normalizeBattleMode(message.battleMode));
+          syncRoom(room);
+          sendJson(res, 200, {
+            type: 'battle_mode_changed',
+            battleMode: room.battleMode,
             snapshot: snapshotFor(room, participantId),
           });
           return;
@@ -236,10 +260,11 @@ wss.on('connection', (socket, request) => {
     try {
       if (message.type === 'create_room') {
         const difficulty = normalizeDifficulty(message.difficulty);
+        const battleMode = normalizeBattleMode(message.battleMode);
         const roomId = typeof message.roomId === 'string' && message.roomId.trim() ? message.roomId.trim() : randomUUID();
         const participantId =
           typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
-        const room = createRoomState({ roomId, difficulty, hostId: participantId });
+        const room = createRoomState({ roomId, difficulty, hostId: participantId, battleMode });
         room.onStateChange = () => syncRoom(room);
         rooms.set(room.roomId, room);
         attachSocket(socket, room.roomId, participantId);
@@ -248,6 +273,20 @@ wss.on('connection', (socket, request) => {
           roomId: room.roomId,
           participantId,
           snapshot: snapshotFor(room, participantId),
+        });
+        return;
+      }
+
+      if (message.type === 'set_battle_mode') {
+        const room = current.roomId ? getRoom(current.roomId) : null;
+        if (!room) throw new Error('Not in a room');
+        const participant = room.participants.get(current.participantId);
+        if (!participant || participant.role !== 'host') throw new Error('Only the host can change battle mode');
+        setBattleMode(room, normalizeBattleMode(message.battleMode));
+        syncRoom(room);
+        broadcast(room.roomId, {
+          type: 'battle_mode_changed',
+          battleMode: room.battleMode,
         });
         return;
       }
@@ -288,6 +327,12 @@ wss.on('connection', (socket, request) => {
           col: message.col,
           value: message.value,
         });
+        if (event.attack) {
+          broadcast(room.roomId, {
+            type: 'battle_attack',
+            attack: event.attack,
+          });
+        }
         broadcast(room.roomId, {
           type: 'room_event',
           event,

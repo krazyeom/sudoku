@@ -10,6 +10,9 @@ import {
   solveSudoku,
 } from '@/lib/sudoku';
 import type {
+  ActiveDebuff,
+  BattleMode,
+  BattleToast,
   CompletionSummary,
   ConfettiPiece,
   ItemCounts,
@@ -17,6 +20,7 @@ import type {
   NoteGrid,
   Position,
   RecordEntry,
+  RoomAttack,
   SavedGame,
   SharedCompletionSummary,
   SharedRoomState,
@@ -94,12 +98,18 @@ export default function SudokuGame() {
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [ownership, setOwnership] = useState<SharedRoomCellOccupancy[][]>(() => ownershipFromPuzzle(puzzle.puzzle));
   const [sharedRoom, setSharedRoom] = useState<SharedRoomState | null>(null);
+  const [battleMode, setBattleModeState] = useState<BattleMode>('normal');
+  const [activeDebuff, setActiveDebuff] = useState<ActiveDebuff>(null);
+  const [battleToast, setBattleToast] = useState<BattleToast | null>(null);
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
 
   const sharedRoomPollRef = useRef<number | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
   const copyToastTimerRef = useRef<number | null>(null);
+  const lastProcessedAttackTimestampRef = useRef<number>(0);
+  const localCompletedUnitsRef = useRef<Set<string>>(new Set());
 
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
@@ -135,6 +145,152 @@ export default function SudokuGame() {
     if (timerRunning || solved) return;
     setTimerRunning(true);
   }
+
+  function handleBattleAttack(attack: RoomAttack, viewerId: string) {
+    if (!attack || attack.timestamp <= lastProcessedAttackTimestampRef.current) {
+      return;
+    }
+    lastProcessedAttackTimestampRef.current = attack.timestamp;
+
+    const isAttacker = attack.attackerId === viewerId;
+
+    if (isAttacker) {
+      if (soundEnabled) {
+        void soundEffects.playUnitComplete();
+        void soundEffects.playAttackLaunch();
+      }
+      setBattleToast({
+        id: `attack-${attack.timestamp}`,
+        type: 'attack_launched',
+        title: locale === 'ko' ? '⚡ 공격 성공!' : '⚡ Attack Launched!',
+        subtitle:
+          locale === 'ko'
+            ? `상대에게 [${attack.labelKo}] 발동!`
+            : `Inflicted [${attack.labelEn}]!`,
+        timestamp: attack.timestamp,
+      });
+    } else {
+      if (soundEnabled) {
+        void soundEffects.playAttacked();
+        if (attack.debuffType === 'freeze') {
+          void soundEffects.playFreeze();
+        }
+      }
+      setActiveDebuff({
+        type: attack.debuffType,
+        endsAt: Date.now() + attack.durationMs,
+        label: locale === 'ko' ? attack.labelKo : attack.labelEn,
+        attackerId: attack.attackerId,
+      });
+      setBattleToast({
+        id: `debuff-${attack.timestamp}`,
+        type: 'attack_received',
+        title: locale === 'ko' ? '🚨 상대의 기습 공격!' : '🚨 Rival Attack Hit!',
+        subtitle:
+          locale === 'ko'
+            ? `[${attack.labelKo}] 효과 적용 중!`
+            : `Suffering [${attack.labelEn}]!`,
+        debuffType: attack.debuffType,
+        timestamp: attack.timestamp,
+      });
+    }
+  }
+
+  function checkLocalUnitCompletion(r: number, c: number, updatedBoard: Grid) {
+    if (solved) return;
+    const completedList: string[] = [];
+
+    // Check Row r
+    const rowKey = `row-${r}`;
+    if (!localCompletedUnitsRef.current.has(rowKey)) {
+      let ok = true;
+      for (let colIdx = 0; colIdx < 9; colIdx++) {
+        if (updatedBoard[r][colIdx] !== puzzle.solution[r][colIdx]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        localCompletedUnitsRef.current.add(rowKey);
+        completedList.push(locale === 'ko' ? `${r + 1}번째 행` : `Row ${r + 1}`);
+      }
+    }
+
+    // Check Col c
+    const colKey = `col-${c}`;
+    if (!localCompletedUnitsRef.current.has(colKey)) {
+      let ok = true;
+      for (let rowIdx = 0; rowIdx < 9; rowIdx++) {
+        if (updatedBoard[rowIdx][c] !== puzzle.solution[rowIdx][c]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        localCompletedUnitsRef.current.add(colKey);
+        completedList.push(locale === 'ko' ? `${c + 1}번째 열` : `Column ${c + 1}`);
+      }
+    }
+
+    // Check 3x3 Box
+    const bRow = Math.floor(r / 3);
+    const bCol = Math.floor(c / 3);
+    const boxKey = `box-${bRow * 3 + bCol}`;
+    if (!localCompletedUnitsRef.current.has(boxKey)) {
+      let ok = true;
+      for (let ro = bRow * 3; ro < bRow * 3 + 3; ro++) {
+        for (let co = bCol * 3; co < bCol * 3 + 3; co++) {
+          if (updatedBoard[ro][co] !== puzzle.solution[ro][co]) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) break;
+      }
+      if (ok) {
+        localCompletedUnitsRef.current.add(boxKey);
+        completedList.push(locale === 'ko' ? '3x3 박스' : '3x3 Box');
+      }
+    }
+
+    if (completedList.length > 0) {
+      if (soundEnabled) {
+        void soundEffects.playUnitComplete();
+      }
+      setBattleToast({
+        id: `unit-${Date.now()}`,
+        type: 'line_cleared',
+        title: locale === 'ko' ? '✨ 라인/박스 완성!' : '✨ Line/Box Completed!',
+        subtitle:
+          locale === 'ko'
+            ? `${completedList.join(', ')} 완성 달성!`
+            : `${completedList.join(', ')} Cleared!`,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // Debuff & Toast timers
+  useEffect(() => {
+    if (!activeDebuff) return;
+    const remaining = activeDebuff.endsAt - Date.now();
+    if (remaining <= 0) {
+      setActiveDebuff(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setActiveDebuff(null);
+    }, remaining);
+    return () => window.clearTimeout(timer);
+  }, [activeDebuff]);
+
+  useEffect(() => {
+    if (!battleToast) return;
+    const timer = window.setTimeout(() => {
+      setBattleToast(null);
+    }, 3200);
+    return () => window.clearTimeout(timer);
+  }, [battleToast]);
 
   function captureSnapshot(): Snapshot {
     return {
@@ -180,12 +336,19 @@ export default function SudokuGame() {
     }
 
     setDifficulty(snapshot.difficulty);
+    if (snapshot.battleMode) {
+      setBattleModeState(snapshot.battleMode);
+    }
     if (nextPuzzle) setPuzzle(nextPuzzle);
     if (nextBoard) setBoard(nextBoard);
     setOwnership(nextOccupancy);
     setSolved(snapshot.phase === 'playing' ? snapshot.solved : false);
     setChecks([]);
     setHintPreview(null);
+
+    if (snapshot.lastAttack && viewerId) {
+      handleBattleAttack(snapshot.lastAttack, viewerId);
+    }
 
     if (snapshot.solved) {
       setSharedCompletionSummary(
@@ -206,7 +369,7 @@ export default function SudokuGame() {
 
     setSharedRoom((current) =>
       current
-        ? { ...current, connected: true, role: snapshot.viewerRole, snapshot }
+        ? { ...current, connected: true, role: snapshot.viewerRole, snapshot, battleMode: snapshot.battleMode ?? current.battleMode }
         : viewerId
           ? {
               roomId: snapshot.roomId,
@@ -214,6 +377,7 @@ export default function SudokuGame() {
               role: snapshot.viewerRole,
               connected: true,
               snapshot,
+              battleMode: snapshot.battleMode ?? 'normal',
             }
           : current
     );
@@ -235,6 +399,63 @@ export default function SudokuGame() {
     if (sharedRoomPollRef.current !== null) {
       window.clearInterval(sharedRoomPollRef.current);
       sharedRoomPollRef.current = null;
+    }
+  }
+
+  function closeSharedWebSocket() {
+    if (socketRef.current) {
+      socketRef.current.onclose = null;
+      socketRef.current.onerror = null;
+      socketRef.current.onmessage = null;
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+  }
+
+  function initSharedWebSocket(roomId: string, participantId: string) {
+    if (typeof window === 'undefined') return;
+    closeSharedWebSocket();
+
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: 'join_room',
+            roomId,
+            participantId,
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(String(event.data));
+          if (data.type === 'battle_attack' && data.attack) {
+            handleBattleAttack(data.attack, participantId);
+          } else if (data.type === 'battle_mode_changed' && data.battleMode) {
+            setBattleModeState(data.battleMode);
+          } else if (data.snapshot) {
+            applySharedSnapshot(data.snapshot, participantId);
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      ws.onerror = () => {
+        // Fallback to polling is active
+      };
+
+      ws.onclose = () => {
+        socketRef.current = null;
+      };
+    } catch {
+      // ignore
     }
   }
 
@@ -260,9 +481,15 @@ export default function SudokuGame() {
     }, 1000);
   }
 
-  function connectSharedRoom(roomId: string, seedDifficulty?: Difficulty, initialRole: RoomRole = 'spectator') {
+  function connectSharedRoom(
+    roomId: string,
+    seedDifficulty?: Difficulty,
+    initialRole: RoomRole = 'spectator',
+    seedBattleMode: BattleMode = battleMode
+  ) {
     if (typeof window === 'undefined') return;
     stopSharedRoomPolling();
+    closeSharedWebSocket();
 
     const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
     const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
@@ -274,10 +501,17 @@ export default function SudokuGame() {
       role: initialRole,
       connected: false,
       snapshot: null,
+      battleMode: seedBattleMode,
     });
 
     const action = seedDifficulty ? 'create_room' : 'join_room';
-    void sendSharedMessage({ type: action, roomId, participantId, difficulty: seedDifficulty }).then((payload) => {
+    void sendSharedMessage({
+      type: action,
+      roomId,
+      participantId,
+      difficulty: seedDifficulty,
+      battleMode: seedBattleMode,
+    }).then((payload) => {
       if (!payload) return;
       if (payload.roomId) {
         const nextUrl = new URL(window.location.href);
@@ -288,16 +522,44 @@ export default function SudokuGame() {
       if (payload.snapshot) {
         applySharedSnapshot(payload.snapshot, participantId);
       }
+      initSharedWebSocket(roomId, participantId);
       startSharedRoomPolling(roomId, participantId);
     });
   }
 
+  function handleBattleModeChange(nextMode: BattleMode) {
+    setBattleModeState(nextMode);
+    if (sharedRoom) {
+      if (sharedRoom.role !== 'host') {
+        flashToast(locale === 'ko' ? '방장만 배틀 모드를 변경할 수 있습니다.' : 'Only the host can change battle mode.');
+        return;
+      }
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(
+          JSON.stringify({
+            type: 'set_battle_mode',
+            battleMode: nextMode,
+          })
+        );
+      }
+      void sendSharedMessage({
+        type: 'set_battle_mode',
+        roomId: sharedRoom.roomId,
+        participantId: sharedRoom.participantId,
+        battleMode: nextMode,
+      });
+    }
+  }
+
   function disconnectSharedRoom() {
     stopSharedRoomPolling();
+    closeSharedWebSocket();
     if (sharedRoom) {
       void sendSharedMessage({ type: 'leave_room', roomId: sharedRoom.roomId, participantId: sharedRoom.participantId });
     }
     setSharedRoom(null);
+    setActiveDebuff(null);
+    setBattleToast(null);
     setOwnership(ownershipFromPuzzle(puzzle.puzzle));
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete('room');
@@ -470,6 +732,10 @@ export default function SudokuGame() {
       setMessage(locale === 'ko' ? '대결이 시작될 때까지 기다려 주세요.' : 'Please wait for the match to start.');
       return;
     }
+    if (activeDebuff?.type === 'freeze') {
+      setMessage(locale === 'ko' ? '보드가 얼어붙어 입력할 수 없습니다!' : 'Board is frozen! Cannot enter numbers.');
+      return;
+    }
     if (!selected) return;
     const { row, col } = selected;
     if (fixedCells[row][col] || solved) return;
@@ -519,7 +785,13 @@ export default function SudokuGame() {
         row,
         col,
         value,
+      }).then((payload) => {
+        if (payload?.event?.attack) {
+          handleBattleAttack(payload.event.attack, sharedRoom.participantId);
+        }
       });
+    } else {
+      checkLocalUnitCompletion(row, col, nextBoard);
     }
 
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
@@ -528,7 +800,7 @@ export default function SudokuGame() {
   }
 
   function clearCell() {
-    if (sharedMatchGateActive || !selected || solved) return;
+    if (sharedMatchGateActive || !selected || solved || activeDebuff?.type === 'freeze') return;
     const { row, col } = selected;
     if (fixedCells[row][col]) return;
 
@@ -574,6 +846,10 @@ export default function SudokuGame() {
   }
 
   function resetGame(nextDifficulty: Difficulty = difficulty) {
+    localCompletedUnitsRef.current.clear();
+    setActiveDebuff(null);
+    setBattleToast(null);
+
     if (sharedRoom) {
       if (sharedRoom.role !== 'host') {
         setMessage(locale === 'ko' ? '방장만 새 게임을 시작할 수 있습니다.' : 'Only the host can reset the game.');
@@ -738,6 +1014,13 @@ export default function SudokuGame() {
 
       if (!selected) return;
 
+      if (activeDebuff?.type === 'freeze') {
+        if ((e.key >= '1' && e.key <= '9') || e.key === 'Backspace' || e.key === 'Delete' || e.key === '0' || key === 'h' || key === 'i') {
+          e.preventDefault();
+          return;
+        }
+      }
+
       if (e.key >= '1' && e.key <= '9') {
         e.preventDefault();
         updateCell(Number(e.key));
@@ -760,7 +1043,7 @@ export default function SudokuGame() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selected, board, puzzle, notes, noteMode, solved, items, sharedMatchGateActive]);
+  }, [selected, board, puzzle, notes, noteMode, solved, items, sharedMatchGateActive, activeDebuff]);
 
   // Sharing
   async function handleShare() {
@@ -780,7 +1063,7 @@ export default function SudokuGame() {
       if (navigator.share) {
         const svg = buildShareCardSvg(summaryToShare, locale);
         const file = new File([svg], `sudoku-${Date.now()}.svg`, { type: 'image/svg+xml' });
-        await navigator.share({ title: 'SudokuDuo', text, files: [file] });
+        await navigator.share({ title: '배틀 스도쿠', text, files: [file] });
       } else {
         const copied = await copyTextToClipboard(text);
         flashToast(copied ? (locale === 'ko' ? '결과를 클립보드에 복사했습니다!' : 'Copied result to clipboard!') : 'Failed to copy');
@@ -795,7 +1078,7 @@ export default function SudokuGame() {
     return (
       <div className={styles.container}>
         <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
-          Loading SudokuDuo…
+          {locale === 'ko' ? '배틀 스도쿠 불러오는 중…' : 'Loading Battle Sudoku…'}
         </div>
       </div>
     );
@@ -864,16 +1147,18 @@ export default function SudokuGame() {
                 battleSummary={battleSummary}
                 minimapGrid={sharedBattleMiniMapGrid}
                 roomInput={roomInput}
+                battleMode={battleMode}
                 locale={locale}
                 onRoomInputChange={setRoomInput}
+                onBattleModeChange={handleBattleModeChange}
                 onCreateRoom={() => {
                   const id = `room-${Math.random().toString(36).slice(2, 9)}`;
                   setRoomInput(id);
-                  connectSharedRoom(id, difficulty, 'host');
+                  connectSharedRoom(id, difficulty, 'host', battleMode);
                 }}
                 onJoinRoom={() => {
                   const clean = sanitizeRoomIdInput(roomInput);
-                  if (clean) connectSharedRoom(clean, undefined, 'guest');
+                  if (clean) connectSharedRoom(clean, undefined, 'guest', battleMode);
                 }}
                 onCopyRoomId={async () => {
                   if (sharedRoom) {
@@ -955,13 +1240,16 @@ export default function SudokuGame() {
             sharedMatchGateActive={sharedMatchGateActive}
             sharedMatchIsCountdown={sharedMatchIsCountdown}
             sharedMatchCountDownSeconds={sharedMatchCountDownSeconds}
+            activeDebuff={activeDebuff}
+            battleToast={battleToast}
             onCellClick={handleCellClick}
           />
 
           <SudokuKeypad
             board={board}
             noteMode={noteMode}
-            disabled={sharedMatchGateActive || !selected || solved}
+            disabled={sharedMatchGateActive || !selected || solved || activeDebuff?.type === 'freeze'}
+            scrambleActive={activeDebuff?.type === 'scramble'}
             locale={locale}
             onNumberClick={updateCell}
             onClearClick={clearCell}

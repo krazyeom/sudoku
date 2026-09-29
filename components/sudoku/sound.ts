@@ -140,6 +140,154 @@ class SoundEffects {
       // ignore
     }
   }
+
+  /**
+   * Played when a player completes a row, column, or 3x3 box.
+   * Triumphant rising arpeggio chord.
+   */
+  async playUnitComplete() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+
+        gain.gain.setValueAtTime(0.0001, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + idx * 0.06 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.06 + 0.22);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.25);
+      });
+
+      window.setTimeout(() => void ctx.close(), 600);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played when you fire an attack / penalty to your opponent.
+   * Energetic laser zap.
+   */
+  async playAttackLaunch() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.18);
+
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+
+      window.setTimeout(() => void ctx.close(), 300);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played when the opponent hits you with a battle debuff.
+   * Urgent warning impact / alarm sound.
+   */
+  async playAttacked() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+
+      // Dual alarm pulses
+      [0, 0.12].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, now + offset);
+        osc.frequency.exponentialRampToValueAtTime(140, now + offset + 0.1);
+
+        gain.gain.setValueAtTime(0.15, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.12);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.13);
+      });
+
+      // Low rumble impact
+      const rumble = ctx.createOscillator();
+      const rumbleGain = ctx.createGain();
+      rumble.type = 'sine';
+      rumble.frequency.setValueAtTime(110, now);
+      rumble.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+      rumbleGain.gain.setValueAtTime(0.18, now);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+
+      rumble.connect(rumbleGain);
+      rumbleGain.connect(ctx.destination);
+      rumble.start(now);
+      rumble.stop(now + 0.4);
+
+      window.setTimeout(() => void ctx.close(), 600);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played when board gets frozen.
+   */
+  async playFreeze() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const tones = [1400, 1850, 2400];
+
+      tones.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.04);
+        gain.gain.setValueAtTime(0.07, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.04 + 0.15);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.04);
+        osc.stop(now + i * 0.04 + 0.18);
+      });
+
+      window.setTimeout(() => void ctx.close(), 400);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export const soundEffects = new SoundEffects();

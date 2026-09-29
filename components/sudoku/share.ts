@@ -20,14 +20,14 @@ export function buildShareText(summary: CompletionSummary, locale: Locale): stri
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
   return locale === 'ko'
     ? [
-        'SudokuDuo 완료 기록 🏆',
+        '배틀 스도쿠 완료 기록 🏆',
         `난이도: ${difficultyLabel}`,
         `시간: ${formatTime(summary.elapsedSeconds)}`,
         `주어진 힌트: ${summary.clueCount}개`,
         `랭킹: ${summary.rank}/${summary.total}`,
       ].join('\n')
     : [
-        'SudokuDuo Victory 🏆',
+        'Battle Sudoku Victory 🏆',
         `Difficulty: ${difficultyLabel}`,
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
@@ -37,7 +37,7 @@ export function buildShareText(summary: CompletionSummary, locale: Locale): stri
 
 export function buildShareCardSvg(summary: CompletionSummary, locale: Locale): string {
   const difficultyLabel = getDifficultyLabel(locale, summary.difficulty);
-  const title = locale === 'ko' ? 'SudokuDuo 챔피언 결과' : 'SudokuDuo Victory Result';
+  const title = locale === 'ko' ? '배틀 스도쿠 챔피언 결과' : 'Battle Sudoku Victory Result';
   const subtitle = locale === 'ko' ? `${difficultyLabel} 난이도 클리어!` : `${difficultyLabel} Cleared!`;
 
   const lines = [
@@ -62,15 +62,15 @@ export function buildShareCardSvg(summary: CompletionSummary, locale: Locale): s
   <rect width="1200" height="630" fill="#09090b"/>
   <rect x="40" y="40" width="1120" height="550" rx="0" fill="#121215" stroke="#27272a" stroke-width="2"/>
   
-  <rect x="80" y="80" width="140" height="32" rx="0" fill="#18181b" stroke="#3f3f46"/>
-  <text x="150" y="102" fill="#ffffff" font-size="15" font-weight="800" text-anchor="middle" font-family="-apple-system, sans-serif">SUDOKUDUO</text>
+  <rect x="80" y="80" width="160" height="32" rx="0" fill="#18181b" stroke="#3f3f46"/>
+  <text x="160" y="102" fill="#ffffff" font-size="14" font-weight="800" text-anchor="middle" font-family="-apple-system, sans-serif">BATTLE SUDOKU</text>
   
   <text x="80" y="180" fill="#ffffff" font-size="52" font-weight="900" font-family="-apple-system, sans-serif">${escapeXml(title)}</text>
   <text x="80" y="232" fill="#a1a1aa" font-size="26" font-weight="600" font-family="-apple-system, sans-serif">${escapeXml(subtitle)}</text>
   
   ${statsSvg}
 
-  <text x="80" y="520" fill="#52525b" font-size="18" font-family="-apple-system, sans-serif">Single-solution verified • 1v1 Real-time Duel • SudokuDuo</text>
+  <text x="80" y="520" fill="#52525b" font-size="18" font-family="-apple-system, sans-serif">Single-solution verified • 1v1 Real-time Duel • Battle Sudoku</text>
 </svg>`;
 }
 
