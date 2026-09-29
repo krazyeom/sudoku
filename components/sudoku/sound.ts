@@ -1,12 +1,98 @@
-// Web Audio API Synthesizer for tactile feedback & fanfare
+// Web Audio API Synthesizer with Persistent Shared AudioContext & Master Gain Node
+// Solves browser autoplay policy & rapid context recreation limitations
 
 class SoundEffects {
+  private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private isUnlocked: boolean = false;
+
   private getContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
-    const AudioContextClass =
-      window.AudioContext || (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return null;
-    return new AudioContextClass();
+
+    if (!this.ctx) {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return null;
+
+      try {
+        this.ctx = new AudioContextClass();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
+      } catch {
+        return null;
+      }
+    }
+
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+
+    return this.ctx;
+  }
+
+  /**
+   * Unlocks the persistent AudioContext on user interaction.
+   * Calling this guarantees browser autoplay restrictions are lifted.
+   */
+  unlockAudio(): void {
+    const ctx = this.getContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    this.isUnlocked = true;
+  }
+
+  private getDestination(ctx: AudioContext): AudioNode {
+    return this.masterGain ?? ctx.destination;
+  }
+
+  /**
+   * Sound toggle confirmation beep.
+   * Plays a cheerful confirmation sound so user immediately hears that sound is active.
+   */
+  async playToggle(enabled: boolean) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      if (enabled) {
+        // High cheerful two-tone chime (G5 -> C6)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(783.99, now);
+        osc.frequency.setValueAtTime(1046.5, now + 0.08);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else {
+        // Gentle descending click
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(392.0, now + 0.06);
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now);
+        osc.stop(now + 0.16);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   /**
@@ -37,11 +123,11 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, now + time);
 
         gain.gain.setValueAtTime(0.0001, now + time);
-        gain.gain.exponentialRampToValueAtTime(0.18, now + time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.25, now + time + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now + time);
         osc.stop(now + time + dur + 0.05);
       });
@@ -60,22 +146,16 @@ class SoundEffects {
         bass.frequency.setValueAtTime(freq, now + time);
 
         bassGain.gain.setValueAtTime(0.0001, now + time);
-        bassGain.gain.exponentialRampToValueAtTime(0.12, now + time + 0.03);
+        bassGain.gain.exponentialRampToValueAtTime(0.18, now + time + 0.03);
         bassGain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
 
         bass.connect(bassGain);
-        bassGain.connect(ctx.destination);
+        bassGain.connect(this.getDestination(ctx));
         bass.start(now + time);
         bass.stop(now + time + dur + 0.05);
       });
-
-      window.setTimeout(() => void ctx.close(), 1600);
     } catch {
-      try {
-        await ctx.close();
-      } catch {
-        // ignore
-      }
+      // ignore
     }
   }
 
@@ -107,25 +187,23 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, now + delay);
 
         gain.gain.setValueAtTime(0.0001, now + delay);
-        gain.gain.exponentialRampToValueAtTime(0.08, now + delay + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + delay + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.2);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now + delay);
-        osc.stop(now + delay + 0.2);
+        osc.stop(now + delay + 0.22);
       });
-
-      window.setTimeout(() => void ctx.close(), 300);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on neutral keypad input / selection.
+   * Tactile click when tapping any cell on the board.
    */
-  async playInput(number: number) {
+  async playCellSelect() {
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -136,17 +214,44 @@ class SoundEffects {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(320 + number * 25, now);
+      osc.frequency.setValueAtTime(640, now);
+      osc.frequency.exponentialRampToValueAtTime(380, now + 0.035);
 
-      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+
+      osc.connect(gain);
+      gain.connect(this.getDestination(ctx));
+      osc.start(now);
+      osc.stop(now + 0.045);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played on neutral keypad input / selection.
+   */
+  async playInput(number: number = 1) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420 + number * 35, now);
+
+      gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
       osc.stop(now + 0.09);
-
-      window.setTimeout(() => void ctx.close(), 200);
     } catch {
       // ignore
     }
@@ -166,25 +271,23 @@ class SoundEffects {
       const gain = ctx.createGain();
 
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(260, now);
-      osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
 
-      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
       osc.stop(now + 0.09);
-
-      window.setTimeout(() => void ctx.close(), 200);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on note toggle.
+   * Played on note toggle or candidate entry.
    */
   async playNote() {
     const ctx = this.getContext();
@@ -197,17 +300,64 @@ class SoundEffects {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(750, now);
+      osc.frequency.setValueAtTime(820, now);
 
-      gain.gain.setValueAtTime(0.02, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
-      osc.stop(now + 0.06);
+      osc.stop(now + 0.07);
+    } catch {
+      // ignore
+    }
+  }
 
-      window.setTimeout(() => void ctx.close(), 150);
+  /**
+   * Sound for Hint and AutoFill features.
+   */
+  async playAction(type: 'hint' | 'autofill' | 'undo' = 'hint') {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      if (type === 'hint') {
+        // Magical twinkle (D6 -> A6)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1174.66, now);
+        osc.frequency.exponentialRampToValueAtTime(1760.0, now + 0.12);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      } else if (type === 'autofill') {
+        // Power pop
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(1046.5, now + 0.07);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+      } else {
+        // Undo whoosh down
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(280, now + 0.1);
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+      }
+
+      osc.connect(gain);
+      gain.connect(this.getDestination(ctx));
+      osc.start(now);
+      osc.stop(now + 0.26);
     } catch {
       // ignore
     }
@@ -225,7 +375,6 @@ class SoundEffects {
       if (ctx.state === 'suspended') await ctx.resume();
       const now = ctx.currentTime;
 
-      // Row: F5 -> A5 -> C6; Col: G5 -> B5 -> D6
       const baseFreqs = type === 'row' ? [698.46, 880.0, 1046.5] : [783.99, 987.77, 1174.66];
 
       baseFreqs.forEach((freq, idx) => {
@@ -235,16 +384,14 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, now + idx * 0.07);
 
         gain.gain.setValueAtTime(0.0001, now + idx * 0.07);
-        gain.gain.exponentialRampToValueAtTime(0.12, now + idx * 0.07 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.2, now + idx * 0.07 + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.07 + 0.3);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now + idx * 0.07);
         osc.stop(now + idx * 0.07 + 0.35);
       });
-
-      window.setTimeout(() => void ctx.close(), 600);
     } catch {
       // ignore
     }
@@ -262,7 +409,6 @@ class SoundEffects {
       if (ctx.state === 'suspended') await ctx.resume();
       const now = ctx.currentTime;
 
-      // 4-note resonant major chord: C4, G4, C5, E5
       const chord = [261.63, 392.0, 523.25, 659.25];
 
       chord.forEach((freq, idx) => {
@@ -272,11 +418,11 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, now);
 
         gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.14, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + 0.03);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now);
         osc.stop(now + 0.5);
       });
@@ -285,16 +431,14 @@ class SoundEffects {
       const bell = ctx.createOscillator();
       const bellGain = ctx.createGain();
       bell.type = 'triangle';
-      bell.frequency.setValueAtTime(1046.5, now + 0.08); // C6
+      bell.frequency.setValueAtTime(1046.5, now + 0.08);
       bellGain.gain.setValueAtTime(0.0001, now + 0.08);
-      bellGain.gain.exponentialRampToValueAtTime(0.09, now + 0.09);
+      bellGain.gain.exponentialRampToValueAtTime(0.14, now + 0.09);
       bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
       bell.connect(bellGain);
-      bellGain.connect(ctx.destination);
+      bellGain.connect(this.getDestination(ctx));
       bell.start(now + 0.08);
       bell.stop(now + 0.38);
-
-      window.setTimeout(() => void ctx.close(), 700);
     } catch {
       // ignore
     }
@@ -322,15 +466,13 @@ class SoundEffects {
       osc.frequency.setValueAtTime(880, now);
       osc.frequency.exponentialRampToValueAtTime(220, now + 0.18);
 
-      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.setValueAtTime(0.18, now);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
       osc.stop(now + 0.22);
-
-      window.setTimeout(() => void ctx.close(), 300);
     } catch {
       // ignore
     }
@@ -354,11 +496,11 @@ class SoundEffects {
         osc.frequency.setValueAtTime(320, now + offset);
         osc.frequency.exponentialRampToValueAtTime(140, now + offset + 0.1);
 
-        gain.gain.setValueAtTime(0.15, now + offset);
+        gain.gain.setValueAtTime(0.2, now + offset);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.12);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now + offset);
         osc.stop(now + offset + 0.13);
       });
@@ -368,15 +510,13 @@ class SoundEffects {
       rumble.type = 'sine';
       rumble.frequency.setValueAtTime(110, now);
       rumble.frequency.exponentialRampToValueAtTime(45, now + 0.35);
-      rumbleGain.gain.setValueAtTime(0.18, now);
+      rumbleGain.gain.setValueAtTime(0.22, now);
       rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
 
       rumble.connect(rumbleGain);
-      rumbleGain.connect(ctx.destination);
+      rumbleGain.connect(this.getDestination(ctx));
       rumble.start(now);
       rumble.stop(now + 0.4);
-
-      window.setTimeout(() => void ctx.close(), 600);
     } catch {
       // ignore
     }
@@ -398,25 +538,24 @@ class SoundEffects {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + i * 0.04);
-        gain.gain.setValueAtTime(0.07, now + i * 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.04 + 0.15);
+        osc.frequency.setValueAtTime(freq, now + i * 0.05);
+
+        gain.gain.setValueAtTime(0.0001, now + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.14, now + i * 0.05 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.14);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + i * 0.04);
-        osc.stop(now + i * 0.04 + 0.18);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now + i * 0.05);
+        osc.stop(now + i * 0.05 + 0.15);
       });
-
-      window.setTimeout(() => void ctx.close(), 400);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on consecutive correct answers in quick succession (Speed Combo).
-   * Progressively escalating arpeggio matching combo scale.
+   * Dynamic Speed Combo chime.
    */
   async playCombo(combo: number) {
     const ctx = this.getContext();
@@ -425,36 +564,38 @@ class SoundEffects {
     try {
       if (ctx.state === 'suspended') await ctx.resume();
       const now = ctx.currentTime;
-      // High-energy pitch tier based on combo count
-      const baseFreq = combo <= 2 ? 587.33 : combo === 3 ? 659.25 : 783.99;
-      const noteCount = Math.min(combo + 1, 5);
 
-      for (let i = 0; i < noteCount; i++) {
+      const scales = [
+        [523.25, 659.25],
+        [587.33, 783.99],
+        [659.25, 880.0, 1046.5],
+        [783.99, 1046.5, 1318.51],
+        [880.0, 1174.66, 1396.91, 1760.0],
+      ];
+      const noteArray = scales[Math.min(scales.length - 1, Math.max(0, combo - 2))];
+
+      noteArray.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = combo >= 4 ? 'sawtooth' : 'triangle';
-        const freq = baseFreq * Math.pow(1.18, i);
-        osc.frequency.setValueAtTime(freq, now + i * 0.045);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
 
-        gain.gain.setValueAtTime(0.001, now + i * 0.045);
-        gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.045 + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.045 + 0.16);
+        gain.gain.setValueAtTime(0.0001, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.2, now + idx * 0.06 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.06 + 0.22);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + i * 0.045);
-        osc.stop(now + i * 0.045 + 0.18);
-      }
-
-      window.setTimeout(() => void ctx.close(), 500);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.25);
+      });
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played when an active combo streak is broken by an error.
-   * Downward sad pitch slide.
+   * Played when an active combo is broken by an incorrect move.
    */
   async playComboBreak() {
     const ctx = this.getContext();
@@ -467,26 +608,23 @@ class SoundEffects {
       const gain = ctx.createGain();
 
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(580, now);
-      osc.frequency.exponentialRampToValueAtTime(160, now + 0.28);
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(146.83, now + 0.22);
 
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.exponentialRampToValueAtTime(0.14, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
-      osc.stop(now + 0.35);
-
-      window.setTimeout(() => void ctx.close(), 500);
+      osc.stop(now + 0.27);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on incorrect answer / mistake.
+   * Played on incorrect number placement.
    */
   async playMistake(level: number = 1) {
     const ctx = this.getContext();
@@ -499,83 +637,55 @@ class SoundEffects {
       const gain = ctx.createGain();
 
       osc.type = 'sawtooth';
-      const baseFreq = level > 1 ? 120 : 160;
+      const baseFreq = level > 1 ? 164.81 : 220.0;
       osc.frequency.setValueAtTime(baseFreq, now);
-      osc.frequency.linearRampToValueAtTime(baseFreq * 0.7, now + 0.14);
+      osc.frequency.linearRampToValueAtTime(baseFreq * 0.8, now + 0.14);
 
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
       osc.start(now);
-      osc.stop(now + 0.2);
-
-      window.setTimeout(() => void ctx.close(), 300);
+      osc.stop(now + 0.18);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on repeated consecutive mistakes (2nd or 3rd error).
-   * Level 2: Heavy double hit
-   * Level 3+: Lockdown siren pulses
+   * Consecutive mistake penalty buzzer.
    */
-  async playConsecutiveMistake(count: number) {
+  async playConsecutiveMistake(count: number = 2) {
     const ctx = this.getContext();
     if (!ctx) return;
 
     try {
       if (ctx.state === 'suspended') await ctx.resume();
       const now = ctx.currentTime;
+      const pulses = Math.min(3, count);
 
-      if (count === 2) {
-        // Double heavy strike
-        [0, 0.12].forEach((offset) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(140, now + offset);
-          osc.frequency.exponentialRampToValueAtTime(65, now + offset + 0.1);
+      for (let i = 0; i < pulses; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(146.83, now + i * 0.11);
 
-          gain.gain.setValueAtTime(0.18, now + offset);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.12);
+        gain.gain.setValueAtTime(0.16, now + i * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.11 + 0.08);
 
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.13);
-        });
-      } else {
-        // Lockdown emergency siren pulses (Count 3+)
-        [0, 0.14, 0.28].forEach((offset) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(380, now + offset);
-          osc.frequency.linearRampToValueAtTime(520, now + offset + 0.06);
-          osc.frequency.linearRampToValueAtTime(320, now + offset + 0.12);
-
-          gain.gain.setValueAtTime(0.16, now + offset);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.13);
-
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.14);
-        });
+        osc.connect(gain);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now + i * 0.11);
+        osc.stop(now + i * 0.11 + 0.09);
       }
-
-      window.setTimeout(() => void ctx.close(), 600);
     } catch {
       // ignore
     }
   }
 
   /**
-   * Played on duel defeat.
-   * Melancholic minor descending cadence.
+   * Match defeat sound.
    */
   async playDefeat() {
     const ctx = this.getContext();
@@ -584,7 +694,6 @@ class SoundEffects {
     try {
       if (ctx.state === 'suspended') await ctx.resume();
       const now = ctx.currentTime;
-      // Minor mournful cadence: G4 -> F4 -> Eb4 -> D4 -> C4
       const notes = [392.0, 349.23, 311.13, 293.66, 261.63];
 
       notes.forEach((freq, idx) => {
@@ -594,16 +703,79 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, now + idx * 0.16);
 
         gain.gain.setValueAtTime(0.001, now + idx * 0.16);
-        gain.gain.exponentialRampToValueAtTime(0.11, now + idx * 0.16 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + idx * 0.16 + 0.03);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.16 + 0.32);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getDestination(ctx));
         osc.start(now + idx * 0.16);
         osc.stop(now + idx * 0.16 + 0.35);
       });
+    } catch {
+      // ignore
+    }
+  }
 
-      window.setTimeout(() => void ctx.close(), 1400);
+  /**
+   * Retro 8-bit Konami cheat code fanfare
+   */
+  async playKonami() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const notes = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + idx * 0.05 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.05 + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.getDestination(ctx));
+        osc.start(now + idx * 0.05);
+        osc.stop(now + idx * 0.05 + 0.1);
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Casino 777 Jackpot coin sound
+   */
+  async playJackpot() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const coinTones = [987.77, 1318.51, 1567.98, 1760.0, 2093.0, 2637.02];
+      for (let rep = 0; rep < 3; rep++) {
+        const offset = rep * 0.18;
+        coinTones.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + offset + idx * 0.025);
+
+          gain.gain.setValueAtTime(0.001, now + offset + idx * 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.2, now + offset + idx * 0.025 + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + idx * 0.025 + 0.09);
+
+          osc.connect(gain);
+          gain.connect(this.getDestination(ctx));
+          osc.start(now + offset + idx * 0.025);
+          osc.stop(now + offset + idx * 0.025 + 0.11);
+        });
+      }
     } catch {
       // ignore
     }

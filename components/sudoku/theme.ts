@@ -7,7 +7,8 @@ export type ThemeId =
   | 'space'
   | 'ocean'
   | 'mountain'
-  | 'cyberpunk';
+  | 'cyberpunk'
+  | 'rainbow';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -140,6 +141,19 @@ export const THEME_LIST: ThemeConfig[] = [
     bgColor: '#05050a',
     descKo: '강렬한 네온 핫핑크와 일렉트릭 사이안의 사이버 시티',
     descEn: 'High-voltage electric cyan, neon laser magenta & noir grid',
+  },
+  {
+    id: 'rainbow',
+    nameKo: '레인보우 아케이드',
+    nameEn: 'Rainbow Arcade',
+    categoryKo: '히든 이스터에그',
+    categoryEn: 'Secret Easter Egg',
+    icon: '🌈',
+    accentColor: '#fbbf24',
+    secondaryColor: '#f43f5e',
+    bgColor: '#0d071a',
+    descKo: '치트 코드로 해금된 전설의 8비트 레트로 레인보우 아케이드!',
+    descEn: 'Legendary 8-bit retro arcade theme unlocked via Konami secret code!',
   },
 ];
 

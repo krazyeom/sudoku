@@ -23,6 +23,7 @@ interface BattlePanelProps {
   onCopyInviteLink: () => void;
   onDisconnectRoom: () => void;
   onRestartAiBattle?: () => void;
+  onNewGame?: () => void;
 }
 
 const BATTLE_MODES: {
@@ -87,6 +88,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   onCopyInviteLink,
   onDisconnectRoom,
   onRestartAiBattle,
+  onNewGame,
 }) => {
   const currentModeInfo = BATTLE_MODES.find((m) => m.id === battleMode) ?? BATTLE_MODES[1];
   const canChangeMode = !sharedRoom || sharedRoom.role === 'host';
@@ -158,6 +160,36 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               ? '방해 기믹 없이 차분하게 두뇌 트레이닝과 기록 단축에 집중하는 모드입니다. 비행기나 여행 중에도 오프라인으로 자유롭게 즐기실 수 있습니다.'
               : 'Focus on pure Sudoku puzzle solving and speedrunning without attacks. Fully playable offline.'}
           </p>
+
+          <div
+            style={{
+              marginTop: '10px',
+              padding: '6px 10px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.74rem',
+            }}
+          >
+            <span style={{ color: '#94a3b8' }}>{locale === 'ko' ? '기믹 공격' : 'Attacks'}</span>
+            <span style={{ color: '#10b981', fontWeight: 700 }}>
+              {locale === 'ko' ? '비활성화 (평화 모드)' : 'Disabled (Peaceful)'}
+            </span>
+          </div>
+
+          {onNewGame && (
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={onNewGame}
+              style={{ marginTop: '10px', width: '100%', padding: '9px 12px' }}
+            >
+              <span>🎲 {locale === 'ko' ? '새 싱글 퍼즐 시작' : 'Start New Solo Puzzle'}</span>
+            </button>
+          )}
         </div>
       )}
 

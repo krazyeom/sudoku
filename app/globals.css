@@ -241,6 +241,32 @@
   --grid-dot: rgba(0, 240, 255, 0.04);
 }
 
+[data-theme="rainbow"] {
+  --bg-primary: #0b0717;
+  --bg-secondary: #170f2e;
+  --bg-tertiary: #231644;
+  --bg-hover: #331f60;
+  --bg-board: #070410;
+  --border-subtle: #41247a;
+  --border-medium: #6937c4;
+  --border-strong: #fbbf24;
+  --text-primary: #ffffff;
+  --text-secondary: #fef08a;
+  --text-muted: #f472b6;
+  --accent-primary: #fbbf24;
+  --accent-primary-text: #0b0717;
+  --accent-secondary: #f43f5e;
+  --cell-given: #38bdf8;
+  --cell-user: #f43f5e;
+  --cell-note: #fef08a;
+  --cell-bg-selected: #7c2d12;
+  --cell-bg-highlight: #211342;
+  --cell-bg-same: #3e1b70;
+  --cell-bg-hover: rgba(251, 191, 36, 0.2);
+  --theme-glow: rgba(251, 191, 36, 0.5);
+  --grid-dot: rgba(244, 63, 94, 0.06);
+}
+
 html,
 body {
   padding: 0;

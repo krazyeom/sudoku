@@ -131,6 +131,127 @@ export default function SudokuGame() {
   const lastCorrectMoveTimeRef = useRef<number>(0);
   const consecutiveMistakesRef = useRef<number>(0);
 
+  // Easter Egg refs
+  const konamiSeqRef = useRef<string[]>([]);
+  const tabTapCountRef = useRef<{ count: number; lastTime: number }>({ count: 0, lastTime: 0 });
+
+  function triggerEasterEgg(type: 'konami' | 'jackpot') {
+    if (type === 'konami') {
+      if (soundEnabled) void soundEffects.playKonami();
+      setItems((prev) => ({ hint: prev.hint + 77, autoFill: prev.autoFill + 77 }));
+      handleSelectTheme('rainbow');
+      setConfettiPieces(
+        Array.from({ length: 120 }, (_, index) => ({
+          left: Math.random() * 100,
+          delay: Math.random() * 0.8,
+          duration: 2.5 + Math.random() * 2,
+          size: 8 + Math.random() * 14,
+          hue: Math.floor(Math.random() * 360),
+          rotation: Math.random() * 360,
+        }))
+      );
+      setBattleToast({
+        id: `easter-egg-${Date.now()}`,
+        type: 'combo',
+        title: locale === 'ko' ? '👾 코나미 치트 코드 발동!' : '👾 KONAMI CODE ACTIVATED!',
+        subtitle:
+          locale === 'ko'
+            ? '🌈 히든 [레인보우 아케이드] 테마 해금 & 슈퍼 아이템 +77개 보너스 지급!'
+            : '🌈 Unlocked Secret [Rainbow Arcade] Theme & +77 Bonus Items!',
+        timestamp: Date.now(),
+      });
+    } else if (type === 'jackpot') {
+      if (soundEnabled) void soundEffects.playJackpot();
+      setItems((prev) => ({ hint: prev.hint + 7, autoFill: prev.autoFill + 7 }));
+      setConfettiPieces(
+        Array.from({ length: 77 }, (_, index) => ({
+          left: Math.random() * 100,
+          delay: Math.random() * 0.7,
+          duration: 2.0 + Math.random() * 1.5,
+          size: 7 + Math.random() * 10,
+          hue: 45,
+          rotation: Math.random() * 360,
+        }))
+      );
+      setBattleToast({
+        id: `jackpot-${Date.now()}`,
+        type: 'combo',
+        title: locale === 'ko' ? '🎰 777 럭키 잭팟!' : '🎰 777 LUCKY JACKPOT!',
+        subtitle:
+          locale === 'ko'
+            ? '황금 코인이 쏟아집니다! 보너스 힌트 +7개 충전 완료!'
+            : 'Golden coins showered! +7 Bonus Hints recharged!',
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // Keyboard Konami Code Listener (↑ ↑ ↓ ↓ ← → ← → B A)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const konamiCode = [
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'KeyB',
+      'KeyA',
+    ];
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      const code = e.code;
+      konamiSeqRef.current.push(code);
+      if (konamiSeqRef.current.length > konamiCode.length) {
+        konamiSeqRef.current.shift();
+      }
+
+      if (
+        konamiSeqRef.current.length === konamiCode.length &&
+        konamiSeqRef.current.every((k, i) => k === konamiCode[i])
+      ) {
+        konamiSeqRef.current = [];
+        triggerEasterEgg('konami');
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [soundEnabled, locale]);
+
+  function handleLogoClick() {
+    const now = Date.now();
+    if (now - tabTapCountRef.current.lastTime < 1200) {
+      tabTapCountRef.current.count += 1;
+      if (tabTapCountRef.current.count >= 7) {
+        tabTapCountRef.current.count = 0;
+        triggerEasterEgg('jackpot');
+      }
+    } else {
+      tabTapCountRef.current = { count: 1, lastTime: now };
+    }
+  }
+
+  // Global Browser AudioContext Unlock on first user gesture
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      soundEffects.unlockAudio();
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
   // Service Worker Registration & Online/Offline Network Listener
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -720,6 +841,42 @@ export default function SudokuGame() {
     setMessage(locale === 'ko' ? '방에서 퇴장했습니다.' : 'Left the room.');
   }
 
+  function handleGameModeChange(nextMode: GameMode) {
+    if (nextMode === gameMode) return;
+
+    // Disconnect from shared room cleanly when leaving online mode
+    if (sharedRoom && nextMode !== 'online') {
+      disconnectSharedRoom();
+    }
+
+    // Reset battle debuffs and toasts
+    setActiveDebuff(null);
+    setBattleToast(null);
+
+    setGameMode(nextMode);
+
+    if (nextMode === 'vs_ai') {
+      setAiRival(createAiRival(puzzle.puzzle));
+      flashToast(
+        locale === 'ko'
+          ? '🤖 알파도쿠 AI 대결 모드로 전환되었습니다.'
+          : '🤖 Switched to vs AI Rival Mode.'
+      );
+    } else if (nextMode === 'solo') {
+      flashToast(
+        locale === 'ko'
+          ? '🎮 온리 싱글 모드로 전환되었습니다. (방해 효과 해제)'
+          : '🎮 Switched to Solo Puzzle Mode.'
+      );
+    } else if (nextMode === 'online') {
+      flashToast(
+        locale === 'ko'
+          ? '⚔️ 온라인 1v1 대결 모드로 전환되었습니다.'
+          : '⚔️ Switched to Online 1v1 Duel Mode.'
+      );
+    }
+  }
+
   function handleSelectTheme(nextTheme: ThemeId) {
     setTheme(nextTheme);
     try {
@@ -934,6 +1091,7 @@ export default function SudokuGame() {
 
   // Board Cell Interaction
   function handleCellClick(rowIndex: number, colIndex: number) {
+    if (soundEnabled) void soundEffects.playCellSelect();
     if (selected?.row === rowIndex && selected?.col === colIndex) {
       setSelected(null);
       return;
@@ -963,6 +1121,20 @@ export default function SudokuGame() {
     const { row, col } = selected;
     if (fixedCells[row][col] || solved) return;
     if (value < 1 || value > 9) return;
+
+    // 777 Jackpot Easter Egg check (when inputting 7 repeatedly)
+    if (value === 7) {
+      const now = Date.now();
+      if (now - tabTapCountRef.current.lastTime < 1500) {
+        tabTapCountRef.current.count += 1;
+        if (tabTapCountRef.current.count >= 7) {
+          tabTapCountRef.current.count = 0;
+          triggerEasterEgg('jackpot');
+        }
+      } else {
+        tabTapCountRef.current = { count: 1, lastTime: now };
+      }
+    }
 
     startTimerIfNeeded();
 
@@ -1161,6 +1333,7 @@ export default function SudokuGame() {
     completionSavedRef.current = false;
     setHintPreview(null);
     setHistory((cur) => cur.slice(0, -1));
+    if (soundEnabled) void soundEffects.playAction('undo');
   }
 
   function resetGame(nextDifficulty: Difficulty = difficulty) {
@@ -1242,6 +1415,7 @@ export default function SudokuGame() {
     setSelected(target);
     setHintPreview({ row: target.row, col: target.col, value: val });
     setItems((cur) => ({ ...cur, hint: Math.max(0, cur.hint - 1) }));
+    if (soundEnabled) void soundEffects.playAction('hint');
     setMessage(locale === 'ko' ? `힌트: (${target.row + 1}, ${target.col + 1}) 위치는 ${val}입니다.` : `Hint: (${target.row + 1}, ${target.col + 1}) is ${val}.`);
   }
 
@@ -1413,7 +1587,10 @@ export default function SudokuGame() {
         <button
           type="button"
           className={`${styles.tabBtn} ${activePanel === 'play' ? styles.tabBtnActive : ''}`}
-          onClick={() => setActivePanel('play')}
+          onClick={() => {
+            setActivePanel('play');
+            handleLogoClick();
+          }}
         >
           🎮 {locale === 'ko' ? '스튜디오 플레이' : 'Play Studio'}
         </button>
@@ -1440,14 +1617,31 @@ export default function SudokuGame() {
                 locale={locale}
                 isOnline={isOnline}
                 currentTheme={theme}
-                onToggleSound={() => setSoundEnabled((cur) => !cur)}
+                onToggleSound={() => {
+                  setSoundEnabled((cur) => {
+                    const next = !cur;
+                    soundEffects.unlockAudio();
+                    void soundEffects.playToggle(next);
+                    flashToast(
+                      locale === 'ko'
+                        ? (next ? '🔊 효과음이 켜졌습니다.' : '🔇 효과음이 음소거되었습니다.')
+                        : (next ? '🔊 Sound enabled.' : '🔇 Sound muted.')
+                    );
+                    return next;
+                  });
+                }}
                 onToggleLocale={() => setLocale((cur) => (cur === 'ko' ? 'en' : 'ko'))}
                 onOpenThemeSelector={() => setIsThemeSelectorOpen(true)}
               />
 
               {/* Status Message */}
               <div className={styles.statusBar}>
-                <span className={styles.statusIndicator} />
+                <span
+                  className={styles.statusIndicator}
+                  onClick={handleLogoClick}
+                  style={{ cursor: 'pointer' }}
+                  title="Lucky Click!"
+                />
                 <span>{message}</span>
               </div>
 
@@ -1469,12 +1663,7 @@ export default function SudokuGame() {
               {/* 1v1 Battle Panel */}
               <BattlePanel
                 gameMode={gameMode}
-                onGameModeChange={(m) => {
-                  setGameMode(m);
-                  if (m === 'vs_ai') {
-                    setAiRival(createAiRival(puzzle.puzzle));
-                  }
-                }}
+                onGameModeChange={handleGameModeChange}
                 sharedRoom={sharedRoom}
                 battleSummary={battleSummary}
                 playerProgress={playerProgress}
@@ -1486,6 +1675,7 @@ export default function SudokuGame() {
                 isOnline={isOnline}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
+                onNewGame={() => resetGame(difficulty)}
                 onRestartAiBattle={() => {
                   setAiRival(createAiRival(puzzle.puzzle));
                   flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');

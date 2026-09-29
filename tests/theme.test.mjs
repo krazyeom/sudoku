@@ -15,8 +15,9 @@ test('THEME_LIST contains seasonal, cosmos, nature, and cyberpunk themes', () =>
   assert.ok(ids.includes('ocean'), 'Missing ocean theme');
   assert.ok(ids.includes('mountain'), 'Missing mountain theme');
   assert.ok(ids.includes('cyberpunk'), 'Missing cyberpunk theme');
+  assert.ok(ids.includes('rainbow'), 'Missing rainbow secret theme');
 
-  assert.equal(THEME_LIST.length >= 9, true);
+  assert.equal(THEME_LIST.length >= 10, true);
 });
 
 test('getThemeConfig returns valid configuration and fallback', () => {
