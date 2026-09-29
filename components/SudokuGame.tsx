@@ -9,25 +9,34 @@ import {
   generatePuzzle,
   solveSudoku,
 } from '@/lib/sudoku';
-import type {
-  ActiveDebuff,
-  BattleMode,
-  BattleToast,
-  CompletionSummary,
-  ConfettiPiece,
-  ItemCounts,
-  Locale,
-  NoteGrid,
-  Position,
-  RecordEntry,
-  RoomAttack,
-  SavedGame,
-  SharedCompletionSummary,
-  SharedRoomState,
-  Snapshot,
+import {
+  type ActiveDebuff,
+  type BattleMode,
+  type BattleToast,
+  type CompletionSummary,
+  type ConfettiPiece,
+  type ItemCounts,
+  type Locale,
+  type NoteGrid,
+  type Position,
+  type RecordEntry,
+  type RoomAttack,
+  type SavedGame,
+  type SharedCompletionSummary,
+  type SharedRoomState,
+  type Snapshot,
+  type GameMode,
+  getItemsForBattleMode,
 } from './sudoku/types';
 import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
 import { soundEffects } from './sudoku/sound';
+import {
+  createAiRival,
+  stepAiRival,
+  applyDebuffToAi,
+  computeAiBattleMinimap,
+  type AiRivalState,
+} from './sudoku/aiRival';
 import {
   STORAGE_KEY,
   RECORDS_KEY,
@@ -86,8 +95,10 @@ export default function SudokuGame() {
   const [recordSortMode, setRecordSortMode] = useState<'fastest' | 'newest' | 'oldest'>('fastest');
   const [noteMode, setNoteMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [items, setItems] = useState<ItemCounts>({ hint: 3, autoFill: 1 });
+  const [items, setItems] = useState<ItemCounts>(() => getItemsForBattleMode('normal'));
   const [locale, setLocale] = useState<Locale>('ko');
+  const [gameMode, setGameMode] = useState<GameMode>('vs_ai');
+  const [aiRival, setAiRival] = useState<AiRivalState>(() => createAiRival(puzzle.puzzle));
   const [hintPreview, setHintPreview] = useState<{ row: number; col: number; value: number } | null>(null);
   const [roomInput, setRoomInput] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -165,6 +176,52 @@ export default function SudokuGame() {
   const sharedRoomIsActive = Boolean(sharedRoom);
   const sharedMatchGateActive = sharedRoomIsActive && !sharedMatchIsPlaying;
   const sharedBattleMiniMapGrid = sharedRoom?.snapshot?.occupancy ?? createEmptyOwnershipGrid();
+
+  const aiMinimap = useMemo(() => {
+    if (gameMode !== 'vs_ai') return createEmptyOwnershipGrid();
+    return computeAiBattleMinimap(board, aiRival.board, puzzle.puzzle);
+  }, [gameMode, board, aiRival.board, puzzle.puzzle]);
+
+  const playerProgress = useMemo(() => {
+    let filled = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (puzzle.puzzle[r][c] === null && board[r][c] !== null) filled++;
+      }
+    }
+    return Math.min(100, Math.round((filled / Math.max(1, aiRival.totalFillable)) * 100));
+  }, [puzzle.puzzle, board, aiRival.totalFillable]);
+
+  // AI Rival Game Loop (for vs_ai mode)
+  useEffect(() => {
+    if (gameMode !== 'vs_ai' || solved || !timerRunning) return;
+
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      if (now < aiRival.stunnedUntil || now < aiRival.nextMoveTime) return;
+
+      const { nextState, attack, solved: aiSolved } = stepAiRival(aiRival, puzzle.solution, battleMode);
+      setAiRival(nextState);
+
+      if (attack) {
+        handleBattleAttack(attack, 'player');
+      }
+
+      if (aiSolved) {
+        setSolved(true);
+        setSharedCompletionSummary({
+          difficulty,
+          clueCount: puzzle.clueCount,
+          elapsedSeconds,
+          completedAt: new Date().toISOString(),
+          completedBy: 'ai-rival-alphadoku',
+          completedByRole: 'guest',
+        });
+      }
+    }, 350);
+
+    return () => window.clearInterval(interval);
+  }, [gameMode, solved, timerRunning, aiRival, puzzle.solution, battleMode, difficulty, puzzle.clueCount, elapsedSeconds]);
 
   function flashToast(text: string) {
     setCopyToast(text);
@@ -313,6 +370,17 @@ export default function SudokuGame() {
             : `${completedList.join(', ')} Cleared!`,
         timestamp: Date.now(),
       });
+
+      if (gameMode === 'vs_ai' && battleMode !== 'off') {
+        const duration = battleMode === 'hard' ? 3600 : 2600;
+        setAiRival((cur) => applyDebuffToAi(cur, duration));
+        if (soundEnabled) void soundEffects.playAttackLaunch();
+        flashToast(
+          locale === 'ko'
+            ? '⚡ 라인 완성! 알파도쿠 AI의 입력을 지연시켰습니다!'
+            : '⚡ Line completed! Delayed Alphadoku AI!'
+        );
+      }
     }
   }
 
@@ -603,6 +671,13 @@ export default function SudokuGame() {
 
   function handleBattleModeChange(nextMode: BattleMode) {
     setBattleModeState(nextMode);
+    const updatedItems = getItemsForBattleMode(nextMode);
+    setItems(updatedItems);
+    flashToast(
+      locale === 'ko'
+        ? `[${nextMode.toUpperCase()}] 모드: 힌트 ${updatedItems.hint}개, 자동완성 ${updatedItems.autoFill}개 지급`
+        : `[${nextMode.toUpperCase()}]: ${updatedItems.hint} hints, ${updatedItems.autoFill} auto-fills granted`
+    );
     if (sharedRoom) {
       if (sharedRoom.role !== 'host') {
         flashToast(locale === 'ko' ? '방장만 배틀 모드를 변경할 수 있습니다.' : 'Only the host can change battle mode.');
@@ -775,7 +850,10 @@ export default function SudokuGame() {
     setTimerRunning(false);
     setShowCompleteModal(true);
 
-    const isViewerWinner = !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId;
+    const isViewerWinner =
+      gameMode === 'vs_ai'
+        ? sharedCompletionSummary?.completedBy !== 'ai-rival-alphadoku'
+        : !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId;
 
     if (isViewerWinner) {
       setConfettiPieces(
@@ -793,7 +871,10 @@ export default function SudokuGame() {
     }
 
     if (soundEnabled) {
-      if (sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId) {
+      if (
+        (sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId) ||
+        (gameMode === 'vs_ai' && sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku')
+      ) {
         void soundEffects.playDefeat();
       } else {
         void soundEffects.playVictory();
@@ -984,6 +1065,21 @@ export default function SudokuGame() {
       });
     } else {
       checkLocalUnitCompletion(row, col, nextBoard);
+      if (gameMode === 'vs_ai' && currentCombo >= 3 && battleMode !== 'off') {
+        const duration = battleMode === 'hard' ? 3200 : 2500;
+        setAiRival((cur) => applyDebuffToAi(cur, duration));
+        if (soundEnabled) void soundEffects.playAttackLaunch();
+        setBattleToast({
+          id: `player-combo-ai-${Date.now()}`,
+          type: 'attack_launched',
+          title: locale === 'ko' ? '⚡ 콤보 기습 공격!' : '⚡ Combo Blitz Strike!',
+          subtitle:
+            locale === 'ko'
+              ? `${currentCombo}연속 콤보로 알파도쿠 AI의 입력을 정지시켰습니다!`
+              : `Stunned Alphadoku AI with ${currentCombo}x combo!`,
+          timestamp: Date.now(),
+        });
+      }
     }
 
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
@@ -1074,7 +1170,8 @@ export default function SudokuGame() {
     consecutiveMistakesRef.current = 0;
     setMistakeCooldownUntil(0);
     setNoteMode(false);
-    setItems({ hint: 3, autoFill: 1 });
+    setItems(getItemsForBattleMode(battleMode));
+    setAiRival(createAiRival(nextPuzzle.puzzle));
     setHintPreview(null);
     setElapsedSeconds(0);
     setTimerRunning(false);
@@ -1339,15 +1436,28 @@ export default function SudokuGame() {
 
               {/* 1v1 Battle Panel */}
               <BattlePanel
+                gameMode={gameMode}
+                onGameModeChange={(m) => {
+                  setGameMode(m);
+                  if (m === 'vs_ai') {
+                    setAiRival(createAiRival(puzzle.puzzle));
+                  }
+                }}
                 sharedRoom={sharedRoom}
                 battleSummary={battleSummary}
-                minimapGrid={sharedBattleMiniMapGrid}
+                playerProgress={playerProgress}
+                aiProgress={aiRival.progressPercent}
+                minimapGrid={gameMode === 'vs_ai' ? aiMinimap : sharedBattleMiniMapGrid}
                 roomInput={roomInput}
                 battleMode={battleMode}
                 locale={locale}
                 isOnline={isOnline}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
+                onRestartAiBattle={() => {
+                  setAiRival(createAiRival(puzzle.puzzle));
+                  flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');
+                }}
                 onCreateRoom={() => {
                   const id = `room-${Math.random().toString(36).slice(2, 9)}`;
                   setRoomInput(id);
@@ -1468,7 +1578,11 @@ export default function SudokuGame() {
         sharedCompletionSummary={sharedCompletionSummary}
         confettiPieces={confettiPieces}
         locale={locale}
-        isWinner={!sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId}
+        isWinner={
+          gameMode === 'vs_ai'
+            ? sharedCompletionSummary?.completedBy !== 'ai-rival-alphadoku'
+            : !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId
+        }
         winnerRole={sharedCompletionSummary?.completedByRole ?? null}
         onClose={() => setShowCompleteModal(false)}
         onNewGame={() => {

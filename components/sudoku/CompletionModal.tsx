@@ -42,11 +42,12 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
   const elapsed = sharedCompletionSummary?.elapsedSeconds ?? completionSummary?.elapsedSeconds ?? 0;
   const userWon = !isShared || isWinner;
 
+  const isAiRival = sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku';
   const role = sharedCompletionSummary?.completedByRole ?? winnerRole;
-  const roleNameKo = role === 'host' ? '방장' : role === 'guest' ? '도전자' : '상대방';
-  const roleParticleKo = role === 'host' ? '이' : '가';
+  const roleNameKo = isAiRival ? '알파도쿠 AI' : role === 'host' ? '방장' : role === 'guest' ? '도전자' : '상대방';
+  const roleParticleKo = isAiRival ? '가' : role === 'host' ? '이' : '가';
   const roleSubjectKo = `${roleNameKo}${roleParticleKo}`;
-  const roleSubjectEn = role === 'host' ? 'Host' : role === 'guest' ? 'Guest' : 'Opponent';
+  const roleSubjectEn = isAiRival ? 'Alphadoku AI' : role === 'host' ? 'Host' : role === 'guest' ? 'Guest' : 'Opponent';
 
   return (
     <div className={styles.modalOverlay} role="dialog" aria-modal="true" onClick={onClose}>

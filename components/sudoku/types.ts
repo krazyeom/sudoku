@@ -42,6 +42,22 @@ export type ItemCounts = {
   autoFill: number;
 };
 
+export type GameMode = 'solo' | 'vs_ai' | 'online';
+
+export function getItemsForBattleMode(mode: BattleMode): ItemCounts {
+  switch (mode) {
+    case 'hard':
+      return { hint: 1, autoFill: 0 };
+    case 'normal':
+      return { hint: 2, autoFill: 1 };
+    case 'easy':
+      return { hint: 3, autoFill: 2 };
+    case 'off':
+    default:
+      return { hint: 3, autoFill: 1 };
+  }
+}
+
 export type Locale = 'ko' | 'en';
 
 export type ActiveDebuff = {
