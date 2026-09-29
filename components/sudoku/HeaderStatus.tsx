@@ -2,6 +2,7 @@ import React from 'react';
 import styles from './sudoku.module.css';
 import type { Locale } from './types';
 import { formatTime } from './share';
+import { getThemeConfig, type ThemeId } from './theme';
 
 interface HeaderStatusProps {
   elapsedSeconds: number;
@@ -10,8 +11,10 @@ interface HeaderStatusProps {
   soundEnabled: boolean;
   locale: Locale;
   isOnline?: boolean;
+  currentTheme: ThemeId;
   onToggleSound: () => void;
   onToggleLocale: () => void;
+  onOpenThemeSelector: () => void;
 }
 
 export const HeaderStatus: React.FC<HeaderStatusProps> = ({
@@ -21,9 +24,12 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   soundEnabled,
   locale,
   isOnline = true,
+  currentTheme,
   onToggleSound,
   onToggleLocale,
+  onOpenThemeSelector,
 }) => {
+  const themeConfig = getThemeConfig(currentTheme);
   return (
     <div className={styles.hudGrid}>
       {!isOnline && (
@@ -51,6 +57,57 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
           </span>
         </div>
       )}
+      {/* Theme Selector Trigger */}
+      <button
+        type="button"
+        className={`${styles.hudCard} ${styles.hudCardInteractive}`}
+        onClick={onOpenThemeSelector}
+        style={{
+          gridColumn: '1 / -1',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+        }}
+        aria-label="Color theme studio"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1.15rem' }}>{themeConfig.icon}</span>
+          <div style={{ textAlign: 'left' }}>
+            <div className={styles.hudLabel} style={{ marginBottom: '1px' }}>
+              {locale === 'ko' ? '테마 스튜디오' : 'Theme Studio'}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: themeConfig.accentColor }}>
+              {locale === 'ko' ? themeConfig.nameKo : themeConfig.nameEn}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: themeConfig.accentColor,
+              display: 'inline-block',
+            }}
+          />
+          <span
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: themeConfig.secondaryColor,
+              display: 'inline-block',
+            }}
+          />
+          <span style={{ fontSize: '0.74rem', color: '#94a3b8', marginLeft: '4px' }}>
+            {locale === 'ko' ? '변경' : 'Change'} ❯
+          </span>
+        </div>
+      </button>
+
       {/* Timer */}
       <div className={styles.hudCard}>
         <div className={styles.hudLabel}>

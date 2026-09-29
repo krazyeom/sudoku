@@ -37,6 +37,8 @@ import {
   computeAiBattleMinimap,
   type AiRivalState,
 } from './sudoku/aiRival';
+import { ThemeSelector } from './sudoku/ThemeSelector';
+import { THEME_STORAGE_KEY, getThemeConfig, type ThemeId } from './sudoku/theme';
 import {
   STORAGE_KEY,
   RECORDS_KEY,
@@ -97,6 +99,8 @@ export default function SudokuGame() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [items, setItems] = useState<ItemCounts>(() => getItemsForBattleMode('normal'));
   const [locale, setLocale] = useState<Locale>('ko');
+  const [theme, setTheme] = useState<ThemeId>('classic');
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [gameMode, setGameMode] = useState<GameMode>('vs_ai');
   const [aiRival, setAiRival] = useState<AiRivalState>(() => createAiRival(puzzle.puzzle));
   const [hintPreview, setHintPreview] = useState<{ row: number; col: number; value: number } | null>(null);
@@ -716,9 +720,35 @@ export default function SudokuGame() {
     setMessage(locale === 'ko' ? '방에서 퇴장했습니다.' : 'Left the room.');
   }
 
+  function handleSelectTheme(nextTheme: ThemeId) {
+    setTheme(nextTheme);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      document.documentElement.setAttribute('data-theme', nextTheme);
+    } catch {
+      // ignore
+    }
+    const cfg = getThemeConfig(nextTheme);
+    flashToast(
+      locale === 'ko'
+        ? `${cfg.icon} [${cfg.nameKo}] 테마가 적용되었습니다!`
+        : `${cfg.icon} Applied [${cfg.nameEn}] theme!`
+    );
+  }
+
   // Hydration & Storage
   useEffect(() => {
     setHydrated(true);
+    try {
+      const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemeId | null;
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -1377,7 +1407,7 @@ export default function SudokuGame() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} data-theme={theme}>
       {/* Tab Navigation: Play vs Records */}
       <div className={styles.tabNav} role="tablist">
         <button
@@ -1409,8 +1439,10 @@ export default function SudokuGame() {
                 soundEnabled={soundEnabled}
                 locale={locale}
                 isOnline={isOnline}
+                currentTheme={theme}
                 onToggleSound={() => setSoundEnabled((cur) => !cur)}
                 onToggleLocale={() => setLocale((cur) => (cur === 'ko' ? 'en' : 'ko'))}
+                onOpenThemeSelector={() => setIsThemeSelectorOpen(true)}
               />
 
               {/* Status Message */}
@@ -1590,6 +1622,15 @@ export default function SudokuGame() {
           resetGame(difficulty);
         }}
         onShare={() => void handleShare()}
+      />
+
+      {/* Theme Studio Modal */}
+      <ThemeSelector
+        isOpen={isThemeSelectorOpen}
+        currentTheme={theme}
+        locale={locale}
+        onSelectTheme={handleSelectTheme}
+        onClose={() => setIsThemeSelectorOpen(false)}
       />
     </div>
   );
