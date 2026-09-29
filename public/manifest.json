@@ -1,0 +1,20 @@
+{
+  "name": "배틀 스도쿠 | Battle Sudoku",
+  "short_name": "배틀스도쿠",
+  "description": "실시간 1v1 대결 및 비행기/여행 중 오프라인 솔로 플레이 완벽 지원 두뇌 퍼즐 게임",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0a0c10",
+  "theme_color": "#0a0c10",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "puzzle"]
+}

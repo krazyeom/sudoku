@@ -10,6 +10,7 @@ interface BattlePanelProps {
   roomInput: string;
   battleMode: BattleMode;
   locale: Locale;
+  isOnline?: boolean;
   onRoomInputChange: (val: string) => void;
   onBattleModeChange: (mode: BattleMode) => void;
   onCreateRoom: () => void;
@@ -68,6 +69,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   roomInput,
   battleMode,
   locale,
+  isOnline = true,
   onRoomInputChange,
   onBattleModeChange,
   onCreateRoom,
@@ -224,6 +226,32 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             </div>
           )}
         </>
+      ) : !isOnline ? (
+        /* Offline Notice in Battle Panel */
+        <div
+          style={{
+            padding: '14px',
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            fontSize: '0.82rem',
+            color: '#fbbf24',
+            lineHeight: 1.45,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+            <span>✈️</span>
+            <span>{locale === 'ko' ? '오프라인(비행기) 모드 실행 중' : 'Offline (Airplane) Mode Active'}</span>
+          </div>
+          <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.78rem' }}>
+            {locale === 'ko'
+              ? '현재 네트워크에 연결되어 있지 않습니다. 1v1 온라인 대결을 제외한 모든 솔로 퍼즐, 메모, 힌트, 통계 기능은 오프라인에서도 완전하게 동작합니다.'
+              : 'You are currently offline. All solo puzzles, notes, hints, and local stats work 100% without internet.'}
+          </p>
+        </div>
       ) : (
         /* Create or Join Room UI */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

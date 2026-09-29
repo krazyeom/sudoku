@@ -9,6 +9,7 @@ interface HeaderStatusProps {
   noteMode: boolean;
   soundEnabled: boolean;
   locale: Locale;
+  isOnline?: boolean;
   onToggleSound: () => void;
   onToggleLocale: () => void;
 }
@@ -19,11 +20,37 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   noteMode,
   soundEnabled,
   locale,
+  isOnline = true,
   onToggleSound,
   onToggleLocale,
 }) => {
   return (
     <div className={styles.hudGrid}>
+      {!isOnline && (
+        <div
+          style={{
+            gridColumn: '1 / -1',
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            color: '#fbbf24',
+            fontSize: '0.78rem',
+            padding: '6px 12px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontWeight: 600,
+          }}
+        >
+          <span>✈️</span>
+          <span>
+            {locale === 'ko'
+              ? '오프라인 (비행기 모드) — 인터넷 연결 없이도 모든 퍼즐 정상 작동'
+              : 'Offline (Airplane Mode) — All puzzles playable without internet'}
+          </span>
+        </div>
+      )}
       {/* Timer */}
       <div className={styles.hudCard}>
         <div className={styles.hudLabel}>

@@ -103,6 +103,7 @@ export default function SudokuGame() {
   const [battleToast, setBattleToast] = useState<BattleToast | null>(null);
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
   const [mistakeCooldownUntil, setMistakeCooldownUntil] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
 
   const sharedRoomPollRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -114,6 +115,37 @@ export default function SudokuGame() {
   const comboCountRef = useRef<number>(0);
   const lastCorrectMoveTimeRef = useRef<number>(0);
   const consecutiveMistakesRef = useRef<number>(0);
+
+  // Service Worker Registration & Online/Offline Network Listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      flashToast(locale === 'ko' ? '🌐 네트워크가 다시 연결되었습니다.' : '🌐 Network reconnected.');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      flashToast(
+        locale === 'ko'
+          ? '✈️ 오프라인(비행기) 모드 감지! 네트워크 없이 솔로 플레이가 가능합니다.'
+          : '✈️ Offline mode active! Playable without internet.'
+      );
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [locale]);
 
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
@@ -160,7 +192,12 @@ export default function SudokuGame() {
 
     if (isAttacker) {
       if (soundEnabled) {
-        void soundEffects.playUnitComplete();
+        const hasBox = attack.units?.some((u) => u.type === 'box');
+        if (hasBox) {
+          void soundEffects.playBoxClear();
+        } else if (attack.units && attack.units.length > 0) {
+          void soundEffects.playLineClear();
+        }
         void soundEffects.playAttackLaunch();
       }
       setBattleToast({
@@ -259,7 +296,12 @@ export default function SudokuGame() {
 
     if (completedList.length > 0) {
       if (soundEnabled) {
-        void soundEffects.playUnitComplete();
+        const hasBox = completedList.some((it) => it.includes('3x3') || it.includes('Box'));
+        if (hasBox) {
+          void soundEffects.playBoxClear();
+        } else {
+          void soundEffects.playLineClear();
+        }
       }
       setBattleToast({
         id: `unit-${Date.now()}`,
@@ -512,6 +554,14 @@ export default function SudokuGame() {
     seedBattleMode: BattleMode = battleMode
   ) {
     if (typeof window === 'undefined') return;
+    if (!isOnline) {
+      flashToast(
+        locale === 'ko'
+          ? '✈️ 오프라인(비행기) 모드입니다. 온라인 방 대신 솔로 퍼즐을 플레이할 수 있습니다.'
+          : '✈️ Offline mode active. Solo puzzles are available.'
+      );
+      return;
+    }
     stopSharedRoomPolling();
     closeSharedWebSocket();
 
@@ -746,7 +796,7 @@ export default function SudokuGame() {
       if (sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId) {
         void soundEffects.playDefeat();
       } else {
-        void soundEffects.playCompletion();
+        void soundEffects.playVictory();
       }
     }
 
@@ -868,7 +918,7 @@ export default function SudokuGame() {
           timestamp: Date.now(),
         });
       } else {
-        if (soundEnabled) void soundEffects.playInput(value);
+        if (soundEnabled) void soundEffects.playCorrect();
       }
     } else {
       // Wrong answer
@@ -877,16 +927,20 @@ export default function SudokuGame() {
       consecutiveMistakesRef.current += 1;
       const mistakeCount = consecutiveMistakesRef.current;
 
+      if (soundEnabled && hadCombo) {
+        void soundEffects.playComboBreak();
+      }
+
       if (isHardOrBattle) {
         if (mistakeCount === 1) {
-          if (soundEnabled) void soundEffects.playMistake(1);
+          if (soundEnabled && !hadCombo) void soundEffects.playMistake(1);
           flashToast(
             hadCombo
               ? (locale === 'ko' ? '❌ 콤보 중단! (오답 입력)' : '❌ Combo broken! (Wrong answer)')
               : (locale === 'ko' ? '⚠️ 오답입니다! 연속 오답 시 페널티가 발생합니다.' : '⚠️ Incorrect! Consecutive errors trigger penalties.')
           );
         } else if (mistakeCount === 2) {
-          if (soundEnabled) void soundEffects.playMistake(2);
+          if (soundEnabled) void soundEffects.playConsecutiveMistake(2);
           const cooldownUntil = Date.now() + 1200;
           setMistakeCooldownUntil(cooldownUntil);
           flashToast(
@@ -895,7 +949,7 @@ export default function SudokuGame() {
               : '⛔ 2 Consecutive errors! 1.2s input cooldown.'
           );
         } else {
-          if (soundEnabled) void soundEffects.playMistake(3);
+          if (soundEnabled) void soundEffects.playConsecutiveMistake(3);
           const cooldownUntil = Date.now() + 2500;
           setMistakeCooldownUntil(cooldownUntil);
           setActiveDebuff({
@@ -910,7 +964,7 @@ export default function SudokuGame() {
           );
         }
       } else {
-        if (soundEnabled) void soundEffects.playInput(value);
+        if (soundEnabled && !hadCombo) void soundEffects.playMistake(1);
       }
     }
 
@@ -1103,7 +1157,7 @@ export default function SudokuGame() {
     setItems((cur) => ({ ...cur, autoFill: Math.max(0, cur.autoFill - 1) }));
     setChecks([]);
 
-    if (soundEnabled) void soundEffects.playInput(val);
+    if (soundEnabled) void soundEffects.playCorrect();
 
     if (boardMatchesSolution(nextBoard, puzzle.solution)) {
       setSolved(true);
@@ -1257,6 +1311,7 @@ export default function SudokuGame() {
                 noteMode={noteMode}
                 soundEnabled={soundEnabled}
                 locale={locale}
+                isOnline={isOnline}
                 onToggleSound={() => setSoundEnabled((cur) => !cur)}
                 onToggleLocale={() => setLocale((cur) => (cur === 'ko' ? 'en' : 'ko'))}
               />
@@ -1290,6 +1345,7 @@ export default function SudokuGame() {
                 roomInput={roomInput}
                 battleMode={battleMode}
                 locale={locale}
+                isOnline={isOnline}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
                 onCreateRoom={() => {
