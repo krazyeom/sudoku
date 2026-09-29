@@ -288,6 +288,108 @@ class SoundEffects {
       // ignore
     }
   }
+
+  /**
+   * Played when hitting consecutive correct answers in quick succession (Combo).
+   */
+  async playCombo(combo: number) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const baseFreq = 587.33; // D5
+      const noteCount = Math.min(combo, 4);
+
+      for (let i = 0; i < noteCount; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = combo >= 4 ? 'sawtooth' : 'triangle';
+        const freq = baseFreq * Math.pow(1.2, i);
+        osc.frequency.setValueAtTime(freq, now + i * 0.05);
+
+        gain.gain.setValueAtTime(0.001, now + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.05 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.16);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.05);
+        osc.stop(now + i * 0.05 + 0.18);
+      }
+
+      window.setTimeout(() => void ctx.close(), 500);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played on incorrect entry or consecutive mistakes.
+   */
+  async playMistake(level: number = 1) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      const baseFreq = level > 1 ? 110 : 140;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.linearRampToValueAtTime(baseFreq * 0.75, now + 0.15);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+
+      window.setTimeout(() => void ctx.close(), 300);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played on duel defeat.
+   */
+  async playDefeat() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+      const notes = [392.0, 369.99, 329.63, 293.66]; // G4, F#4, E4, D4 descending
+
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.18);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.1, now + idx * 0.18 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.18 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.18);
+        osc.stop(now + idx * 0.18 + 0.38);
+      });
+
+      window.setTimeout(() => void ctx.close(), 1200);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export const soundEffects = new SoundEffects();

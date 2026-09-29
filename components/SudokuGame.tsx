@@ -102,6 +102,7 @@ export default function SudokuGame() {
   const [activeDebuff, setActiveDebuff] = useState<ActiveDebuff>(null);
   const [battleToast, setBattleToast] = useState<BattleToast | null>(null);
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
+  const [mistakeCooldownUntil, setMistakeCooldownUntil] = useState<number>(0);
 
   const sharedRoomPollRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -110,6 +111,9 @@ export default function SudokuGame() {
   const copyToastTimerRef = useRef<number | null>(null);
   const lastProcessedAttackTimestampRef = useRef<number>(0);
   const localCompletedUnitsRef = useRef<Set<string>>(new Set());
+  const comboCountRef = useRef<number>(0);
+  const lastCorrectMoveTimeRef = useRef<number>(0);
+  const consecutiveMistakesRef = useRef<number>(0);
 
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
@@ -390,8 +394,28 @@ export default function SudokuGame() {
       );
     } else if (snapshot.phase === 'lobby') {
       setMessage(locale === 'ko' ? '상대방의 참가를 기다리고 있습니다.' : 'Waiting for opponent to join.');
-    } else if (snapshot.solved) {
-      setMessage(locale === 'ko' ? '퍼즐이 완료되었습니다.' : 'Puzzle is complete.');
+    } else if (snapshot.phase === 'playing') {
+      if (snapshot.solved) {
+        const isWinner = snapshot.completedBy === viewerId;
+        const role = snapshot.completedByRole;
+        const roleNameKo = role === 'host' ? '방장' : role === 'guest' ? '도전자' : '상대방';
+        const roleParticleKo = role === 'host' ? '이' : '가';
+        setMessage(
+          locale === 'ko'
+            ? isWinner
+              ? '🏆 승리! 상대를 제치고 먼저 퍼즐을 풀었습니다!'
+              : `💀 패배… ${roleNameKo}${roleParticleKo} 먼저 퍼즐을 완료했습니다.`
+            : isWinner
+              ? '🏆 Victory! You solved the puzzle first!'
+              : `💀 Defeated… Opponent solved it first.`
+        );
+      } else {
+        setMessage(
+          locale === 'ko'
+            ? '⚡ 대결이 시작되었습니다! 상대방보다 먼저 퍼즐을 완성하세요!'
+            : '⚡ Duel has begun! Complete the puzzle before your opponent!'
+        );
+      }
     }
   }
 
@@ -677,24 +701,53 @@ export default function SudokuGame() {
     return () => window.clearInterval(interval);
   }, [sharedMatchIsCountdown]);
 
+  // Sync match countdown and live duel start status messages
+  useEffect(() => {
+    if (sharedMatchIsCountdown) {
+      const sec = sharedMatchCountDownSeconds ?? 5;
+      setMessage(
+        locale === 'ko'
+          ? `상대방이 연결되었습니다. ${sec}초 후 시작합니다!`
+          : `Opponent joined. Starting in ${sec} seconds!`
+      );
+    } else if (sharedMatchIsPlaying && !solved) {
+      setMessage(
+        locale === 'ko'
+          ? '⚡ 대결이 시작되었습니다! 상대방보다 먼저 퍼즐을 완성하세요!'
+          : '⚡ Duel has begun! Complete the puzzle before your opponent!'
+      );
+    }
+  }, [sharedMatchIsCountdown, sharedMatchCountDownSeconds, sharedMatchIsPlaying, solved, locale]);
+
   // Solved event
   useEffect(() => {
     if (!solved) return;
     setTimerRunning(false);
     setShowCompleteModal(true);
-    setConfettiPieces(
-      Array.from({ length: 72 }, (_, index) => ({
-        left: Math.random() * 100,
-        delay: Math.random() * 0.9,
-        duration: 2.2 + Math.random() * 1.9,
-        size: 6 + Math.random() * 12,
-        hue: [42, 112, 188, 264, 330, 16][index % 6],
-        rotation: Math.random() * 360,
-      }))
-    );
+
+    const isViewerWinner = !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId;
+
+    if (isViewerWinner) {
+      setConfettiPieces(
+        Array.from({ length: 72 }, (_, index) => ({
+          left: Math.random() * 100,
+          delay: Math.random() * 0.9,
+          duration: 2.2 + Math.random() * 1.9,
+          size: 6 + Math.random() * 12,
+          hue: [42, 112, 188, 264, 330, 16][index % 6],
+          rotation: Math.random() * 360,
+        }))
+      );
+    } else {
+      setConfettiPieces([]);
+    }
 
     if (soundEnabled) {
-      void soundEffects.playCompletion();
+      if (sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId) {
+        void soundEffects.playDefeat();
+      } else {
+        void soundEffects.playCompletion();
+      }
     }
 
     if (!sharedRoom && !completionSavedRef.current) {
@@ -730,6 +783,15 @@ export default function SudokuGame() {
   function updateCell(value: number) {
     if (sharedMatchGateActive) {
       setMessage(locale === 'ko' ? '대결이 시작될 때까지 기다려 주세요.' : 'Please wait for the match to start.');
+      return;
+    }
+    if (Date.now() < mistakeCooldownUntil) {
+      const remainSec = Math.ceil((mistakeCooldownUntil - Date.now()) / 1000);
+      flashToast(
+        locale === 'ko'
+          ? `⚠️ 연속 오답 페널티 적용 중! (${remainSec}초 후 입력 가능)`
+          : `⚠️ Mistake cooldown active! (${remainSec}s remaining)`
+      );
       return;
     }
     if (activeDebuff?.type === 'freeze') {
@@ -775,7 +837,82 @@ export default function SudokuGame() {
     setChecks([]);
     setHintPreview(null);
 
-    if (soundEnabled) void soundEffects.playInput(value);
+    const isCorrect = value === puzzle.solution[row][col];
+    const isHardOrBattle = difficulty === 'hard' || battleMode === 'hard' || battleMode === 'normal';
+    let currentCombo = 0;
+
+    if (isCorrect) {
+      consecutiveMistakesRef.current = 0;
+      const now = Date.now();
+      const timeSinceLast = now - lastCorrectMoveTimeRef.current;
+      lastCorrectMoveTimeRef.current = now;
+
+      // Speed combo: if correct answer entered within 4 seconds of previous correct move
+      if (timeSinceLast <= 4000 && comboCountRef.current > 0) {
+        comboCountRef.current += 1;
+      } else {
+        comboCountRef.current = 1;
+      }
+      currentCombo = comboCountRef.current;
+
+      if (currentCombo >= 2) {
+        if (soundEnabled) void soundEffects.playCombo(currentCombo);
+        setBattleToast({
+          id: `combo-${Date.now()}`,
+          type: 'combo',
+          title: locale === 'ko' ? `⚡ ${currentCombo}연속 스피드 콤보!` : `⚡ ${currentCombo}x Speed Combo!`,
+          subtitle:
+            currentCombo >= 3
+              ? (locale === 'ko' ? '초고속 연타! 상대방에게 기습 방해 공격을 발사합니다!' : 'Super streak! Blitz attack launched at opponent!')
+              : (locale === 'ko' ? '빠른 정답 행진! 기세를 이어가세요!' : 'Fast streak! Keep up the momentum!'),
+          timestamp: Date.now(),
+        });
+      } else {
+        if (soundEnabled) void soundEffects.playInput(value);
+      }
+    } else {
+      // Wrong answer
+      const hadCombo = comboCountRef.current >= 2;
+      comboCountRef.current = 0;
+      consecutiveMistakesRef.current += 1;
+      const mistakeCount = consecutiveMistakesRef.current;
+
+      if (isHardOrBattle) {
+        if (mistakeCount === 1) {
+          if (soundEnabled) void soundEffects.playMistake(1);
+          flashToast(
+            hadCombo
+              ? (locale === 'ko' ? '❌ 콤보 중단! (오답 입력)' : '❌ Combo broken! (Wrong answer)')
+              : (locale === 'ko' ? '⚠️ 오답입니다! 연속 오답 시 페널티가 발생합니다.' : '⚠️ Incorrect! Consecutive errors trigger penalties.')
+          );
+        } else if (mistakeCount === 2) {
+          if (soundEnabled) void soundEffects.playMistake(2);
+          const cooldownUntil = Date.now() + 1200;
+          setMistakeCooldownUntil(cooldownUntil);
+          flashToast(
+            locale === 'ko'
+              ? '⛔ 2회 연속 오답 페널티! 1.2초간 입력이 정지됩니다.'
+              : '⛔ 2 Consecutive errors! 1.2s input cooldown.'
+          );
+        } else {
+          if (soundEnabled) void soundEffects.playMistake(3);
+          const cooldownUntil = Date.now() + 2500;
+          setMistakeCooldownUntil(cooldownUntil);
+          setActiveDebuff({
+            type: 'mist',
+            endsAt: cooldownUntil,
+            label: locale === 'ko' ? '오답 누적 시야 안개' : 'Mistake Fog Penalty',
+          });
+          flashToast(
+            locale === 'ko'
+              ? '💥 3회 연속 오답! 시야 안개 + 2.5초간 입력 잠금!'
+              : '💥 3 Consecutive errors! Mist fog + 2.5s input lock!'
+          );
+        }
+      } else {
+        if (soundEnabled) void soundEffects.playInput(value);
+      }
+    }
 
     if (sharedRoom) {
       void sendSharedMessage({
@@ -785,6 +922,7 @@ export default function SudokuGame() {
         row,
         col,
         value,
+        combo: currentCombo,
       }).then((payload) => {
         if (payload?.event?.attack) {
           handleBattleAttack(payload.event.attack, sharedRoom.participantId);
@@ -877,7 +1015,10 @@ export default function SudokuGame() {
     setConfettiPieces([]);
     setCompletionSummary(null);
     setSharedCompletionSummary(null);
-    completionSavedRef.current = false;
+    comboCountRef.current = 0;
+    lastCorrectMoveTimeRef.current = 0;
+    consecutiveMistakesRef.current = 0;
+    setMistakeCooldownUntil(0);
     setNoteMode(false);
     setItems({ hint: 3, autoFill: 1 });
     setHintPreview(null);
@@ -1248,8 +1389,9 @@ export default function SudokuGame() {
           <SudokuKeypad
             board={board}
             noteMode={noteMode}
-            disabled={sharedMatchGateActive || !selected || solved || activeDebuff?.type === 'freeze'}
+            disabled={sharedMatchGateActive || !selected || solved || activeDebuff?.type === 'freeze' || Date.now() < mistakeCooldownUntil}
             scrambleActive={activeDebuff?.type === 'scramble'}
+            hideRemainingCounts={difficulty === 'hard' || battleMode === 'hard'}
             locale={locale}
             onNumberClick={updateCell}
             onClearClick={clearCell}
@@ -1270,6 +1412,8 @@ export default function SudokuGame() {
         sharedCompletionSummary={sharedCompletionSummary}
         confettiPieces={confettiPieces}
         locale={locale}
+        isWinner={!sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId}
+        winnerRole={sharedCompletionSummary?.completedByRole ?? null}
         onClose={() => setShowCompleteModal(false)}
         onNewGame={() => {
           setShowCompleteModal(false);

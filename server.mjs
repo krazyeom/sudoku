@@ -184,7 +184,15 @@ const server = http.createServer(async (req, res) => {
             row: message.row,
             col: message.col,
             value: message.value,
+            combo: typeof message.combo === 'number' ? message.combo : 0,
           });
+          if (event.attack) {
+            broadcast(room.roomId, {
+              type: 'battle_attack',
+              attack: event.attack,
+            });
+          }
+          syncRoom(room);
           sendJson(res, 200, {
             type: 'room_event',
             event,
@@ -326,6 +334,7 @@ wss.on('connection', (socket, request) => {
           row: message.row,
           col: message.col,
           value: message.value,
+          combo: typeof message.combo === 'number' ? message.combo : 0,
         });
         if (event.attack) {
           broadcast(room.roomId, {

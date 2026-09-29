@@ -240,3 +240,38 @@ test('setBattleMode correctly updates room state and snapshot', () => {
   setBattleMode(room, 'off');
   assert.equal(room.battleMode, 'off');
 });
+
+test('combo of 3 or more generates a blitz attack in battle mode', () => {
+  const customPuzzle = solution.map((r) => r.slice());
+  customPuzzle[4][4] = null;
+  customPuzzle[4][5] = null;
+  customPuzzle[5][4] = null;
+  const room = createRoomState({
+    roomId: 'room-combo-test',
+    difficulty: 'medium',
+    puzzle: customPuzzle,
+    solution,
+    hostId: 'host-token',
+    battleMode: 'normal',
+  });
+  registerParticipant(room, 'host-token');
+  registerParticipant(room, 'guest-token');
+
+  room.phase = 'playing';
+  room.startedAt = new Date().toISOString();
+  room.countdownEndsAt = room.startedAt;
+
+  // Move with combo 3
+  const moveResult = applyRoomMove(room, 'host-token', {
+    row: 4,
+    col: 4,
+    value: solution[4][4],
+    combo: 3,
+  });
+
+  assert.ok(moveResult.attack);
+  assert.equal(moveResult.attack.attackerId, 'host-token');
+  assert.equal(moveResult.attack.debuffType, 'mist');
+  assert.ok(moveResult.attack.labelKo.includes('3연속'));
+});
+

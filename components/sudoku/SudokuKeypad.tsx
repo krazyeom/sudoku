@@ -10,6 +10,7 @@ interface SudokuKeypadProps {
   disabled: boolean;
   locale: Locale;
   scrambleActive?: boolean;
+  hideRemainingCounts?: boolean;
   onNumberClick: (num: number) => void;
   onClearClick: () => void;
   onToggleNoteMode: () => void;
@@ -23,6 +24,7 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
   disabled,
   locale,
   scrambleActive = false,
+  hideRemainingCounts = false,
   onNumberClick,
   onClearClick,
   onToggleNoteMode,
@@ -48,7 +50,7 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
       <div className={styles.keypadGrid}>
         {keypadNumbers.map((number) => {
           const remaining = remainingCounts[number] ?? 0;
-          const isCompleted = remaining <= 0;
+          const isCompleted = !hideRemainingCounts && remaining <= 0;
 
           return (
             <button
@@ -61,9 +63,11 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
               disabled={disabled}
             >
               <span>{number}</span>
-              <span className={styles.keyRemainingBadge}>
-                {isCompleted ? '✓' : remaining}
-              </span>
+              {!hideRemainingCounts && (
+                <span className={styles.keyRemainingBadge}>
+                  {isCompleted ? '✓' : remaining}
+                </span>
+              )}
             </button>
           );
         })}

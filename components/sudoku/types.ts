@@ -9,7 +9,7 @@ import type {
   CompletedUnit,
 } from '@/lib/shared-room';
 
-export type { BattleMode, DebuffType, RoomAttack, CompletedUnit };
+export type { BattleMode, DebuffType, RoomAttack, CompletedUnit, RoomRole };
 
 export type Position = { row: number; col: number } | null;
 
@@ -53,7 +53,7 @@ export type ActiveDebuff = {
 
 export type BattleToast = {
   id: string;
-  type: 'attack_launched' | 'attack_received' | 'line_cleared';
+  type: 'attack_launched' | 'attack_received' | 'line_cleared' | 'combo';
   title: string;
   subtitle: string;
   debuffType?: DebuffType;
