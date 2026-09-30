@@ -69,21 +69,33 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 12px',
+          height: '52px',
+          minHeight: '52px',
+          overflow: 'hidden',
         }}
         aria-label="Color theme studio"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '1.15rem' }}>{themeConfig.icon}</span>
-          <div style={{ textAlign: 'left' }}>
-            <div className={styles.hudLabel} style={{ marginBottom: '1px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+          <span style={{ fontSize: '1.15rem', flexShrink: 0 }}>{themeConfig.icon}</span>
+          <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
+            <div className={styles.hudLabel} style={{ marginBottom: '1px', whiteSpace: 'nowrap' }}>
               {locale === 'ko' ? '테마 스튜디오' : 'Theme Studio'}
             </div>
-            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: themeConfig.accentColor }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                color: themeConfig.accentColor,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {locale === 'ko' ? themeConfig.nameKo : themeConfig.nameEn}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span
             style={{
               width: '10px',
@@ -102,7 +114,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
               display: 'inline-block',
             }}
           />
-          <span style={{ fontSize: '0.74rem', color: '#94a3b8', marginLeft: '4px' }}>
+          <span style={{ fontSize: '0.74rem', color: '#94a3b8', marginLeft: '4px', whiteSpace: 'nowrap' }}>
             {locale === 'ko' ? '변경' : 'Change'} ❯
           </span>
         </div>

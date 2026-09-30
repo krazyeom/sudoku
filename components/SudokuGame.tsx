@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './sudoku/sudoku.module.css';
 import {
   Difficulty,
@@ -85,7 +85,19 @@ export default function SudokuGame() {
   const [board, setBoard] = useState<Grid>(() => cloneGrid(puzzle.puzzle));
   const [notes, setNotes] = useState<NoteGrid>(() => createEmptyNotesGrid());
   const [selected, setSelected] = useState<Position>(null);
-  const [message, setMessage] = useState('빈 칸을 클릭하거나 숫자를 입력해 게임을 시작하세요.');
+  const [messageState, setMessageState] = useState<{ ko: string; en: string }>({
+    ko: '빈 칸을 클릭하거나 숫자를 입력해 게임을 시작하세요.',
+    en: 'Click an empty cell or enter numbers to begin.',
+  });
+
+  const setMessage = useCallback((msg: string | { ko: string; en: string }) => {
+    if (typeof msg === 'string') {
+      setMessageState({ ko: msg, en: msg });
+    } else {
+      setMessageState(msg);
+    }
+  }, []);
+
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [checks, setChecks] = useState<{ row: number; col: number }[]>([]);
   const [solved, setSolved] = useState(false);
@@ -99,6 +111,7 @@ export default function SudokuGame() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [items, setItems] = useState<ItemCounts>(() => getItemsForBattleMode('normal'));
   const [locale, setLocale] = useState<Locale>('ko');
+  const message = messageState[locale] || messageState.ko;
   const [theme, setTheme] = useState<ThemeId>('classic');
   const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [gameMode, setGameMode] = useState<GameMode>('vs_ai');
@@ -1642,7 +1655,7 @@ export default function SudokuGame() {
                   style={{ cursor: 'pointer' }}
                   title="Lucky Click!"
                 />
-                <span>{message}</span>
+                <span className={styles.statusText}>{message}</span>
               </div>
 
               {/* Game Action Controls */}
@@ -1766,6 +1779,7 @@ export default function SudokuGame() {
             hintPreview={hintPreview}
             difficulty={difficulty}
             locale={locale}
+            gameMode={gameMode}
             sharedMatchGateActive={sharedMatchGateActive}
             sharedMatchIsCountdown={sharedMatchIsCountdown}
             sharedMatchCountDownSeconds={sharedMatchCountDownSeconds}

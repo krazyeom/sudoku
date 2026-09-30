@@ -114,25 +114,22 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'solo' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('solo')}
-            style={{ padding: '8px 4px', fontSize: '0.78rem' }}
           >
-            <span>🎮 {locale === 'ko' ? '온리 싱글' : 'Solo'}</span>
+            <span>🎮 {locale === 'ko' ? '싱글' : 'Solo'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'vs_ai' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('vs_ai')}
-            style={{ padding: '8px 4px', fontSize: '0.78rem' }}
           >
-            <span>🤖 {locale === 'ko' ? 'vs 컴퓨터' : 'vs AI'}</span>
+            <span>🤖 {locale === 'ko' ? 'vs AI' : 'vs AI'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'online' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('online')}
-            style={{ padding: '8px 4px', fontSize: '0.78rem' }}
           >
-            <span>⚔️ {locale === 'ko' ? '온라인 1v1' : 'Online'}</span>
+            <span>⚔️ {locale === 'ko' ? '1v1 배틀' : '1v1 Battle'}</span>
           </button>
         </div>
       </div>
@@ -149,16 +146,19 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             borderRadius: '6px',
             fontSize: '0.8rem',
             color: '#cbd5e1',
-            lineHeight: 1.5,
+            minHeight: '74px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
         >
           <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '4px' }}>
             🧘 {locale === 'ko' ? '온리 싱글 퍼즐 모드' : 'Classic Solo Mode'}
           </div>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.75rem' }}>
+          <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>
             {locale === 'ko'
-              ? '방해 기믹 없이 차분하게 두뇌 트레이닝과 기록 단축에 집중하는 모드입니다. 비행기나 여행 중에도 오프라인으로 자유롭게 즐기실 수 있습니다.'
-              : 'Focus on pure Sudoku puzzle solving and speedrunning without attacks. Fully playable offline.'}
+              ? '방해 기믹 없이 차분하게 두뇌 트레이닝과 기록 단축에 집중하는 모드입니다.'
+              : 'Focus on pure Sudoku puzzle solving and speedrunning without attacks.'}
           </p>
 
           <div
