@@ -1048,7 +1048,6 @@ export default function SudokuGame() {
   useEffect(() => {
     if (!solved) return;
     setTimerRunning(false);
-    setShowCompleteModal(true);
 
     const isViewerWinner =
       gameMode === 'vs_ai'
@@ -1056,6 +1055,7 @@ export default function SudokuGame() {
         : !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId;
 
     if (isViewerWinner) {
+      setShowCompleteModal(true);
       setConfettiPieces(
         Array.from({ length: 72 }, (_, index) => ({
           left: Math.random() * 100,
@@ -1067,6 +1067,7 @@ export default function SudokuGame() {
         }))
       );
     } else {
+      setShowCompleteModal(false);
       setConfettiPieces([]);
     }
 
@@ -1686,11 +1687,16 @@ export default function SudokuGame() {
                 battleMode={battleMode}
                 locale={locale}
                 isOnline={isOnline}
+                elapsedSeconds={elapsedSeconds}
+                sharedCompletionSummary={sharedCompletionSummary}
+                solved={solved}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
                 onNewGame={() => resetGame(difficulty)}
                 onRestartAiBattle={() => {
                   setAiRival(createAiRival(puzzle.puzzle));
+                  setSharedCompletionSummary(null);
+                  setSolved(false);
                   flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');
                 }}
                 onCreateRoom={() => {
@@ -1780,6 +1786,7 @@ export default function SudokuGame() {
             difficulty={difficulty}
             locale={locale}
             gameMode={gameMode}
+            isAiWinner={gameMode === 'vs_ai' && sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku'}
             sharedMatchGateActive={sharedMatchGateActive}
             sharedMatchIsCountdown={sharedMatchIsCountdown}
             sharedMatchCountDownSeconds={sharedMatchCountDownSeconds}

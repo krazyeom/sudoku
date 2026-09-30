@@ -16,6 +16,7 @@ interface SudokuBoardProps {
   difficulty: Difficulty;
   locale: Locale;
   gameMode?: GameMode;
+  isAiWinner?: boolean;
   sharedMatchGateActive: boolean;
   sharedMatchIsCountdown: boolean;
   sharedMatchCountDownSeconds: number | null;
@@ -36,6 +37,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   difficulty,
   locale,
   gameMode = 'solo',
+  isAiWinner = false,
   sharedMatchGateActive,
   sharedMatchIsCountdown,
   sharedMatchCountDownSeconds,
@@ -111,6 +113,23 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                   : 'Maintain your focus while the debuff is active!'}
               </span>
             </div>
+          </div>
+        ) : isAiWinner ? (
+          <div className={styles.topMessageBoardContent}>
+            <span className={styles.topMessageBoardIcon}>🤖</span>
+            <div className={styles.topMessageBoardTexts}>
+              <strong className={styles.topMessageBoardTitle} style={{ color: '#f43f5e' }}>
+                {locale === 'ko' ? '알파도쿠 AI 승리 (패배)' : 'Alphadoku AI Wins (Defeat)'}
+              </strong>
+              <span className={styles.topMessageBoardSubtitle}>
+                {locale === 'ko'
+                  ? '좌측 하단 패널에서 대결 결과 및 완성도를 확인하세요.'
+                  : 'Check match results in the bottom-left panel.'}
+              </span>
+            </div>
+            <span className={styles.topMessageBoardBadge}>
+              {locale === 'ko' ? '패배' : 'DEFEAT'}
+            </span>
           </div>
         ) : (
           <div className={styles.topMessageBoardContent}>

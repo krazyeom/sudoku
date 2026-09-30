@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './sudoku.module.css';
-import type { BattleMode, BattleSummary, GameMode, Locale, SharedRoomState } from './types';
+import type { BattleMode, BattleSummary, GameMode, Locale, SharedCompletionSummary, SharedRoomState } from './types';
 import type { SharedRoomCellOccupancy } from '@/lib/shared-room';
+import { formatTime } from './share';
 
 interface BattlePanelProps {
   gameMode: GameMode;
@@ -15,6 +16,9 @@ interface BattlePanelProps {
   battleMode: BattleMode;
   locale: Locale;
   isOnline?: boolean;
+  elapsedSeconds?: number;
+  sharedCompletionSummary?: SharedCompletionSummary | null;
+  solved?: boolean;
   onRoomInputChange: (val: string) => void;
   onBattleModeChange: (mode: BattleMode) => void;
   onCreateRoom: () => void;
@@ -80,6 +84,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   battleMode,
   locale,
   isOnline = true,
+  elapsedSeconds = 0,
+  sharedCompletionSummary = null,
+  solved = false,
   onRoomInputChange,
   onBattleModeChange,
   onCreateRoom,
@@ -92,6 +99,19 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
 }) => {
   const currentModeInfo = BATTLE_MODES.find((m) => m.id === battleMode) ?? BATTLE_MODES[1];
   const canChangeMode = !sharedRoom || sharedRoom.role === 'host';
+
+  const isAiWinner =
+    gameMode === 'vs_ai' &&
+    ((sharedCompletionSummary && sharedCompletionSummary.completedBy === 'ai-rival-alphadoku') ||
+      aiProgress >= 100);
+
+  const isPlayerWinner =
+    gameMode === 'vs_ai' &&
+    ((sharedCompletionSummary && sharedCompletionSummary.completedBy !== 'ai-rival-alphadoku') ||
+      playerProgress >= 100 ||
+      (solved && !isAiWinner));
+
+  const isAiMatchFinished = isAiWinner || isPlayerWinner;
 
   return (
     <div className={styles.battleContainer}>
@@ -270,7 +290,176 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               )}
             </div>
 
-            {onRestartAiBattle && (
+            {/* Match Finished: Dedicated Result Card in Left-Bottom */}
+            {isAiWinner && (
+              <div className={styles.aiResultCard}>
+                <div className={styles.aiResultHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>🤖</span>
+                    <div>
+                      <div className={styles.aiResultTitle}>
+                        {locale === 'ko' ? '알파도쿠 AI 승리!' : 'Alphadoku AI Wins!'}
+                      </div>
+                      <div className={styles.aiResultSubtitle}>
+                        {locale === 'ko'
+                          ? 'AI가 먼저 퍼즐을 완성했습니다.'
+                          : 'AI finished the puzzle first.'}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={styles.aiResultBadgeDefeat}>
+                    {locale === 'ko' ? '패배' : 'DEFEAT'}
+                  </span>
+                </div>
+
+                <div className={styles.aiResultStatsGrid}>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '소요 시간' : 'Time'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      ⏱ {formatTime(elapsedSeconds)}
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '내 완성도' : 'My Progress'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      {playerProgress}%
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? 'AI 완성도' : 'AI Progress'}
+                    </span>
+                    <strong className={styles.aiResultStatVal} style={{ color: '#38bdf8' }}>
+                      100%
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '배틀 모드' : 'Battle Mode'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      {currentModeInfo.badge}
+                    </strong>
+                  </div>
+                </div>
+
+                <p style={{ margin: '4px 0 0', fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                  {locale === 'ko'
+                    ? '보드의 정답을 확인하거나, 설욕전을 위해 재대결을 시작해보세요!'
+                    : 'Review the solution or start a rematch to claim victory!'}
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
+                  {onRestartAiBattle && (
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={onRestartAiBattle}
+                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                    >
+                      <span>🔄 {locale === 'ko' ? 'AI와 재대결' : 'Rematch AI'}</span>
+                    </button>
+                  )}
+                  {onNewGame && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={onNewGame}
+                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                    >
+                      <span>🎲 {locale === 'ko' ? '새 퍼즐 대결' : 'New Duel'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isPlayerWinner && (
+              <div className={`${styles.aiResultCard} ${styles.aiResultCardWin}`}>
+                <div className={styles.aiResultHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>🏆</span>
+                    <div>
+                      <div className={styles.aiResultTitle}>
+                        {locale === 'ko' ? '플레이어 승리!' : 'Player Victorious!'}
+                      </div>
+                      <div className={styles.aiResultSubtitle}>
+                        {locale === 'ko'
+                          ? 'AI보다 먼저 퍼즐을 완성했습니다!'
+                          : 'You solved the puzzle before AI!'}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={styles.aiResultBadgeVictory}>
+                    {locale === 'ko' ? '승리' : 'VICTORY'}
+                  </span>
+                </div>
+
+                <div className={styles.aiResultStatsGrid}>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '소요 시간' : 'Time'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      ⏱ {formatTime(elapsedSeconds)}
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '내 완성도' : 'My Progress'}
+                    </span>
+                    <strong className={styles.aiResultStatVal} style={{ color: '#10b981' }}>
+                      100%
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? 'AI 완성도' : 'AI Progress'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      {aiProgress}%
+                    </strong>
+                  </div>
+                  <div className={styles.aiResultStatItem}>
+                    <span className={styles.aiResultStatLabel}>
+                      {locale === 'ko' ? '배틀 모드' : 'Battle Mode'}
+                    </span>
+                    <strong className={styles.aiResultStatVal}>
+                      {currentModeInfo.badge}
+                    </strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                  {onRestartAiBattle && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={onRestartAiBattle}
+                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                    >
+                      <span>🔄 {locale === 'ko' ? 'AI와 재대결' : 'Rematch AI'}</span>
+                    </button>
+                  )}
+                  {onNewGame && (
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={onNewGame}
+                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                    >
+                      <span>🎲 {locale === 'ko' ? '다음 퍼즐 도전' : 'Next Puzzle'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!isAiMatchFinished && onRestartAiBattle && (
               <button
                 type="button"
                 className={styles.btnSecondary}
