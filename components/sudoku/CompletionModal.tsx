@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { formatTime } from './share';
 import { getDifficultyLabel } from './helpers';
+import { TrophyIcon, SwordIcon, PlayIcon, ShareIcon } from './Icons';
 
 interface CompletionModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                 animationDuration: `${piece.duration}s`,
                 width: `${piece.size}px`,
                 height: `${piece.size * 0.5}px`,
-                background: `hsl(${piece.hue} 95% 62%)`,
+                background: `hsl(${piece.hue} 85% 60%)`,
                 transform: `rotate(${piece.rotation}deg)`,
               }}
             />
@@ -75,7 +76,11 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
       {/* Modal Dialog Card */}
       <div className={styles.modalDialog} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalIcon}>
-          {isShared ? (userWon ? '⚔️' : '💀') : '🏆'}
+          {isShared ? (
+            userWon ? <SwordIcon size={42} color="var(--accent-primary, #ffffff)" /> : <span style={{ fontSize: '2.5rem' }}>💀</span>
+          ) : (
+            <TrophyIcon size={42} color="var(--accent-primary, #ffffff)" />
+          )}
         </div>
 
         <h3 className={styles.modalTitle}>
@@ -114,14 +119,14 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
           </div>
           <div className={styles.summaryRow}>
             <span className={styles.summaryLabel}>{locale === 'ko' ? '소요 시간' : 'Time Taken'}</span>
-            <span className={styles.summaryValue} style={{ color: '#38bdf8' }}>
+            <span className={styles.summaryValue} style={{ color: 'var(--accent-primary, #ffffff)' }}>
               {formatTime(elapsed)}
             </span>
           </div>
           {completionSummary && (
             <div className={styles.summaryRow}>
               <span className={styles.summaryLabel}>{locale === 'ko' ? '내 랭킹' : 'Personal Rank'}</span>
-              <span className={styles.summaryValue} style={{ color: '#a855f7' }}>
+              <span className={styles.summaryValue} style={{ color: '#38bdf8' }}>
                 #{completionSummary.rank} / {completionSummary.total}
               </span>
             </div>
@@ -131,11 +136,13 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
         {/* Modal Buttons */}
         <div className={styles.modalActions}>
           <button type="button" className={styles.btnPrimary} onClick={onNewGame}>
-            <span>⚡ {locale === 'ko' ? '새 게임 시작' : 'Play Again'}</span>
+            <PlayIcon size={14} color="currentColor" />
+            <span>{locale === 'ko' ? '새 게임 시작' : 'Play Again'}</span>
           </button>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <button type="button" className={styles.btnSecondary} onClick={onShare}>
-              <span>📤 {locale === 'ko' ? '기록 공유' : 'Share'}</span>
+              <ShareIcon size={14} color="currentColor" />
+              <span>{locale === 'ko' ? '기록 공유' : 'Share'}</span>
             </button>
             <button type="button" className={styles.btnSecondary} onClick={onClose}>
               <span>{locale === 'ko' ? '보드 보기' : 'View Board'}</span>

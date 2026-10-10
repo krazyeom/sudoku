@@ -3,6 +3,15 @@ import styles from './sudoku.module.css';
 import type { BattleMode, BattleSummary, GameMode, Locale, SharedCompletionSummary, SharedRoomState } from './types';
 import type { SharedRoomCellOccupancy } from '@/lib/shared-room';
 import { formatTime } from './share';
+import {
+  SoloIcon,
+  BotIcon,
+  SwordIcon,
+  NetworkIcon,
+  PlaneIcon,
+  TrophyIcon,
+  TimerIcon,
+} from './Icons';
 
 interface BattlePanelProps {
   gameMode: GameMode;
@@ -118,10 +127,10 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
       {/* Game Mode Selector Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong style={{ color: '#f8fafc', fontSize: '0.88rem', letterSpacing: '-0.01em' }}>
-            {locale === 'ko' ? '🕹️ 게임 모드 선택' : '🕹️ Select Game Mode'}
+          <strong style={{ color: 'var(--text-primary, #ffffff)', fontSize: '0.82rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            {locale === 'ko' ? '게임 모드 선택' : 'Select Game Mode'}
           </strong>
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #71717c)' }}>
             {gameMode === 'solo'
               ? locale === 'ko' ? '싱글' : 'Solo'
               : gameMode === 'vs_ai'
@@ -135,47 +144,50 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             className={`${styles.modeBtn} ${gameMode === 'solo' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('solo')}
           >
-            <span>🎮 {locale === 'ko' ? '싱글' : 'Solo'}</span>
+            <SoloIcon size={13} color="currentColor" />
+            <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? '싱글' : 'Solo'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'vs_ai' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('vs_ai')}
           >
-            <span>🤖 {locale === 'ko' ? 'vs AI' : 'vs AI'}</span>
+            <BotIcon size={13} color="currentColor" />
+            <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? 'vs AI' : 'vs AI'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'online' ? styles.modeBtnActive : ''}`}
             onClick={() => onGameModeChange('online')}
           >
-            <span>⚔️ {locale === 'ko' ? '1v1 배틀' : '1v1 Battle'}</span>
+            <SwordIcon size={13} color="currentColor" />
+            <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? '1v1 배틀' : '1v1'}</span>
           </button>
         </div>
       </div>
 
-      <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+      <div style={{ height: '1px', background: 'var(--border-subtle, #242429)', margin: '2px 0' }} />
 
       {/* Solo Mode View */}
       {gameMode === 'solo' && (
         <div
           style={{
-            padding: '14px',
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '6px',
-            fontSize: '0.8rem',
-            color: '#cbd5e1',
-            minHeight: '74px',
+            padding: '12px',
+            background: 'var(--bg-tertiary, #18181c)',
+            border: '1px solid var(--border-subtle, #242429)',
+            borderRadius: 'var(--radius-btn, 6px)',
+            fontSize: '0.78rem',
+            color: 'var(--text-secondary, #a1a1ab)',
+            minHeight: '70px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
           }}
         >
-          <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '4px' }}>
-            🧘 {locale === 'ko' ? '온리 싱글 퍼즐 모드' : 'Classic Solo Mode'}
+          <div style={{ fontWeight: 700, color: 'var(--text-primary, #ffffff)', marginBottom: '3px' }}>
+            {locale === 'ko' ? '온리 싱글 퍼즐 모드' : 'Classic Solo Mode'}
           </div>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>
+          <p style={{ margin: 0, color: 'var(--text-muted, #71717c)', fontSize: '0.72rem', lineHeight: 1.4 }}>
             {locale === 'ko'
               ? '방해 기믹 없이 차분하게 두뇌 트레이닝과 기록 단축에 집중하는 모드입니다.'
               : 'Focus on pure Sudoku puzzle solving and speedrunning without attacks.'}
@@ -185,16 +197,16 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             style={{
               marginTop: '10px',
               padding: '6px 10px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              borderRadius: '4px',
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: 'var(--radius-sm, 4px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              fontSize: '0.74rem',
+              fontSize: '0.72rem',
             }}
           >
-            <span style={{ color: '#94a3b8' }}>{locale === 'ko' ? '기믹 공격' : 'Attacks'}</span>
+            <span style={{ color: 'var(--text-muted, #71717c)' }}>{locale === 'ko' ? '기믹 공격' : 'Attacks'}</span>
             <span style={{ color: '#10b981', fontWeight: 700 }}>
               {locale === 'ko' ? '비활성화 (평화 모드)' : 'Disabled (Peaceful)'}
             </span>
@@ -205,9 +217,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               type="button"
               className={styles.btnSecondary}
               onClick={onNewGame}
-              style={{ marginTop: '10px', width: '100%', padding: '9px 12px' }}
+              style={{ marginTop: '10px', width: '100%', padding: '8px 12px' }}
             >
-              <span>🎲 {locale === 'ko' ? '새 싱글 퍼즐 시작' : 'Start New Solo Puzzle'}</span>
+              <span>{locale === 'ko' ? '새 싱글 퍼즐 시작' : 'Start New Solo Puzzle'}</span>
             </button>
           )}
         </div>
@@ -220,7 +232,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           <div className={styles.battleModeSection}>
             <div className={styles.battleModeHeader}>
               <span className={styles.battleModeTitle}>
-                {locale === 'ko' ? 'AI 배틀 난이도' : 'AI Battle Difficulty'}
+                {locale === 'ko' ? 'AI 배틀 난이도' : 'AI Battle Level'}
               </span>
               <span className={styles.battleModeBadge}>{currentModeInfo.badge}</span>
             </div>
@@ -247,14 +259,14 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           </div>
 
           {/* AI Rival Duel Progress */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div className={styles.battleDuelPills}>
               <span className={styles.playerPillSelf}>
                 {locale === 'ko' ? '나' : 'You'}: {playerProgress}%
               </span>
-              <span style={{ color: '#64748b', fontWeight: 700 }}>VS</span>
+              <span style={{ color: 'var(--text-muted, #71717c)', fontWeight: 700 }}>VS</span>
               <span className={styles.playerPillOther}>
-                🤖 {locale === 'ko' ? '알파도쿠 AI' : 'Alphadoku AI'}: {aiProgress}%
+                {locale === 'ko' ? '알파도쿠 AI' : 'Alphadoku AI'}: {aiProgress}%
               </span>
             </div>
 
@@ -295,7 +307,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               <div className={styles.aiResultCard}>
                 <div className={styles.aiResultHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '1.4rem' }}>🤖</span>
+                    <BotIcon size={18} color="#f43f5e" />
                     <div>
                       <div className={styles.aiResultTitle}>
                         {locale === 'ko' ? '알파도쿠 AI 승리!' : 'Alphadoku AI Wins!'}
@@ -318,7 +330,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                       {locale === 'ko' ? '소요 시간' : 'Time'}
                     </span>
                     <strong className={styles.aiResultStatVal}>
-                      ⏱ {formatTime(elapsedSeconds)}
+                      {formatTime(elapsedSeconds)}
                     </strong>
                   </div>
                   <div className={styles.aiResultStatItem}>
@@ -347,21 +359,15 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   </div>
                 </div>
 
-                <p style={{ margin: '4px 0 0', fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                  {locale === 'ko'
-                    ? '보드의 정답을 확인하거나, 설욕전을 위해 재대결을 시작해보세요!'
-                    : 'Review the solution or start a rematch to claim victory!'}
-                </p>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
                   {onRestartAiBattle && (
                     <button
                       type="button"
                       className={styles.btnPrimary}
                       onClick={onRestartAiBattle}
-                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '0.78rem' }}
                     >
-                      <span>🔄 {locale === 'ko' ? 'AI와 재대결' : 'Rematch AI'}</span>
+                      <span>{locale === 'ko' ? 'AI 재대결' : 'Rematch AI'}</span>
                     </button>
                   )}
                   {onNewGame && (
@@ -369,9 +375,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                       type="button"
                       className={styles.btnSecondary}
                       onClick={onNewGame}
-                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '0.78rem' }}
                     >
-                      <span>🎲 {locale === 'ko' ? '새 퍼즐 대결' : 'New Duel'}</span>
+                      <span>{locale === 'ko' ? '새 퍼즐' : 'New Duel'}</span>
                     </button>
                   )}
                 </div>
@@ -382,7 +388,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               <div className={`${styles.aiResultCard} ${styles.aiResultCardWin}`}>
                 <div className={styles.aiResultHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '1.4rem' }}>🏆</span>
+                    <TrophyIcon size={18} color="#10b981" />
                     <div>
                       <div className={styles.aiResultTitle}>
                         {locale === 'ko' ? '플레이어 승리!' : 'Player Victorious!'}
@@ -405,7 +411,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                       {locale === 'ko' ? '소요 시간' : 'Time'}
                     </span>
                     <strong className={styles.aiResultStatVal}>
-                      ⏱ {formatTime(elapsedSeconds)}
+                      {formatTime(elapsedSeconds)}
                     </strong>
                   </div>
                   <div className={styles.aiResultStatItem}>
@@ -434,15 +440,15 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
                   {onRestartAiBattle && (
                     <button
                       type="button"
                       className={styles.btnSecondary}
                       onClick={onRestartAiBattle}
-                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '0.78rem' }}
                     >
-                      <span>🔄 {locale === 'ko' ? 'AI와 재대결' : 'Rematch AI'}</span>
+                      <span>{locale === 'ko' ? 'AI 재대결' : 'Rematch AI'}</span>
                     </button>
                   )}
                   {onNewGame && (
@@ -450,9 +456,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                       type="button"
                       className={styles.btnPrimary}
                       onClick={onNewGame}
-                      style={{ height: '40px', minHeight: '40px', fontSize: '0.8rem' }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '0.78rem' }}
                     >
-                      <span>🎲 {locale === 'ko' ? '다음 퍼즐 도전' : 'Next Puzzle'}</span>
+                      <span>{locale === 'ko' ? '다음 퍼즐' : 'Next Puzzle'}</span>
                     </button>
                   )}
                 </div>
@@ -464,9 +470,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                 type="button"
                 className={styles.btnSecondary}
                 onClick={onRestartAiBattle}
-                style={{ marginTop: '4px' }}
+                style={{ marginTop: '2px' }}
               >
-                <span>🔄 {locale === 'ko' ? 'AI 대결 재시작' : 'Restart AI Match'}</span>
+                <span>{locale === 'ko' ? 'AI 대결 재시작' : 'Restart AI Match'}</span>
               </button>
             )}
           </div>
@@ -478,8 +484,8 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div className={styles.battleHeader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.1rem' }}>🌐</span>
-              <strong style={{ color: '#f8fafc', fontSize: '0.9rem' }}>
+              <NetworkIcon size={16} color="var(--accent-primary, #ffffff)" />
+              <strong style={{ color: 'var(--text-primary, #ffffff)', fontSize: '0.86rem' }}>
                 {locale === 'ko' ? '온라인 1v1 대결' : 'Online 1v1 Duel'}
               </strong>
             </div>
@@ -494,11 +500,11 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             )}
           </div>
 
-          {/* Battle Mode Level Selector (상 / 중 / 하 / 끄기) */}
+          {/* Battle Mode Level Selector */}
           <div className={styles.battleModeSection}>
             <div className={styles.battleModeHeader}>
               <span className={styles.battleModeTitle}>
-                {locale === 'ko' ? '배틀 모드 강도' : 'Battle Mode Level'}
+                {locale === 'ko' ? '배틀 모드 강도' : 'Battle Level'}
               </span>
               <span className={styles.battleModeBadge}>{currentModeInfo.badge}</span>
             </div>
@@ -532,19 +538,19 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           {sharedRoom ? (
             /* Active Room Details */
             <>
-              <div className={styles.battleControls}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                   <span className={styles.badge} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     #{sharedRoom.roomId}
                   </span>
                   <button
                     type="button"
                     className={styles.btnSecondary}
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
                     onClick={onCopyRoomId}
                     title={locale === 'ko' ? '방 ID 복사' : 'Copy Room ID'}
                   >
-                    📋
+                    ID
                   </button>
                 </div>
 
@@ -552,11 +558,11 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   <button
                     type="button"
                     className={styles.btnSecondary}
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
                     onClick={onCopyInviteLink}
                     title={locale === 'ko' ? '초대 링크 복사' : 'Copy Invite Link'}
                   >
-                    🔗
+                    Link
                   </button>
                   <button
                     type="button"
@@ -572,12 +578,12 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
 
               {/* Duel Progress & Minimap */}
               {battleSummary && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div className={styles.battleDuelPills}>
                     <span className={styles.playerPillSelf}>
                       {locale === 'ko' ? '나' : 'You'}: {battleSummary.selfProgress}%
                     </span>
-                    <span style={{ color: '#64748b' }}>VS</span>
+                    <span style={{ color: 'var(--text-muted, #71717c)' }}>VS</span>
                     <span className={styles.playerPillOther}>
                       {locale === 'ko' ? '상대' : 'Rival'}: {battleSummary.otherProgress}%
                     </span>
@@ -618,40 +624,40 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               )}
             </>
           ) : !isOnline ? (
-            /* Offline Notice in Battle Panel */
+            /* Offline Notice */
             <div
               style={{
-                padding: '14px',
+                padding: '12px',
                 background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
-                borderRadius: '8px',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+                borderRadius: 'var(--radius-btn, 6px)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px',
-                fontSize: '0.82rem',
+                gap: '6px',
+                fontSize: '0.78rem',
                 color: '#fbbf24',
-                lineHeight: 1.45,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-                <span>✈️</span>
-                <span>{locale === 'ko' ? '오프라인(비행기) 모드 실행 중' : 'Offline (Airplane) Mode Active'}</span>
+                <PlaneIcon size={14} color="#fbbf24" />
+                <span>{locale === 'ko' ? '오프라인 모드' : 'Offline Mode'}</span>
               </div>
-              <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.78rem' }}>
+              <p style={{ margin: 0, color: 'var(--text-secondary, #a1a1ab)', fontSize: '0.72rem', lineHeight: 1.4 }}>
                 {locale === 'ko'
-                  ? '현재 네트워크에 연결되어 있지 않습니다. 1v1 온라인 대결을 제외한 온리 싱글 모드 및 vs 컴퓨터 AI 모드는 오프라인에서도 완전하게 동작합니다.'
+                  ? '현재 네트워크에 연결되어 있지 않습니다. 싱글 및 AI 대결 모드는 오프라인에서 완전하게 플레이 가능합니다.'
                   : 'You are currently offline. Solo and vs AI modes work 100% without internet.'}
               </p>
             </div>
           ) : (
             /* Create or Join Room UI */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
                 type="button"
                 className={styles.btnPrimary}
                 onClick={onCreateRoom}
               >
-                <span>⚔️ {locale === 'ko' ? '대결 방 만들기' : 'Create 1v1 Room'}</span>
+                <SwordIcon size={14} color="currentColor" />
+                <span>{locale === 'ko' ? '대결 방 만들기' : 'Create 1v1 Room'}</span>
               </button>
 
               <div className={styles.battleRoomInputRow}>

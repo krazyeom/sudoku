@@ -5,21 +5,33 @@ export default function HomePage() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.logoGroup}>
-          <div className={styles.logoBadge}>
-            <span className={styles.logoSymbol}>⚔️</span>
-            <span className={styles.logoText}>배틀 스도쿠</span>
+        <div className={styles.brandRow}>
+          <div className={styles.brandMark}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" />
+              <line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" />
+              <line x1="15" y1="3" x2="15" y2="21" stroke="currentColor" />
+              <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" />
+              <line x1="3" y1="15" x2="21" y2="15" stroke="currentColor" />
+              <rect x="9.5" y="9.5" width="5" height="5" fill="currentColor" />
+            </svg>
           </div>
-          <span className={styles.kicker}>실시간 1v1 대결 & 방해 기믹</span>
+          <div className={styles.brandTextGroup}>
+            <span className={styles.brandTitle}>SUDOKU DUEL</span>
+            <span className={styles.brandSubtitle}>1v1 Tactical Battle Arena</span>
+          </div>
+          <span className={styles.versionTag}>v1.0</span>
         </div>
-        <div>
+
+        <div className={styles.headerActions}>
           <a
             className={styles.gitHubBtn}
             href="https://github.com/krazyeom/sudoku"
             target="_blank"
             rel="noreferrer"
+            aria-label="GitHub Repository"
           >
-            <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+            <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
               <path d="M8 0C3.58 0 0 3.58 0 8.03c0 3.56 2.29 6.58 5.47 7.65.4.08.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.59 1.23.83.73 1.24 1.89.89 2.35.68.07-.53.28-.89.51-1.1-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.1 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.06-.01 1.91-.01 2.17 0 .21.15.46.55.38A8.03 8.03 0 0 0 16 8.03C16 3.58 12.42 0 8 0Z" />
             </svg>
             <span>GitHub</span>
@@ -30,15 +42,20 @@ export default function HomePage() {
       <SudokuGame />
 
       <footer className={styles.footer}>
-        <span className={styles.footerMeta}>
-          Crafted by{' '}
-          <a href="https://github.com/krazyeom" target="_blank" rel="noreferrer">
-            krazyeom
-          </a>
-        </span>
-        <span className={styles.footerHint}>
-          Hotkeys: Arrows / 1–9 / Backspace / N (Notes) / I (Hint) / H (Auto-fill)
-        </span>
+        <div className={styles.footerLeft}>
+          <span>Crafted by <a href="https://github.com/krazyeom" target="_blank" rel="noreferrer">krazyeom</a></span>
+          <span className={styles.footerSep}>•</span>
+          <span>Zero CLS Engine</span>
+        </div>
+        <div className={styles.footerHotkeys}>
+          <span>Keys:</span>
+          <kbd>1–9</kbd>
+          <kbd>Arrows</kbd>
+          <kbd>Del</kbd>
+          <kbd>N</kbd>
+          <kbd>I</kbd>
+          <kbd>H</kbd>
+        </div>
       </footer>
     </main>
   );

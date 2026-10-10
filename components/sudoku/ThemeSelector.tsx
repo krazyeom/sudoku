@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styles from './sudoku.module.css';
 import { THEME_LIST, type ThemeConfig, type ThemeId } from './theme';
 import type { Locale } from './types';
+import { PaletteIcon } from './Icons';
 
 interface ThemeSelectorProps {
   currentTheme: ThemeId;
@@ -30,18 +31,18 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   return (
     <div className={styles.modalOverlay} onClick={onClose} role="dialog" aria-modal="true">
       <div
-        className={`${styles.modalCard} ${styles.themeModalCard}`}
+        className={`${styles.card} ${styles.themeModalCard}`}
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '640px', width: '92%' }}
       >
         {/* Modal Header */}
         <div className={styles.cardHeader}>
           <div className={styles.headerText}>
-            <h3 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🎨</span>
+            <h3 className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PaletteIcon size={18} color="var(--accent-primary, #ffffff)" />
               <span>{locale === 'ko' ? '컬러 테마 스튜디오' : 'Color Theme Studio'}</span>
             </h3>
-            <p className={styles.subtitle}>
+            <p className={styles.subtitle} style={{ textTransform: 'none', letterSpacing: 'normal' }}>
               {locale === 'ko'
                 ? '계절(크리스마스·여름·가을·봄) 및 자연/우주/바다 테마로 나만의 스도쿠를 꾸며보세요.'
                 : 'Personalize your Sudoku experience with Seasonal, Cosmic, and Nature themes.'}
@@ -73,7 +74,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             onClick={() => setCategoryFilter('Season')}
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
-            🍁 {locale === 'ko' ? '계절 / 시즌' : 'Seasons'}
+            {locale === 'ko' ? '계절 / 시즌' : 'Seasons'}
           </button>
           <button
             type="button"
@@ -81,7 +82,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             onClick={() => setCategoryFilter('Nature/Sci-Fi')}
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
-            🌌 {locale === 'ko' ? '자연 / 우주' : 'Nature & Cosmos'}
+            {locale === 'ko' ? '자연 / 우주' : 'Nature & Cosmos'}
           </button>
         </div>
 
@@ -109,7 +110,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                       {locale === 'ko' ? theme.categoryKo : theme.categoryEn}
                     </span>
                   </div>
-                  {isActive && <span className={styles.themeActiveBadge}>✓ {locale === 'ko' ? '적용중' : 'Active'}</span>}
+                  {isActive && <span className={styles.themeActiveBadge}>{locale === 'ko' ? '적용중' : 'Active'}</span>}
                 </div>
 
                 <p className={styles.themeDesc}>

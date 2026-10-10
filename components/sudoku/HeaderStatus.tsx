@@ -3,6 +3,15 @@ import styles from './sudoku.module.css';
 import type { Locale } from './types';
 import { formatTime } from './share';
 import { getThemeConfig, type ThemeId } from './theme';
+import {
+  TimerIcon,
+  NotesIcon,
+  SoundOnIcon,
+  SoundOffIcon,
+  LangIcon,
+  PaletteIcon,
+  PlaneIcon,
+} from './Icons';
 
 interface HeaderStatusProps {
   elapsedSeconds: number;
@@ -36,12 +45,12 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
         <div
           style={{
             gridColumn: '1 / -1',
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
             color: '#fbbf24',
-            fontSize: '0.78rem',
+            fontSize: '0.76rem',
             padding: '6px 12px',
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-btn, 6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -49,7 +58,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
             fontWeight: 600,
           }}
         >
-          <span>✈️</span>
+          <PlaneIcon size={14} color="#fbbf24" />
           <span>
             {locale === 'ko'
               ? '오프라인 (비행기 모드) — 인터넷 연결 없이도 모든 퍼즐 정상 작동'
@@ -57,6 +66,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
           </span>
         </div>
       )}
+
       {/* Theme Selector Trigger */}
       <button
         type="button"
@@ -69,14 +79,14 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 12px',
-          height: '52px',
-          minHeight: '52px',
+          height: '50px',
+          minHeight: '50px',
           overflow: 'hidden',
         }}
         aria-label="Color theme studio"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontSize: '1.15rem', flexShrink: 0 }}>{themeConfig.icon}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0, overflow: 'hidden' }}>
+          <PaletteIcon size={16} color={themeConfig.accentColor} />
           <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
             <div className={styles.hudLabel} style={{ marginBottom: '1px', whiteSpace: 'nowrap' }}>
               {locale === 'ko' ? '테마 스튜디오' : 'Theme Studio'}
@@ -84,7 +94,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
             <div
               style={{
                 fontWeight: 700,
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 color: themeConfig.accentColor,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -98,8 +108,8 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span
             style={{
-              width: '10px',
-              height: '10px',
+              width: '9px',
+              height: '9px',
               borderRadius: '50%',
               backgroundColor: themeConfig.accentColor,
               display: 'inline-block',
@@ -107,14 +117,14 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
           />
           <span
             style={{
-              width: '10px',
-              height: '10px',
+              width: '9px',
+              height: '9px',
               borderRadius: '50%',
               backgroundColor: themeConfig.secondaryColor,
               display: 'inline-block',
             }}
           />
-          <span style={{ fontSize: '0.74rem', color: '#94a3b8', marginLeft: '4px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #71717c)', marginLeft: '4px', whiteSpace: 'nowrap' }}>
             {locale === 'ko' ? '변경' : 'Change'} ❯
           </span>
         </div>
@@ -124,12 +134,13 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       <div className={styles.hudCard}>
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '경과 시간' : 'Time'}</span>
-          <span style={{ fontSize: '0.65rem', color: timerRunning ? '#38bdf8' : '#94a3b8' }}>
+          <span style={{ fontSize: '0.62rem', color: timerRunning ? 'var(--text-secondary, #a1a1ab)' : 'var(--text-muted, #71717c)' }}>
             {timerRunning ? '● RUNNING' : '❚❚ PAUSED'}
           </span>
         </div>
         <div className={`${styles.hudValue} ${timerRunning ? styles.timerActive : ''}`}>
-          ⏱ {formatTime(elapsedSeconds)}
+          <TimerIcon size={14} color="var(--text-muted, #71717c)" />
+          <span>{formatTime(elapsedSeconds)}</span>
         </div>
       </div>
 
@@ -137,7 +148,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       <div className={`${styles.hudCard} ${noteMode ? styles.hudCardActive : ''}`}>
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '메모 모드' : 'Notes'}</span>
-          <span>{noteMode ? '✏️' : '—'}</span>
+          <NotesIcon size={12} color="var(--text-muted, #71717c)" />
         </div>
         <div className={styles.hudValue}>{noteMode ? 'ON' : 'OFF'}</div>
       </div>
@@ -152,7 +163,11 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       >
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '효과음' : 'Sound'}</span>
-          <span>{soundEnabled ? '🔊' : '🔇'}</span>
+          {soundEnabled ? (
+            <SoundOnIcon size={13} color="var(--accent-primary, #ffffff)" />
+          ) : (
+            <SoundOffIcon size={13} color="var(--text-muted, #71717c)" />
+          )}
         </div>
         <div className={styles.hudValue}>{soundEnabled ? 'ON' : 'MUTED'}</div>
       </button>
@@ -165,7 +180,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       >
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '언어 선택' : 'Language'}</span>
-          <span>🌐</span>
+          <LangIcon size={13} color="var(--text-muted, #71717c)" />
         </div>
         <div className={styles.hudValue}>{locale === 'ko' ? '한국어' : 'English'}</div>
       </button>

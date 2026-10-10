@@ -3,6 +3,14 @@ import styles from './sudoku.module.css';
 import type { Difficulty, Grid } from '@/lib/sudoku';
 import type { ActiveDebuff, BattleToast, GameMode, Locale, NoteGrid, Position } from './types';
 import { getNoteCellValue } from './helpers';
+import {
+  SoloIcon,
+  BotIcon,
+  SwordIcon,
+  ZapIcon,
+  ShieldAlertIcon,
+  SparklesIcon,
+} from './Icons';
 
 interface SudokuBoardProps {
   board: Grid;
@@ -45,7 +53,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   battleToast = null,
   onCellClick,
 }) => {
-  // If a cell is selected and has a number, highlight all identical numbers across the board!
+  // If a cell is selected and has a number, highlight all identical numbers across the board
   const selectedNumber = useMemo(() => {
     if (!selected) return null;
     return board[selected.row][selected.col];
@@ -74,11 +82,13 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         {battleToast ? (
           <div className={styles.topMessageBoardContent}>
             <span className={styles.topMessageBoardIcon}>
-              {battleToast.type === 'attack_launched'
-                ? '⚡'
-                : battleToast.type === 'attack_received'
-                  ? '🚨'
-                  : '✨'}
+              {battleToast.type === 'attack_launched' ? (
+                <ZapIcon size={16} color="var(--accent-primary, #ffffff)" />
+              ) : battleToast.type === 'attack_received' ? (
+                <ShieldAlertIcon size={16} color="#f43f5e" />
+              ) : (
+                <SparklesIcon size={16} color="#38bdf8" />
+              )}
             </span>
             <div className={styles.topMessageBoardTexts}>
               <strong className={styles.topMessageBoardTitle}>{battleToast.title}</strong>
@@ -93,30 +103,24 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         ) : activeDebuff ? (
           <div className={styles.topMessageBoardContent}>
             <span className={styles.topMessageBoardIcon}>
-              {activeDebuff.type === 'freeze'
-                ? '❄️'
-                : activeDebuff.type === 'scramble'
-                  ? '🌀'
-                  : activeDebuff.type === 'blind'
-                    ? '🌑'
-                    : activeDebuff.type === 'mist'
-                      ? '🌫️'
-                      : '📳'}
+              <ShieldAlertIcon size={16} color="#f43f5e" />
             </span>
             <div className={styles.topMessageBoardTexts}>
-              <strong className={styles.topMessageBoardTitle}>
-                {locale === 'ko' ? `🚨 디버프 발동: ${activeDebuff.label}` : `🚨 Active Debuff: ${activeDebuff.label}`}
+              <strong className={styles.topMessageBoardTitle} style={{ color: '#fecdd3' }}>
+                {locale === 'ko' ? `디버프: ${activeDebuff.label}` : `Active Debuff: ${activeDebuff.label}`}
               </strong>
               <span className={styles.topMessageBoardSubtitle}>
                 {locale === 'ko'
-                  ? '기믹 효과가 적용되는 동안 침착하게 퍼즐을 풀어나가세요!'
-                  : 'Maintain your focus while the debuff is active!'}
+                  ? '기믹 효과가 적용되는 동안 침착하게 퍼즐을 풀어나가세요.'
+                  : 'Maintain focus while the debuff is active.'}
               </span>
             </div>
           </div>
         ) : isAiWinner ? (
           <div className={styles.topMessageBoardContent}>
-            <span className={styles.topMessageBoardIcon}>🤖</span>
+            <span className={styles.topMessageBoardIcon}>
+              <BotIcon size={16} color="#f43f5e" />
+            </span>
             <div className={styles.topMessageBoardTexts}>
               <strong className={styles.topMessageBoardTitle} style={{ color: '#f43f5e' }}>
                 {locale === 'ko' ? '알파도쿠 AI 승리 (패배)' : 'Alphadoku AI Wins (Defeat)'}
@@ -134,7 +138,13 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         ) : (
           <div className={styles.topMessageBoardContent}>
             <span className={styles.topMessageBoardIcon}>
-              {gameMode === 'solo' ? '🧘' : gameMode === 'vs_ai' ? '🤖' : '⚔️'}
+              {gameMode === 'solo' ? (
+                <SoloIcon size={16} color="var(--text-secondary, #a1a1ab)" />
+              ) : gameMode === 'vs_ai' ? (
+                <BotIcon size={16} color="var(--accent-primary, #ffffff)" />
+              ) : (
+                <SwordIcon size={16} color="var(--accent-primary, #ffffff)" />
+              )}
             </span>
             <div className={styles.topMessageBoardTexts}>
               <strong className={styles.topMessageBoardTitle}>
@@ -182,7 +192,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         <div
           className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
             sharedMatchGateActive ? styles.boardGridHidden : ''
-          } ${isBlind ? styles.boardBlind : ''} ${isMist ? styles.boardMist : ''}`}
+          }`}
           role="grid"
           aria-label="Sudoku board"
         >
@@ -205,7 +215,9 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: '3rem' }}>⏳</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <SwordIcon size={36} color="var(--text-muted, #71717c)" />
+                  </div>
                   <h3 className={styles.gateTitle}>
                     {locale === 'ko' ? '상대방 참가 대기 중…' : 'Waiting for opponent…'}
                   </h3>

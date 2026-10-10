@@ -3,6 +3,7 @@ import styles from './sudoku.module.css';
 import type { Grid } from '@/lib/sudoku';
 import type { Locale } from './types';
 import { getRemainingCounts } from './helpers';
+import { NotesIcon, EraseIcon, ShieldAlertIcon } from './Icons';
 
 interface SudokuKeypadProps {
   board: Grid;
@@ -43,8 +44,9 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
       {/* Fixed Status Slot prevents keypad from jumping vertically */}
       <div className={`${styles.keypadStatusSlot} ${scrambleActive ? styles.keypadStatusSlotScrambled : ''}`}>
         {scrambleActive ? (
-          <span className={styles.keypadScrambleText}>
-            ⚠️ {locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Debuff!'}
+          <span className={styles.keypadScrambleText} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldAlertIcon size={13} color="#fde68a" />
+            <span>{locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Active!'}</span>
           </span>
         ) : (
           <span className={styles.keypadNormalText}>
@@ -72,7 +74,7 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
               <span>{number}</span>
               {!hideRemainingCounts && (
                 <span className={styles.keyRemainingBadge}>
-                  {isCompleted ? '✓' : remaining}
+                  {isCompleted ? '•' : remaining}
                 </span>
               )}
             </button>
@@ -80,7 +82,7 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
         })}
       </div>
 
-      {/* Action Controls: Erase, Notes Mode, Undo */}
+      {/* Action Controls: Erase, Notes Mode */}
       <div className={styles.keypadActions}>
         <button
           type="button"
@@ -89,7 +91,8 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
           disabled={disabled}
           aria-pressed={noteMode}
         >
-          <span>✏️ {locale === 'ko' ? '메모 모드' : 'Notes'}</span>
+          <NotesIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '메모' : 'Notes'}</span>
           <span className={styles.notesActiveIndicator}>{noteMode ? 'ON' : 'OFF'}</span>
         </button>
 
@@ -99,7 +102,8 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
           onClick={onClearClick}
           disabled={disabled}
         >
-          <span>⌫ {locale === 'ko' ? '지우기' : 'Erase'}</span>
+          <EraseIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '지우기' : 'Erase'}</span>
         </button>
       </div>
     </div>

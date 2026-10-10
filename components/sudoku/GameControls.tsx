@@ -2,7 +2,14 @@ import React from 'react';
 import styles from './sudoku.module.css';
 import type { Difficulty } from '@/lib/sudoku';
 import type { ItemCounts, Locale } from './types';
-import { DIFFICULTIES, getDifficultyLabel } from './helpers';
+import { DIFFICULTIES } from './helpers';
+import {
+  PlayIcon,
+  LightbulbIcon,
+  SparklesIcon,
+  CheckSearchIcon,
+  UndoIcon,
+} from './Icons';
 
 interface GameControlsProps {
   difficulty: Difficulty;
@@ -32,7 +39,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onUndo,
 }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* Difficulty Selection */}
       <div className={styles.difficultyGroup}>
         {DIFFICULTIES.map((diff) => {
@@ -65,7 +72,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
         className={styles.btnPrimary}
         onClick={onNewGame}
       >
-        <span>⚡ {locale === 'ko' ? '새 게임 시작' : 'Start New Game'}</span>
+        <PlayIcon size={14} color="currentColor" />
+        <span>{locale === 'ko' ? '새 게임 시작' : 'Start New Game'}</span>
       </button>
 
       {/* Auxiliary Action Buttons */}
@@ -76,7 +84,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
           onClick={onHint}
           disabled={sharedRoomActive || items.hint <= 0}
         >
-          <span>💡 {locale === 'ko' ? '힌트' : 'Hint'}</span>
+          <LightbulbIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '힌트' : 'Hint'}</span>
           <span className={styles.countBadge}>{items.hint}</span>
         </button>
 
@@ -86,7 +95,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
           onClick={onAutoFill}
           disabled={sharedRoomActive || items.autoFill <= 0}
         >
-          <span>✨ {locale === 'ko' ? '자동완성' : 'Auto-fill'}</span>
+          <SparklesIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '자동완성' : 'Auto-fill'}</span>
           <span className={styles.countBadge}>{items.autoFill}</span>
         </button>
 
@@ -96,7 +106,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
           onClick={onCheck}
           disabled={sharedRoomActive}
         >
-          <span>🔍 {locale === 'ko' ? '검사' : 'Check'}</span>
+          <CheckSearchIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '검사' : 'Check'}</span>
         </button>
 
         <button
@@ -105,7 +116,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
           onClick={onUndo}
           disabled={sharedRoomActive || !canUndo}
         >
-          <span>↩ {locale === 'ko' ? '되돌리기' : 'Undo'}</span>
+          <UndoIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '되돌리기' : 'Undo'}</span>
         </button>
       </div>
     </div>

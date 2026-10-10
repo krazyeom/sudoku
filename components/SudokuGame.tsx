@@ -78,6 +78,7 @@ import { BattlePanel } from './sudoku/BattlePanel';
 import { HeaderStatus } from './sudoku/HeaderStatus';
 import { RecordsPanel } from './sudoku/RecordsPanel';
 import { CompletionModal } from './sudoku/CompletionModal';
+import { GridIcon, TrophyIcon } from './sudoku/Icons';
 
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -1606,14 +1607,16 @@ export default function SudokuGame() {
             handleLogoClick();
           }}
         >
-          🎮 {locale === 'ko' ? '스튜디오 플레이' : 'Play Studio'}
+          <GridIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '스튜디오 플레이' : 'Play Studio'}</span>
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${activePanel === 'records' ? styles.tabBtnActive : ''}`}
           onClick={() => setActivePanel('records')}
         >
-          🏆 {locale === 'ko' ? '명예의 전당 & 기록' : 'Records & Stats'}
+          <TrophyIcon size={14} color="currentColor" />
+          <span>{locale === 'ko' ? '기록실 & 통계' : 'Records & Stats'}</span>
         </button>
       </div>
 
