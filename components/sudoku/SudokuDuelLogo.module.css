@@ -1,0 +1,175 @@
+/* SUDOKU DUEL - Crossword Matrix Brand Logo */
+
+.logoContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  text-decoration: none;
+}
+
+/* 4 Rows x 6 Cols CSS Grid */
+.gridMatrix {
+  display: grid;
+  grid-template-columns: repeat(6, var(--tile-size, 10px));
+  grid-template-rows: repeat(4, var(--tile-size, 10px));
+  gap: var(--tile-gap, 2px);
+  position: relative;
+  padding: 2px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle, #242429);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Base Tile Styling */
+.tile {
+  width: var(--tile-size, 10px);
+  height: var(--tile-size, 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: var(--tile-font, 7px);
+  line-height: 1;
+  position: relative;
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Sudoku Tiles (S, U, D, O, K) */
+.tileSudoku {
+  background: var(--bg-tertiary, #18181c);
+  border: 1px solid var(--border-medium, #383840);
+  color: var(--text-primary, #f4f4f6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Duel Vertical Tiles (D, E, L) */
+.tileDuel {
+  background: rgba(225, 29, 72, 0.15);
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  color: #fb7185;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Intersection Tile: 'U' (SUDOKU's 6th char & DUEL's 2nd char) */
+.tileIntersection {
+  background: linear-gradient(135deg, var(--accent-primary, #e11d48), #f43f5e);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 0 8px rgba(225, 29, 72, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  z-index: 2;
+}
+
+.nexusGlow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  animation: pulseNexus 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseNexus {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+
+/* Brand Labels */
+.brandLabels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brandTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  line-height: 1.1;
+}
+
+.brandTitle {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #ffffff);
+}
+
+.brandTitleAccent {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fb7185;
+  text-shadow: 0 0 10px rgba(251, 113, 133, 0.3);
+}
+
+.brandTagline {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted, #71717c);
+  letter-spacing: 0.02em;
+}
+
+/* Size Variants */
+
+/* Small (e.g. tightly packed in compact headers or stats) */
+.sm {
+  --tile-size: 8px;
+  --tile-gap: 1.5px;
+  --tile-font: 5.5px;
+  gap: 8px;
+}
+.sm .brandTitle,
+.sm .brandTitleAccent {
+  font-size: 0.85rem;
+}
+.sm .brandTagline {
+  font-size: 0.62rem;
+}
+
+/* Medium (Default header size) */
+.md {
+  --tile-size: 9.5px;
+  --tile-gap: 2px;
+  --tile-font: 6.8px;
+  gap: 11px;
+}
+
+/* Large (Hero banner / modal / showcase) */
+.lg {
+  --tile-size: 16px;
+  --tile-gap: 3px;
+  --tile-font: 11px;
+  gap: 16px;
+}
+.lg .brandTitle,
+.lg .brandTitleAccent {
+  font-size: 1.35rem;
+}
+.lg .brandTagline {
+  font-size: 0.8rem;
+}
+
+/* Hover effects */
+.logoContainer:hover .tile {
+  border-color: var(--border-strong, #52525c);
+}
+
+.logoContainer:hover .tileDuel {
+  border-color: rgba(225, 29, 72, 0.7);
+  box-shadow: 0 0 6px rgba(225, 29, 72, 0.25);
+}
+
+.logoContainer:hover .tileIntersection {
+  transform: scale(1.06);
+}

@@ -1,4 +1,5 @@
 import SudokuGame from '@/components/SudokuGame';
+import SudokuDuelLogo from '@/components/sudoku/SudokuDuelLogo';
 import styles from './page.module.css';
 
 export default function HomePage() {
@@ -6,20 +7,7 @@ export default function HomePage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div className={styles.brandRow}>
-          <div className={styles.brandMark}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" />
-              <line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" />
-              <line x1="15" y1="3" x2="15" y2="21" stroke="currentColor" />
-              <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" />
-              <line x1="3" y1="15" x2="21" y2="15" stroke="currentColor" />
-              <rect x="9.5" y="9.5" width="5" height="5" fill="currentColor" />
-            </svg>
-          </div>
-          <div className={styles.brandTextGroup}>
-            <span className={styles.brandTitle}>SUDOKU DUEL</span>
-            <span className={styles.brandSubtitle}>1v1 Tactical Battle Arena</span>
-          </div>
+          <SudokuDuelLogo size="md" />
           <span className={styles.versionTag}>v1.0</span>
         </div>
 
