@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './sudoku.module.css';
-import type { BattleMode, BattleSummary, GameMode, Locale, SharedCompletionSummary, SharedRoomState } from './types';
+import type { BattleMode, BattleSummary, GameMode, Locale, SharedCompletionSummary, SharedRoomState, RankProfile } from './types';
+import { getRankTierInfo } from './types';
 import type { SharedRoomCellOccupancy } from '@/lib/shared-room';
 import { formatTime } from './share';
 import {
@@ -23,6 +24,7 @@ interface BattlePanelProps {
   aiProgress?: number;
   minimapGrid: SharedRoomCellOccupancy[][];
   roomInput: string;
+  rankProfile?: RankProfile;
   battleMode: BattleMode;
   locale: Locale;
   isOnline?: boolean;
@@ -91,6 +93,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   aiProgress = 0,
   minimapGrid,
   roomInput,
+  rankProfile,
   battleMode,
   locale,
   isOnline = true,
@@ -109,6 +112,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
 }) => {
   const currentModeInfo = BATTLE_MODES.find((m) => m.id === battleMode) ?? BATTLE_MODES[1];
   const canChangeMode = !sharedRoom || sharedRoom.role === 'host';
+  const tierInfo = getRankTierInfo(rankProfile?.rp ?? 150);
 
   const isAiWinner =
     gameMode === 'vs_ai' &&
@@ -125,6 +129,29 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
 
   return (
     <div className={styles.battleContainer}>
+      {/* Competitive Rank Tier HUD */}
+      {rankProfile && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'linear-gradient(180deg, #161b26 0%, #0e121a 100%)', border: '1px solid var(--border-subtle, #1e2433)', borderRadius: '12px', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>{tierInfo.badge}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ color: tierInfo.color, fontWeight: 900, fontSize: '0.92rem' }}>{tierInfo.nameKo}</span>
+                <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 800 }}>{rankProfile.rp} RP</span>
+              </div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted, #94a3b8)' }}>
+                {rankProfile.wins}승 {rankProfile.losses}패 {rankProfile.winStreak >= 2 ? `🔥 ${rankProfile.winStreak}연승!` : ''}
+              </span>
+            </div>
+          </div>
+          {tierInfo.nextTier && (
+            <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '6px', textAlign: 'right' }}>
+              다음: {tierInfo.nextTier}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Game Mode Selector Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -18,6 +18,8 @@ interface SudokuKeypadProps {
   onToggleNoteMode: () => void;
   onUndoClick: () => void;
   canUndo: boolean;
+  shieldCount?: number;
+  onAutoCandidates?: () => void;
 }
 
 export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
@@ -32,6 +34,8 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
   onToggleNoteMode,
   onUndoClick,
   canUndo,
+  shieldCount = 0,
+  onAutoCandidates,
 }) => {
   const remainingCounts = useMemo(() => getRemainingCounts(board), [board]);
 

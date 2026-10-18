@@ -6,11 +6,13 @@ import type {
   Locale,
   SharedCompletionSummary,
   RoomRole,
+  RankTierInfo,
 } from './types';
 import { formatTime } from './share';
 import { getDifficultyLabel } from './helpers';
 import { TrophyIcon, SwordIcon, PlayIcon, ShareIcon } from './Icons';
 import { triggerHaptic } from '@/lib/haptics';
+import { VictoryShareCard } from './VictoryShareCard';
 
 interface CompletionModalProps {
   isOpen: boolean;
@@ -20,6 +22,9 @@ interface CompletionModalProps {
   locale: Locale;
   isWinner?: boolean;
   winnerRole?: RoomRole | null;
+  rankTierInfo?: RankTierInfo;
+  gameMode?: string;
+  streak?: number;
   onClose: () => void;
   onNewGame: () => void;
   onShare: () => void;
@@ -33,6 +38,9 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
   locale,
   isWinner = true,
   winnerRole,
+  rankTierInfo,
+  gameMode = 'solo',
+  streak = 0,
   onClose,
   onNewGame,
   onShare,
@@ -111,6 +119,20 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
               ? '모든 숫자를 오류 없이 완벽하게 채웠습니다.'
               : 'All numbers have been placed accurately without conflicts.'}
         </p>
+
+        {/* SNS Victory Graphic Card */}
+        {userWon && (
+          <div style={{ margin: '8px 0 16px 0', width: '100%' }}>
+            <VictoryShareCard
+              difficulty={diff}
+              elapsedSeconds={elapsed}
+              locale={locale}
+              rankTierInfo={rankTierInfo}
+              gameMode={gameMode}
+              streak={streak}
+            />
+          </div>
+        )}
 
         {/* Summary Card */}
         <div className={styles.summaryBox}>

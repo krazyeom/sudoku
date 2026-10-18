@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import styles from './sudoku.module.css';
 import type { Difficulty, Grid } from '@/lib/sudoku';
 import type { ActiveDebuff, BattleToast, GameMode, Locale, NoteGrid, Position } from './types';
@@ -145,6 +145,19 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     if (!isBlind) return [];
     return generateRandomInkSplats();
   }, [isBlind, activeDebuff?.endsAt]);
+
+  // Interactive Ink Wiper: wipe away ink splatters with touch or swipe
+  const [wipedSplats, setWipedSplats] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setWipedSplats(new Set());
+  }, [activeDebuff?.endsAt]);
+
+  const handleWipeSplat = (id: number) => {
+    if (wipedSplats.has(id)) return;
+    triggerHaptic('erase');
+    setWipedSplats((prev) => new Set(prev).add(id));
+  };
 
   return (
     <section className={styles.boardSection}>
@@ -328,21 +341,32 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
           {/* Blind Ink Splatters */}
           {!sharedMatchGateActive && isBlind && (
             <div className={styles.blindInkContainer} aria-hidden="true">
-              {inkSplats.map((splat) => (
-                <div
-                  key={splat.id}
-                  className={styles.inkSplat}
-                  style={{
-                    top: splat.top,
-                    left: splat.left,
-                    width: splat.width,
-                    height: splat.height,
-                    transform: splat.transform,
-                    clipPath: splat.clipPath,
-                    opacity: splat.opacity,
-                  }}
-                />
-              ))}
+              <div className={styles.wipeInkHint}>
+                {locale === 'ko' ? '🖐️ 손가락/마우스로 먹물을 문질러 닦아내세요!' : '🖐️ Swipe ink to wipe it off!'}
+              </div>
+              {inkSplats.map((splat) => {
+                const isWiped = wipedSplats.has(splat.id);
+                return (
+                  <div
+                    key={splat.id}
+                    className={`${styles.inkSplat} ${isWiped ? styles.inkSplatWiped : ''}`}
+                    style={{
+                      top: splat.top,
+                      left: splat.left,
+                      width: splat.width,
+                      height: splat.height,
+                      transform: splat.transform,
+                      clipPath: splat.clipPath,
+                      opacity: isWiped ? 0 : splat.opacity,
+                    }}
+                    onPointerDown={() => handleWipeSplat(splat.id)}
+                    onPointerEnter={(e) => {
+                      if (e.buttons > 0) handleWipeSplat(splat.id);
+                    }}
+                    onTouchMove={() => handleWipeSplat(splat.id)}
+                  />
+                );
+              })}
             </div>
           )}
 

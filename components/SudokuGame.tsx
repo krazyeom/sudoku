@@ -26,7 +26,10 @@ import {
   type SharedRoomState,
   type Snapshot,
   type GameMode,
+  type RankProfile,
+  type DailyChallengeState,
   getItemsForBattleMode,
+  getRankTierInfo,
 } from './sudoku/types';
 import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
 import { soundEffects } from './sudoku/sound';
@@ -63,6 +66,8 @@ import {
   sanitizeRoomIdInput,
   summarizeBattle,
   toggleNote,
+  cleanupNotesAfterNumber,
+  computeAllCandidates,
 } from './sudoku/helpers';
 import {
   buildShareCardSvg,
@@ -80,6 +85,8 @@ import { RecordsPanel } from './sudoku/RecordsPanel';
 import { CompletionModal } from './sudoku/CompletionModal';
 import { GridIcon, TrophyIcon, SwordIcon } from './sudoku/Icons';
 import { triggerHaptic } from '@/lib/haptics';
+import { DEFAULT_RANK_PROFILE, calculateRpChange } from '@/lib/rankSystem';
+import { generateDailyPuzzle, getTodayDateString } from '@/lib/dailySudoku';
 
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -106,10 +113,11 @@ export default function SudokuGame() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [records, setRecords] = useState<RecordEntry[]>([]);
-  const [activePanel, setActivePanel] = useState<'play' | 'battle' | 'records'>('play');
+  const [activePanel, setActivePanel] = useState<'play' | 'battle' | 'daily' | 'records'>('play');
   const [recordDifficultyFilter, setRecordDifficultyFilter] = useState<'all' | Difficulty>('all');
   const [recordSortMode, setRecordSortMode] = useState<'fastest' | 'newest' | 'oldest'>('fastest');
   const [noteMode, setNoteMode] = useState(false);
+  const [autoCleanupNotes, setAutoCleanupNotes] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [items, setItems] = useState<ItemCounts>(() => getItemsForBattleMode('normal'));
   const [locale, setLocale] = useState<Locale>('ko');
@@ -134,6 +142,18 @@ export default function SudokuGame() {
   const [sharedCountdownTick, setSharedCountdownTick] = useState(0);
   const [mistakeCooldownUntil, setMistakeCooldownUntil] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Ranked Tier State
+  const [rankProfile, setRankProfile] = useState<RankProfile>(DEFAULT_RANK_PROFILE);
+  const rankTierInfo = useMemo(() => getRankTierInfo(rankProfile.rp), [rankProfile.rp]);
+
+  // Daily Challenge State
+  const [dailyState, setDailyState] = useState<DailyChallengeState>({
+    currentStreak: 0,
+    bestStreak: 0,
+    lastSolvedDate: null,
+    records: {},
+  });
 
   const sharedRoomPollRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -306,6 +326,17 @@ export default function SudokuGame() {
     };
   }, [locale]);
 
+  // Hydrate Rank Profile and Daily Challenge State from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedRank = localStorage.getItem('sudoku_rank_profile');
+      if (savedRank) setRankProfile(JSON.parse(savedRank));
+      const savedDaily = localStorage.getItem('sudoku_daily_challenge');
+      if (savedDaily) setDailyState(JSON.parse(savedDaily));
+    } catch {}
+  }, []);
+
   const fixedCells = useMemo(() => puzzle.puzzle.map((row) => row.map((cell) => cell !== null)), [puzzle]);
   const conflictCells = useMemo(() => getConflictCells(board), [board]);
 
@@ -416,6 +447,26 @@ export default function SudokuGame() {
         timestamp: attack.timestamp,
       });
     } else {
+      // Check if player has an active shield to deflect incoming debuff
+      if (items.shield && items.shield > 0) {
+        setItems((prev) => ({ ...prev, shield: Math.max(0, (prev.shield || 1) - 1) }));
+        triggerHaptic('victory');
+        if (soundEnabled) {
+          void soundEffects.playBoxClear();
+        }
+        setBattleToast({
+          id: `shield-${Date.now()}`,
+          type: 'combo',
+          title: locale === 'ko' ? '🛡️ 방어 쉴드 발동!' : '🛡️ Shield Deflected Attack!',
+          subtitle:
+            locale === 'ko'
+              ? `쉴드가 상대방의 [${attack.labelKo}] 공격을 완벽히 차단했습니다!`
+              : `Shield fully blocked opponent's [${attack.labelEn}]!`,
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
       if (soundEnabled) {
         void soundEffects.playAttacked();
         if (attack.debuffType === 'freeze') {
@@ -1114,8 +1165,53 @@ export default function SudokuGame() {
         rank: updated.findIndex((r) => r.completedAt === newRecord.completedAt) + 1,
         total: updated.length,
       });
+
+      // Update Competitive Rank RP for vs_ai or battle duels
+      if (gameMode === 'vs_ai') {
+        const { nextProfile, diff, promoted } = calculateRpChange(rankProfile, isViewerWinner, battleMode);
+        setRankProfile(nextProfile);
+        try {
+          localStorage.setItem('sudoku_rank_profile', JSON.stringify(nextProfile));
+        } catch {}
+        if (promoted) {
+          flashToast(locale === 'ko' ? `🎉 [${nextProfile.tier.toUpperCase()}] 티어로 승급했습니다! (+${diff} RP)` : `🎉 Promoted to ${nextProfile.tier.toUpperCase()}! (+${diff} RP)`);
+        } else if (isViewerWinner) {
+          flashToast(locale === 'ko' ? `⚔️ 배틀 승리! +${diff} RP 획득` : `⚔️ Victory! +${diff} RP gained`);
+        }
+      }
+
+      // Update Daily Challenge Streak
+      if (gameMode === 'daily' && isViewerWinner) {
+        const today = getTodayDateString();
+        const prevStreak = dailyState.currentStreak;
+        const alreadySolvedToday = dailyState.lastSolvedDate === today;
+        const newStreak = alreadySolvedToday ? prevStreak : prevStreak + 1;
+        const nextDailyState: DailyChallengeState = {
+          currentStreak: newStreak,
+          bestStreak: Math.max(dailyState.bestStreak, newStreak),
+          lastSolvedDate: today,
+          records: {
+            ...dailyState.records,
+            [today]: {
+              date: today,
+              solved: true,
+              timeSeconds: elapsedSeconds,
+              completedAt: new Date().toISOString(),
+            },
+          },
+        };
+        setDailyState(nextDailyState);
+        try {
+          localStorage.setItem('sudoku_daily_challenge', JSON.stringify(nextDailyState));
+        } catch {}
+        flashToast(
+          locale === 'ko'
+            ? `📅 오늘의 챌린지 클리어! 🔥 ${newStreak}일 연속 달성!`
+            : `📅 Daily Challenge Complete! 🔥 ${newStreak} day streak!`
+        );
+      }
     }
-  }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled, sharedRoom]);
+  }, [solved, difficulty, elapsedSeconds, puzzle.clueCount, records, soundEnabled, sharedRoom, gameMode, battleMode, rankProfile, dailyState, locale]);
 
   // Board Cell Interaction
   function handleCellClick(rowIndex: number, colIndex: number) {
@@ -1191,9 +1287,16 @@ export default function SudokuGame() {
     }
 
     nextBoard[row][col] = value;
-    nextNotes[row][col] = [];
+    const nextNotesFinal = autoCleanupNotes
+      ? cleanupNotesAfterNumber(notes, row, col, value)
+      : (() => {
+          const nn = cloneNotes(notes);
+          nn[row][col] = [];
+          return nn;
+        })();
+
     setBoard(nextBoard);
-    setNotes(nextNotes);
+    setNotes(nextNotesFinal);
     setHistory((cur) => [...cur, captureSnapshot()].slice(-30));
     setChecks([]);
     setHintPreview(null);
@@ -1216,6 +1319,11 @@ export default function SudokuGame() {
       }
       currentCombo = comboCountRef.current;
 
+      // Bonus shield reward upon hitting 3x combo in battle modes
+      if (currentCombo === 3 && gameMode !== 'solo') {
+        setItems((prev) => ({ ...prev, shield: Math.min(3, (prev.shield || 0) + 1) }));
+      }
+
       if (currentCombo >= 2) {
         triggerHaptic('success');
         if (soundEnabled) void soundEffects.playCombo(currentCombo);
@@ -1225,7 +1333,7 @@ export default function SudokuGame() {
           title: locale === 'ko' ? `⚡ ${currentCombo}연속 스피드 콤보!` : `⚡ ${currentCombo}x Speed Combo!`,
           subtitle:
             currentCombo >= 3
-              ? (locale === 'ko' ? '초고속 연타! 상대방에게 기습 방해 공격을 발사합니다!' : 'Super streak! Blitz attack launched at opponent!')
+              ? (locale === 'ko' ? '초고속 연타! 기습 공격 발사 및 방어 쉴드 +1 충전!' : 'Super streak! Blitz attack launched & +1 Shield charged!')
               : (locale === 'ko' ? '빠른 정답 행진! 기세를 이어가세요!' : 'Fast streak! Keep up the momentum!'),
           timestamp: Date.now(),
         });
@@ -1348,6 +1456,38 @@ export default function SudokuGame() {
         value: null,
       });
     }
+  }
+
+  function handleFillAllCandidates() {
+    triggerHaptic('note');
+    const autoNotes = computeAllCandidates(board);
+    setNotes(autoNotes);
+    setHistory((cur) => [...cur, captureSnapshot()].slice(-30));
+    flashToast(locale === 'ko' ? '📝 모든 빈 칸에 후보 메모를 채웠습니다.' : '📝 Auto-filled all candidates.');
+  }
+
+  function startDailyChallenge() {
+    triggerHaptic('selection');
+    const today = getTodayDateString();
+    const daily = generateDailyPuzzle(today);
+    setGameMode('daily');
+    setDifficulty(daily.difficulty);
+    setPuzzle(daily);
+    setBoard(cloneGrid(daily.puzzle));
+    setNotes(createEmptyNotesGrid());
+    setHistory([]);
+    setSelected(null);
+    setChecks([]);
+    setSolved(false);
+    setShowCompleteModal(false);
+    setElapsedSeconds(0);
+    setTimerRunning(true);
+    setActivePanel('play');
+    flashToast(
+      locale === 'ko'
+        ? `📅 [${today}] 오늘의 데일리 챌린지를 시작합니다!`
+        : `📅 [${today}] Daily Challenge Started!`
+    );
   }
 
   function handleUndo() {
@@ -1613,7 +1753,7 @@ export default function SudokuGame() {
 
   return (
     <div className={styles.container} data-theme={theme}>
-      {/* Mobile-First Segmented Tab Navigation: Play vs Battle vs Records */}
+      {/* Mobile-First Segmented Tab Navigation: Play vs Battle vs Daily vs Records */}
       <div className={styles.tabNav} role="tablist">
         <button
           type="button"
@@ -1639,6 +1779,22 @@ export default function SudokuGame() {
           <span>{locale === 'ko' ? '배틀' : 'Battle'}</span>
           {(gameMode !== 'solo' || sharedRoomIsActive) && (
             <span className={styles.tabLiveBadge}>LIVE</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activePanel === 'daily' ? styles.tabBtnActive : ''}`}
+          onClick={() => {
+            triggerHaptic('selection');
+            setActivePanel('daily');
+          }}
+        >
+          <span style={{ fontSize: '1rem', lineHeight: 1 }}>📅</span>
+          <span>{locale === 'ko' ? '데일리' : 'Daily'}</span>
+          {dailyState.currentStreak > 0 && (
+            <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.62rem', fontWeight: 900, padding: '1px 5px', borderRadius: '6px' }}>
+              {dailyState.currentStreak}
+            </span>
           )}
         </button>
         <button
@@ -1709,6 +1865,9 @@ export default function SudokuGame() {
                 onAutoFill={handleAutoFill}
                 onCheck={handleCheck}
                 onUndo={handleUndo}
+                onAutoCandidates={handleFillAllCandidates}
+                autoCleanupNotes={autoCleanupNotes}
+                onToggleAutoCleanup={() => setAutoCleanupNotes((v) => !v)}
               />
 
               {/* Desktop-only secondary Battle preview when on Play tab */}
@@ -1722,6 +1881,7 @@ export default function SudokuGame() {
                   aiProgress={aiRival.progressPercent}
                   minimapGrid={gameMode === 'vs_ai' ? aiMinimap : sharedBattleMiniMapGrid}
                   roomInput={roomInput}
+                  rankProfile={rankProfile}
                   battleMode={battleMode}
                   locale={locale}
                   isOnline={isOnline}
@@ -1796,6 +1956,7 @@ export default function SudokuGame() {
                 aiProgress={aiRival.progressPercent}
                 minimapGrid={gameMode === 'vs_ai' ? aiMinimap : sharedBattleMiniMapGrid}
                 roomInput={roomInput}
+                rankProfile={rankProfile}
                 battleMode={battleMode}
                 locale={locale}
                 isOnline={isOnline}
@@ -1837,6 +1998,55 @@ export default function SudokuGame() {
                 onDisconnectRoom={disconnectSharedRoom}
               />
             </>
+          )}
+
+          {activePanel === 'daily' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <strong style={{ color: 'var(--text-primary, #ffffff)', fontSize: '0.88rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                  {locale === 'ko' ? '오늘의 데일리 챌린지' : 'Daily Sudoku Quest'}
+                </strong>
+                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 800 }}>
+                  {getTodayDateString()}
+                </span>
+              </div>
+
+              {/* Daily Streak Banner */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '2rem', lineHeight: 1 }}>🔥</span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fde68a' }}>
+                      {dailyState.currentStreak}일 연속 달성 중!
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      최고 기록: {dailyState.bestStreak}일 연속
+                    </span>
+                  </div>
+                </div>
+                {dailyState.lastSolvedDate === getTodayDateString() && (
+                  <span style={{ background: '#22c55e', color: '#052e16', fontSize: '0.72rem', fontWeight: 800, padding: '4px 8px', borderRadius: '8px' }}>
+                    오늘 완료 ✓
+                  </span>
+                )}
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #cbd5e1)', lineHeight: 1.5, margin: 0 }}>
+                {locale === 'ko'
+                  ? '전 세계 모든 플레이어가 오늘 하루 동일한 스도쿠 퍼즐로 승부합니다. 매일 도전하여 연속 출석 달력 스트릭을 채워보세요!'
+                  : 'All players solve the exact same daily puzzle today. Challenge daily to build your golden streak!'}
+              </p>
+
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={startDailyChallenge}
+                style={{ height: '48px', fontSize: '0.92rem', gap: '8px' }}
+              >
+                <span>📅</span>
+                <span>{locale === 'ko' ? '오늘의 챌린지 도전하기' : 'Start Today\'s Quest'}</span>
+              </button>
+            </div>
           )}
 
           {activePanel === 'records' && (
@@ -1940,6 +2150,9 @@ export default function SudokuGame() {
             : !sharedRoom || !sharedCompletionSummary || sharedCompletionSummary.completedBy === sharedRoom.participantId
         }
         winnerRole={sharedCompletionSummary?.completedByRole ?? null}
+        rankTierInfo={rankTierInfo}
+        gameMode={gameMode}
+        streak={dailyState.currentStreak}
         onClose={() => setShowCompleteModal(false)}
         onNewGame={() => {
           setShowCompleteModal(false);

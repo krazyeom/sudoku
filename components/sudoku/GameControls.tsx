@@ -24,6 +24,9 @@ interface GameControlsProps {
   onAutoFill: () => void;
   onCheck: () => void;
   onUndo: () => void;
+  onAutoCandidates?: () => void;
+  autoCleanupNotes?: boolean;
+  onToggleAutoCleanup?: () => void;
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
@@ -38,6 +41,9 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onAutoFill,
   onCheck,
   onUndo,
+  onAutoCandidates,
+  autoCleanupNotes = true,
+  onToggleAutoCleanup,
 }) => {
   const handleDiff = (d: Difficulty) => {
     triggerHaptic('selection');
@@ -150,6 +156,38 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <span>{locale === 'ko' ? '되돌리기' : 'Undo'}</span>
         </button>
       </div>
+
+      {/* Smart Notes Assist Bar */}
+      {onAutoCandidates && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '7px 12px', background: 'var(--bg-secondary, #0e121b)', borderRadius: '10px', border: '1px solid var(--border-subtle, #1e2433)', fontSize: '0.76rem' }}>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('note');
+              onAutoCandidates();
+            }}
+            disabled={sharedRoomActive}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+          >
+            <span>📝</span>
+            <span>{locale === 'ko' ? '후보 메모 자동 채우기' : 'Auto Candidates'}</span>
+          </button>
+
+          {onToggleAutoCleanup && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                onToggleAutoCleanup();
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: autoCleanupNotes ? '#4ade80' : 'var(--text-muted, #71717c)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+            >
+              <span>{locale === 'ko' ? '정답 시 메모 정리' : 'Auto-cleanup'}:</span>
+              <strong>{autoCleanupNotes ? 'ON' : 'OFF'}</strong>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
