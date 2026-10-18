@@ -406,12 +406,19 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                   (Math.floor(selected.row / 3) === Math.floor(r / 3) &&
                     Math.floor(selected.col / 3) === Math.floor(c / 3)));
 
+              const isHard = difficulty === 'hard';
+
+              // In Hard mode, do NOT reveal where matching digits or duplicate conflicts are on the board
               const isMatchingDigit =
-                selectedNumber !== null && cell !== null && cell === selectedNumber && !isSelected;
+                !isHard &&
+                selectedNumber !== null &&
+                cell !== null &&
+                cell === selectedNumber &&
+                !isSelected;
 
               const isCheckWrong =
                 difficulty === 'easy' && checks.some((item) => item.row === r && item.col === c);
-              const isConflict = isCheckWrong || conflictCells.has(`${r}-${c}`);
+              const isConflict = (!isHard && conflictCells.has(`${r}-${c}`)) || isCheckWrong;
               const isHint = hintPreview?.row === r && hintPreview?.col === c;
 
               const isColBreak = c === 2 || c === 5;
@@ -465,7 +472,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                         <span
                           key={idx}
                           className={`${styles.noteSlot} ${
-                            selectedNumber !== null && val === String(selectedNumber)
+                            !isHard && selectedNumber !== null && val === String(selectedNumber)
                               ? styles.noteSlotMatching
                               : ''
                           }`}
