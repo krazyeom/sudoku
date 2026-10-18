@@ -122,7 +122,7 @@ export default function SudokuGame() {
   const [items, setItems] = useState<ItemCounts>(() => getItemsForBattleMode('normal'));
   const [locale, setLocale] = useState<Locale>('ko');
   const message = messageState[locale] || messageState.ko;
-  const [theme, setTheme] = useState<ThemeId>('classic');
+  const [theme, setTheme] = useState<ThemeId>('chess');
   const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [gameMode, setGameMode] = useState<GameMode>('vs_ai');
   const [aiRival, setAiRival] = useState<AiRivalState>(() => createAiRival(puzzle.puzzle));
@@ -958,6 +958,7 @@ export default function SudokuGame() {
 
   function handleSelectTheme(nextTheme: ThemeId) {
     setTheme(nextTheme);
+    soundEffects.setTheme(nextTheme);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
       document.documentElement.setAttribute('data-theme', nextTheme);
@@ -979,7 +980,12 @@ export default function SudokuGame() {
       const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemeId | null;
       if (savedTheme) {
         setTheme(savedTheme);
+        soundEffects.setTheme(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        setTheme('chess');
+        soundEffects.setTheme('chess');
+        document.documentElement.setAttribute('data-theme', 'chess');
       }
     } catch {
       // ignore

@@ -506,6 +506,78 @@
 .legendDotUser { background: var(--cell-user, #ffffff); border: 1px solid var(--border-medium, #383840); }
 .legendDotNote { background: var(--cell-note, #71717c); }
 
+/* Board Coordinates Wrapper */
+.boardCoordinatesWrapper {
+  width: 100%;
+  max-width: 516px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.boardGridWithRowCoords {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hidden by default in non-boardgame themes */
+.boardColCoords {
+  display: none;
+  width: 100%;
+  max-width: 490px;
+  margin-bottom: 5px;
+}
+
+.boardRowCoords {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+  aspect-ratio: 1 / 9;
+  max-height: 490px;
+  margin-right: 6px;
+}
+
+.coordChar {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  user-select: none;
+  opacity: 0.9;
+}
+
+/* Activated in Chess and Janggi themes */
+[data-theme="chess"] .boardColCoords,
+[data-theme="janggi"] .boardColCoords {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  padding-left: 20px;
+}
+
+[data-theme="chess"] .boardRowCoords,
+[data-theme="janggi"] .boardRowCoords {
+  display: grid;
+  grid-template-rows: repeat(9, 1fr);
+  width: 18px;
+  align-items: center;
+}
+
+[data-theme="chess"] .coordChar {
+  font-family: 'Georgia', 'Cambria', 'Palatino Linotype', serif;
+  color: #d4af37;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 -1px 0 rgba(255, 235, 180, 0.2);
+  letter-spacing: 0.04em;
+}
+
+[data-theme="janggi"] .coordChar {
+  font-family: 'Noto Serif KR', 'Batang', serif;
+  color: #d97706;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 -1px 0 rgba(255, 220, 150, 0.2);
+}
+
 /* The 9x9 Board Grid */
 .boardGrid {
   position: relative;
@@ -705,6 +777,130 @@
   pointer-events: none !important;
 }
 
+/* =========================================================================
+   CHESS & JANGGI - LUXURY WOODEN BOARD GAME STYLING
+   ========================================================================= */
+
+[data-theme="chess"] .boardFrame {
+  background: radial-gradient(circle at 50% 50%, #261c14 0%, #150f0a 100%);
+  border: 4px solid #523a26;
+  border-radius: 18px;
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 235, 190, 0.18),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.9),
+    0 16px 44px rgba(0, 0, 0, 0.8),
+    0 0 0 1px #382516;
+}
+
+[data-theme="chess"] .boardGrid {
+  background: #1c140d;
+  border: 3.5px solid #6b4c33;
+  box-shadow: 
+    inset 0 4px 12px rgba(0, 0, 0, 0.95),
+    0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="chess"] .cell {
+  border-right-color: rgba(107, 76, 51, 0.35);
+  border-bottom-color: rgba(107, 76, 51, 0.35);
+}
+
+[data-theme="chess"] .cellColBreak {
+  border-right: 3px solid #8f6645 !important;
+}
+
+[data-theme="chess"] .cellRowBreak {
+  border-bottom: 3px solid #8f6645 !important;
+}
+
+[data-theme="chess"] .givenDigit {
+  font-family: 'Georgia', 'Cambria', 'Palatino Linotype', serif;
+  color: #fffbeb;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 -1px 1px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="chess"] .userDigit {
+  font-family: 'Georgia', 'Cambria', 'Palatino Linotype', serif;
+  color: #fbbf24;
+  font-weight: 800;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 16px rgba(251, 191, 36, 0.5);
+}
+
+[data-theme="chess"] .cellMatchingDigit::after {
+  border-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+[data-theme="chess"] .cellSelected::before {
+  border-color: #f59e0b;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+}
+
+/* Tournament Chess Clock HUD styling for chess theme */
+[data-theme="chess"] .hudCard {
+  border-color: rgba(140, 104, 71, 0.35);
+  background: rgba(30, 22, 15, 0.75);
+}
+
+[data-theme="chess"] .timerActive {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
+}
+
+/* Royal Janggi Styling */
+[data-theme="janggi"] .boardFrame {
+  background: radial-gradient(circle at 50% 50%, #2e1e12 0%, #170d06 100%);
+  border: 4px solid #633f21;
+  border-radius: 18px;
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 220, 160, 0.18),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.9),
+    0 16px 44px rgba(0, 0, 0, 0.8),
+    0 0 0 1px #422812;
+}
+
+[data-theme="janggi"] .boardGrid {
+  background: #211309;
+  border: 3.5px solid #7a4e28;
+  box-shadow: 
+    inset 0 4px 12px rgba(0, 0, 0, 0.95),
+    0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="janggi"] .cell {
+  border-right-color: rgba(122, 78, 40, 0.35);
+  border-bottom-color: rgba(122, 78, 40, 0.35);
+}
+
+[data-theme="janggi"] .cellColBreak {
+  border-right: 3px solid #9e6435 !important;
+}
+
+[data-theme="janggi"] .cellRowBreak {
+  border-bottom: 3px solid #9e6435 !important;
+}
+
+[data-theme="janggi"] .givenDigit {
+  font-family: 'Noto Serif KR', 'Batang', serif;
+  color: #fef08a;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 -1px 1px rgba(254, 240, 138, 0.3);
+}
+
+[data-theme="janggi"] .userDigit {
+  font-family: 'Noto Serif KR', 'Batang', serif;
+  color: #38bdf8;
+  font-weight: 800;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 14px rgba(56, 189, 248, 0.45);
+}
+
+[data-theme="janggi"] .hudCard {
+  border-color: rgba(122, 78, 40, 0.35);
+  background: rgba(33, 19, 9, 0.75);
+}
+
+
 /* Board Lock / Lobby Gate Overlay */
 .boardGateOverlay {
   position: absolute;
@@ -823,6 +1019,46 @@
   border-color: var(--border-subtle, #1e2433) !important;
   color: var(--text-muted, #94a3b8) !important;
   box-shadow: none !important;
+}
+
+[data-theme="chess"] .keyBtn {
+  background: linear-gradient(180deg, #322419 0%, #1c130d 100%);
+  border: 1px solid #5c3e27;
+  box-shadow: inset 0 1px 0 rgba(255, 235, 190, 0.2), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="chess"] .keyDigitText {
+  font-family: 'Georgia', 'Cambria', serif;
+  font-weight: 800;
+  color: #fffbeb;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="chess"] .keyBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #443122 0%, #291c13 100%);
+  border-color: #d4af37;
+  color: #fbbf24;
+  box-shadow: inset 0 1px 0 rgba(255, 235, 190, 0.3), 0 0 14px rgba(212, 175, 55, 0.4);
+}
+
+[data-theme="janggi"] .keyBtn {
+  background: linear-gradient(180deg, #382415 0%, #1f1209 100%);
+  border: 1px solid #6b4424;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.2), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="janggi"] .keyDigitText {
+  font-family: 'Noto Serif KR', 'Batang', serif;
+  font-weight: 800;
+  color: #fef08a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="janggi"] .keyBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4a301c 0%, #2b180d 100%);
+  border-color: #e11d48;
+  color: #fef08a;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.3), 0 0 14px rgba(225, 29, 72, 0.4);
 }
 
 .keyRemainingBadge {

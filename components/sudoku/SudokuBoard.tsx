@@ -283,13 +283,31 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
           </span>
         </div>
 
-        <div
-          className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
-            sharedMatchGateActive ? styles.boardGridHidden : ''
-          }`}
-          role="grid"
-          aria-label="Sudoku board"
-        >
+        <div className={styles.boardCoordinatesWrapper}>
+          <div className={styles.boardColCoords} aria-hidden="true">
+            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map((col) => (
+              <span key={col} className={styles.coordChar}>
+                {col}
+              </span>
+            ))}
+          </div>
+
+          <div className={styles.boardGridWithRowCoords}>
+            <div className={styles.boardRowCoords} aria-hidden="true">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((row) => (
+                <span key={row} className={styles.coordChar}>
+                  {row}
+                </span>
+              ))}
+            </div>
+
+            <div
+              className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
+                sharedMatchGateActive ? styles.boardGridHidden : ''
+              }`}
+              role="grid"
+              aria-label="Sudoku board"
+            >
           {/* Match Gate Overlay in Shared Battle */}
           {sharedMatchGateActive && (
             <div className={styles.boardGateOverlay} role="status" aria-live="polite">
@@ -461,6 +479,8 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
               );
             })
           )}
+            </div>
+          </div>
         </div>
       </div>
     </section>

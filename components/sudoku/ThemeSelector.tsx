@@ -20,7 +20,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   onSelectTheme,
   onClose,
 }) => {
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Season' | 'Nature/Sci-Fi'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Board Game' | 'Season' | 'Nature/Sci-Fi'>('all');
 
   if (!isOpen) return null;
 
@@ -35,7 +35,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     onClose();
   };
 
-  const handleFilter = (f: 'all' | 'Season' | 'Nature/Sci-Fi') => {
+  const handleFilter = (f: 'all' | 'Board Game' | 'Season' | 'Nature/Sci-Fi') => {
     triggerHaptic('selection');
     setCategoryFilter(f);
   };
@@ -56,8 +56,8 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             </h3>
             <p className={styles.subtitle} style={{ textTransform: 'none', letterSpacing: 'normal' }}>
               {locale === 'ko'
-                ? '계절(크리스마스·여름·가을·봄) 및 자연/우주/바다 테마로 나만의 스도쿠를 꾸며보세요.'
-                : 'Personalize your Sudoku experience with Seasonal, Cosmic, and Nature themes.'}
+                ? '명품 보드게임(체스·장기), 계절 및 자연/우주 테마로 나만의 스도쿠를 꾸며보세요.'
+                : 'Personalize your Sudoku with Luxury Board Game, Seasonal, and Nature themes.'}
             </p>
           </div>
           <button
@@ -71,7 +71,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
         </div>
 
         {/* Filter Category Tabs */}
-        <div style={{ display: 'flex', gap: '6px', margin: '4px 0 10px' }}>
+        <div style={{ display: 'flex', gap: '6px', margin: '4px 0 10px', flexWrap: 'wrap' }}>
           <button
             type="button"
             className={`${styles.modeBtn} ${categoryFilter === 'all' ? styles.modeBtnActive : ''}`}
@@ -79,6 +79,14 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
             {locale === 'ko' ? '전체 테마' : 'All'}
+          </button>
+          <button
+            type="button"
+            className={`${styles.modeBtn} ${categoryFilter === 'Board Game' ? styles.modeBtnActive : ''}`}
+            onClick={() => handleFilter('Board Game')}
+            style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+          >
+            {locale === 'ko' ? '♟️ 명품 보드게임' : '♟️ Board Game'}
           </button>
           <button
             type="button"

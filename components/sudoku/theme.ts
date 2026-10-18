@@ -1,4 +1,6 @@
 export type ThemeId =
+  | 'chess'
+  | 'janggi'
   | 'classic'
   | 'christmas'
   | 'summer'
@@ -25,6 +27,32 @@ export interface ThemeConfig {
 }
 
 export const THEME_LIST: ThemeConfig[] = [
+  {
+    id: 'chess',
+    nameKo: '그랜드마스터 체스',
+    nameEn: 'Grandmaster Chess',
+    categoryKo: '보드게임',
+    categoryEn: 'Board Game',
+    icon: '♟️',
+    accentColor: '#d4af37',
+    secondaryColor: '#8c6847',
+    bgColor: '#14100c',
+    descKo: '중후한 월넛 원목 베벨, 상아·흑단 기물 질감과 A~I 체스 기보 좌표계',
+    descEn: 'Classic walnut wood bevel, ivory & ebony pieces with A-I chess coordinates',
+  },
+  {
+    id: 'janggi',
+    nameKo: '황실 명품 장기',
+    nameEn: 'Royal Janggi',
+    categoryKo: '보드게임',
+    categoryEn: 'Board Game',
+    icon: '🀄',
+    accentColor: '#e11d48',
+    secondaryColor: '#2563eb',
+    bgColor: '#1a1008',
+    descKo: '은은한 오동나무 장기판, 청(楚)과 홍(漢)의 기물 대결 및 중후한 착수감',
+    descEn: 'Paulownia wooden board with classic Chu vs Han tactical clash',
+  },
   {
     id: 'classic',
     nameKo: '클래식 모노',
@@ -161,5 +189,5 @@ export const THEME_STORAGE_KEY = 'sudoku-theme-preference-v2';
 
 export function getThemeConfig(id: ThemeId): ThemeConfig {
   const found = THEME_LIST.find((t) => t.id === id);
-  return found ?? THEME_LIST[0];
+  return found ?? THEME_LIST.find((t) => t.id === 'classic') ?? THEME_LIST[0];
 }

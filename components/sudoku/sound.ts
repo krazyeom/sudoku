@@ -5,6 +5,14 @@ class SoundEffects {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private isUnlocked: boolean = false;
+  private currentTheme: string = 'chess';
+
+  /**
+   * Set active theme for dynamic sound styling (e.g. wood clack in chess/janggi).
+   */
+  setTheme(theme: string): void {
+    this.currentTheme = theme;
+  }
 
   private getContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -230,9 +238,73 @@ class SoundEffects {
   }
 
   /**
-   * Played on neutral keypad input / selection.
+   * Tactile wooden chess piece / janggi stone placement sound.
+   * Synthesized entirely with Web Audio API (low wood body resonance + mechanical impact click).
    */
-  async playInput(number: number = 1) {
+  async playWoodClack(isDeep: boolean = false) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const now = ctx.currentTime;
+
+      // 1. Wood body thump (decaying triangle oscillator)
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(isDeep ? 160 : 220, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.08);
+
+      oscGain.gain.setValueAtTime(0.35, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+
+      osc.connect(oscGain);
+      oscGain.connect(this.getDestination(ctx));
+      osc.start(now);
+      osc.stop(now + 0.09);
+
+      // 2. Mechanical surface contact transient (bandpassed burst)
+      const bufferSize = Math.floor(ctx.sampleRate * 0.035);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(isDeep ? 1200 : 1600, now);
+      filter.Q.setValueAtTime(2.2, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.28, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.getDestination(ctx));
+
+      noise.start(now);
+      noise.stop(now + 0.04);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Played on neutral keypad input / selection.
+   * If current theme is chess or janggi, triggers authentic tactile wood clack!
+   */
+  async playInput(number: number = 1, themeOverride?: string) {
+    const activeTheme = themeOverride || this.currentTheme;
+    if (activeTheme === 'chess' || activeTheme === 'janggi') {
+      return this.playWoodClack(false);
+    }
+
     const ctx = this.getContext();
     if (!ctx) return;
 

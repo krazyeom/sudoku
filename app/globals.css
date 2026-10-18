@@ -15,6 +15,66 @@
 }
 
 :root,
+[data-theme="chess"] {
+  --bg-primary: #120e0a;
+  --bg-secondary: #1a140f;
+  --bg-tertiary: #271e16;
+  --bg-hover: #362a1f;
+  --bg-board: #18120c;
+  --border-subtle: #38291c;
+  --border-medium: #5c432d;
+  --border-strong: #d4af37;
+  --text-primary: #fef3c7;
+  --text-secondary: #d6c7b2;
+  --text-muted: #94826d;
+  --accent-primary: #d4af37;
+  --accent-primary-text: #1a1208;
+  --accent-secondary: #b45309;
+  --cell-given: #fffbeb;
+  --cell-user: #f59e0b;
+  --cell-note: #a89883;
+  --cell-bg-selected: rgba(212, 175, 55, 0.28);
+  --cell-bg-highlight: rgba(212, 175, 55, 0.08);
+  --cell-bg-same: rgba(180, 83, 9, 0.24);
+  --cell-bg-hover: rgba(212, 175, 55, 0.14);
+  --theme-glow: rgba(212, 175, 55, 0.35);
+  --grid-dot: rgba(212, 175, 55, 0.05);
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-sm: 8px;
+  --shadow-dock: 0 -4px 24px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 235, 200, 0.15);
+}
+
+[data-theme="janggi"] {
+  --bg-primary: #140d07;
+  --bg-secondary: #1e130a;
+  --bg-tertiary: #2c1c0f;
+  --bg-hover: #3d2716;
+  --bg-board: #1a1007;
+  --border-subtle: #422815;
+  --border-medium: #694122;
+  --border-strong: #e11d48;
+  --text-primary: #fef9c3;
+  --text-secondary: #d1bda2;
+  --text-muted: #8c785f;
+  --accent-primary: #e11d48;
+  --accent-primary-text: #ffffff;
+  --accent-secondary: #2563eb;
+  --cell-given: #fef08a;
+  --cell-user: #38bdf8;
+  --cell-note: #a39076;
+  --cell-bg-selected: rgba(225, 29, 72, 0.26);
+  --cell-bg-highlight: rgba(37, 99, 235, 0.08);
+  --cell-bg-same: rgba(225, 29, 72, 0.2);
+  --cell-bg-hover: rgba(225, 29, 72, 0.12);
+  --theme-glow: rgba(225, 29, 72, 0.35);
+  --grid-dot: rgba(217, 119, 6, 0.05);
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-sm: 8px;
+  --shadow-dock: 0 -4px 24px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 220, 180, 0.15);
+}
+
 [data-theme="classic"] {
   --bg-primary: #07090e;
   --bg-secondary: #0f121a;
