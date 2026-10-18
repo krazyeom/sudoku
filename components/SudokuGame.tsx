@@ -1307,7 +1307,7 @@ export default function SudokuGame() {
     setHintPreview(null);
 
     const isCorrect = value === puzzle.solution[row][col];
-    const isHardOrBattle = difficulty === 'hard' || battleMode === 'hard' || battleMode === 'normal';
+    const isEasy = difficulty === 'easy';
     let currentCombo = 0;
 
     if (isCorrect) {
@@ -1344,54 +1344,31 @@ export default function SudokuGame() {
         });
       } else {
         triggerHaptic('input');
-        if (soundEnabled) void soundEffects.playCorrect();
+        if (soundEnabled) {
+          if (isEasy) {
+            void soundEffects.playCorrect();
+          } else {
+            void soundEffects.playInput(value);
+          }
+        }
       }
     } else {
       // Wrong answer
-      triggerHaptic('error');
-      const hadCombo = comboCountRef.current >= 2;
       comboCountRef.current = 0;
-      consecutiveMistakesRef.current += 1;
-      const mistakeCount = consecutiveMistakesRef.current;
 
-      if (soundEnabled && hadCombo) {
-        void soundEffects.playComboBreak();
-      }
-
-      if (isHardOrBattle) {
-        if (mistakeCount === 1) {
-          if (soundEnabled && !hadCombo) void soundEffects.playMistake(1);
-          flashToast(
-            hadCombo
-              ? (locale === 'ko' ? '❌ 콤보 중단! (오답 입력)' : '❌ Combo broken! (Wrong answer)')
-              : (locale === 'ko' ? '⚠️ 오답입니다! 연속 오답 시 페널티가 발생합니다.' : '⚠️ Incorrect! Consecutive errors trigger penalties.')
-          );
-        } else if (mistakeCount === 2) {
-          if (soundEnabled) void soundEffects.playConsecutiveMistake(2);
-          const cooldownUntil = Date.now() + 1200;
-          setMistakeCooldownUntil(cooldownUntil);
-          flashToast(
-            locale === 'ko'
-              ? '⛔ 2회 연속 오답 페널티! 1.2초간 입력이 정지됩니다.'
-              : '⛔ 2 Consecutive errors! 1.2s input cooldown.'
-          );
-        } else {
-          if (soundEnabled) void soundEffects.playConsecutiveMistake(3);
-          const cooldownUntil = Date.now() + 2500;
-          setMistakeCooldownUntil(cooldownUntil);
-          setActiveDebuff({
-            type: 'mist',
-            endsAt: cooldownUntil,
-            label: locale === 'ko' ? '오답 누적 시야 안개' : 'Mistake Fog Penalty',
-          });
-          flashToast(
-            locale === 'ko'
-              ? '💥 3회 연속 오답! 시야 안개 + 2.5초간 입력 잠금!'
-              : '💥 3 Consecutive errors! Mist fog + 2.5s input lock!'
-          );
-        }
+      if (isEasy) {
+        // Beginner friendly: gently notify errors on Easy difficulty only
+        triggerHaptic('error');
+        if (soundEnabled) void soundEffects.playMistake(1);
+        flashToast(
+          locale === 'ko'
+            ? '⚠️ 올바른 숫자가 아닙니다.'
+            : '⚠️ Incorrect number.'
+        );
       } else {
-        if (soundEnabled && !hadCombo) void soundEffects.playMistake(1);
+        // Medium & Hard: Do NOT reveal mistakes or penalize! Treat purely as user input
+        triggerHaptic('input');
+        if (soundEnabled) void soundEffects.playInput(value);
       }
     }
 
