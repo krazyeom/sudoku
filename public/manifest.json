@@ -1,20 +1,20 @@
 {
-  "name": "배틀 스도쿠 | Battle Sudoku",
+  "name": "배틀 스도쿠 | Battle Sudoku 1v1",
   "short_name": "배틀스도쿠",
-  "description": "실시간 1v1 대결 및 비행기/여행 중 오프라인 솔로 플레이 완벽 지원 두뇌 퍼즐 게임",
+  "description": "실시간 1v1 배틀 대결 & 오프라인 솔로 플레이 지원 차세대 두뇌 퍼즐 게임",
   "start_url": "/",
-  "id": "/",
+  "id": "com.krazyeom.battlesudoku",
   "display": "standalone",
-  "background_color": "#0a0c10",
-  "theme_color": "#0a0c10",
-  "orientation": "any",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon.svg",
-      "sizes": "any",
+      "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "puzzle"]
+  "categories": ["games", "puzzle", "strategy"]
 }

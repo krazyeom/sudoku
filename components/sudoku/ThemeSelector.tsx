@@ -3,6 +3,7 @@ import styles from './sudoku.module.css';
 import { THEME_LIST, type ThemeConfig, type ThemeId } from './theme';
 import type { Locale } from './types';
 import { PaletteIcon } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface ThemeSelectorProps {
   currentTheme: ThemeId;
@@ -27,6 +28,17 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     if (categoryFilter === 'all') return true;
     return theme.categoryEn === categoryFilter;
   });
+
+  const handleSelect = (themeId: ThemeId) => {
+    triggerHaptic('selection');
+    onSelectTheme(themeId);
+    onClose();
+  };
+
+  const handleFilter = (f: 'all' | 'Season' | 'Nature/Sci-Fi') => {
+    triggerHaptic('selection');
+    setCategoryFilter(f);
+  };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose} role="dialog" aria-modal="true">
@@ -63,7 +75,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           <button
             type="button"
             className={`${styles.modeBtn} ${categoryFilter === 'all' ? styles.modeBtnActive : ''}`}
-            onClick={() => setCategoryFilter('all')}
+            onClick={() => handleFilter('all')}
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
             {locale === 'ko' ? '전체 테마' : 'All'}
@@ -71,7 +83,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           <button
             type="button"
             className={`${styles.modeBtn} ${categoryFilter === 'Season' ? styles.modeBtnActive : ''}`}
-            onClick={() => setCategoryFilter('Season')}
+            onClick={() => handleFilter('Season')}
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
             {locale === 'ko' ? '계절 / 시즌' : 'Seasons'}
@@ -79,7 +91,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           <button
             type="button"
             className={`${styles.modeBtn} ${categoryFilter === 'Nature/Sci-Fi' ? styles.modeBtnActive : ''}`}
-            onClick={() => setCategoryFilter('Nature/Sci-Fi')}
+            onClick={() => handleFilter('Nature/Sci-Fi')}
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
             {locale === 'ko' ? '자연 / 우주' : 'Nature & Cosmos'}
@@ -95,10 +107,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 key={theme.id}
                 type="button"
                 className={`${styles.themeCard} ${isActive ? styles.themeCardActive : ''}`}
-                onClick={() => {
-                  onSelectTheme(theme.id);
-                  onClose();
-                }}
+                onClick={() => handleSelect(theme.id)}
               >
                 <div className={styles.themeCardTop}>
                   <span className={styles.themeIcon}>{theme.icon}</span>

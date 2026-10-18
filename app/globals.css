@@ -7,6 +7,13 @@
    Curated neutral bases with disciplined single-hue high-contrast accents
    ========================================================================= */
 
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 :root,
 [data-theme="classic"] {
   --bg-primary: #09090b;
@@ -32,9 +39,10 @@
   --cell-bg-hover: rgba(255, 255, 255, 0.06);
   --theme-glow: rgba(255, 255, 255, 0.08);
   --grid-dot: rgba(255, 255, 255, 0.025);
-  --radius-card: 8px;
-  --radius-btn: 6px;
-  --radius-sm: 4px;
+  --radius-card: 14px;
+  --radius-btn: 10px;
+  --radius-sm: 6px;
+  --shadow-dock: 0 -4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 [data-theme="christmas"] {
@@ -303,23 +311,30 @@ body {
   padding: 0;
   margin: 0;
   min-height: 100%;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Pretendard', 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
 }
 
 body {
   color: var(--text-primary, #f4f4f6);
   background-color: var(--bg-primary, #09090b);
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 70%),
     linear-gradient(var(--grid-dot, rgba(255, 255, 255, 0.025)) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-dot, rgba(255, 255, 255, 0.025)) 1px, transparent 1px);
   background-size: 100% 100%, 28px 28px, 28px 28px;
   background-attachment: fixed;
   min-height: 100vh;
+  min-height: 100dvh;
   transition: background-color 0.25s ease, color 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 ::selection {
@@ -337,4 +352,20 @@ input,
 textarea,
 select {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Glassmorphism utility for iOS/Android native feel */
+.nativeGlass {
+  background: rgba(18, 18, 21, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle, #242429);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+

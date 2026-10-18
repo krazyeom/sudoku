@@ -10,6 +10,7 @@ import {
   CheckSearchIcon,
   UndoIcon,
 } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface GameControlsProps {
   difficulty: Difficulty;
@@ -38,6 +39,35 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onCheck,
   onUndo,
 }) => {
+  const handleDiff = (d: Difficulty) => {
+    triggerHaptic('selection');
+    onDifficultyChange(d);
+  };
+
+  const handleNew = () => {
+    triggerHaptic('selection');
+    onNewGame();
+  };
+
+  const handleHint = () => {
+    triggerHaptic('note');
+    onHint();
+  };
+
+  const handleAutoFill = () => {
+    triggerHaptic('success');
+    onAutoFill();
+  };
+
+  const handleCheck = () => {
+    triggerHaptic('input');
+    onCheck();
+  };
+
+  const handleUndo = () => {
+    triggerHaptic('selection');
+    onUndo();
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* Difficulty Selection */}
@@ -56,7 +86,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
               key={diff.id}
               type="button"
               className={`${styles.diffPill} ${isActive ? styles.diffPillActive : ''}`}
-              onClick={() => onDifficultyChange(diff.id)}
+              onClick={() => handleDiff(diff.id)}
               disabled={sharedRoomActive}
             >
               <i className={`${styles.diffDot} ${dotClass}`} />
@@ -70,9 +100,9 @@ export const GameControls: React.FC<GameControlsProps> = ({
       <button
         type="button"
         className={styles.btnPrimary}
-        onClick={onNewGame}
+        onClick={handleNew}
       >
-        <PlayIcon size={14} color="currentColor" />
+        <PlayIcon size={16} color="currentColor" />
         <span>{locale === 'ko' ? '새 게임 시작' : 'Start New Game'}</span>
       </button>
 
@@ -81,10 +111,10 @@ export const GameControls: React.FC<GameControlsProps> = ({
         <button
           type="button"
           className={styles.btnSecondary}
-          onClick={onHint}
+          onClick={handleHint}
           disabled={sharedRoomActive || items.hint <= 0}
         >
-          <LightbulbIcon size={14} color="currentColor" />
+          <LightbulbIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '힌트' : 'Hint'}</span>
           <span className={styles.countBadge}>{items.hint}</span>
         </button>
@@ -92,10 +122,10 @@ export const GameControls: React.FC<GameControlsProps> = ({
         <button
           type="button"
           className={styles.btnSecondary}
-          onClick={onAutoFill}
+          onClick={handleAutoFill}
           disabled={sharedRoomActive || items.autoFill <= 0}
         >
-          <SparklesIcon size={14} color="currentColor" />
+          <SparklesIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '자동완성' : 'Auto-fill'}</span>
           <span className={styles.countBadge}>{items.autoFill}</span>
         </button>
@@ -103,20 +133,20 @@ export const GameControls: React.FC<GameControlsProps> = ({
         <button
           type="button"
           className={styles.btnSecondary}
-          onClick={onCheck}
+          onClick={handleCheck}
           disabled={sharedRoomActive}
         >
-          <CheckSearchIcon size={14} color="currentColor" />
+          <CheckSearchIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '검사' : 'Check'}</span>
         </button>
 
         <button
           type="button"
           className={styles.btnSecondary}
-          onClick={onUndo}
+          onClick={handleUndo}
           disabled={sharedRoomActive || !canUndo}
         >
-          <UndoIcon size={14} color="currentColor" />
+          <UndoIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '되돌리기' : 'Undo'}</span>
         </button>
       </div>

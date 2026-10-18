@@ -17,12 +17,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: '#0a0c10',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+    { media: '(prefers-color-scheme: light)', color: '#09090b' },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
+
 
 export default function RootLayout({
   children,

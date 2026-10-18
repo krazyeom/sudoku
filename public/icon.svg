@@ -1,53 +1,117 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a0e17"/>
-      <stop offset="50%" stop-color="#111827"/>
-      <stop offset="100%" stop-color="#070a10"/>
+    <!-- Background Gradient: Deep Space Matte to Obsidian Slate -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12131a"/>
+      <stop offset="50%" stop-color="#090a0f"/>
+      <stop offset="100%" stop-color="#040508"/>
     </linearGradient>
-    <linearGradient id="gridGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+
+    <!-- Glass Rim Metallic Stroke -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="35%" stop-color="#60a5fa" stop-opacity="0.5"/>
+      <stop offset="70%" stop-color="#f43f5e" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Tactical Sudoku Grid Plate -->
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e202c"/>
+      <stop offset="100%" stop-color="#0f1118"/>
+    </linearGradient>
+
+    <!-- Sword Blue Flame Gradient -->
+    <linearGradient id="blueSwordGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="50%" stop-color="#818cf8"/>
-      <stop offset="100%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="8" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+
+    <!-- Sword Rose Fire Gradient -->
+    <linearGradient id="roseSwordGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow -->
+    <filter id="appShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Glowing Core Filter -->
+    <filter id="coreGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <!-- Background Card -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#1e293b" stroke-width="4"/>
+  <!-- iOS / Android Standard Squircle Container with 114px Corner Radius -->
+  <rect width="512" height="512" rx="114" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="110" fill="none" stroke="url(#rimGrad)" stroke-width="4"/>
 
-  <!-- Sudoku 3x3 Outer Box Glow -->
-  <rect x="96" y="96" width="320" height="320" rx="20" fill="#0f172a" fill-opacity="0.8" stroke="url(#gridGlow)" stroke-width="6" filter="url(#glow)"/>
+  <!-- Ambient Backlight -->
+  <circle cx="160" cy="180" r="140" fill="#38bdf8" opacity="0.08" filter="blur(40px)"/>
+  <circle cx="350" cy="330" r="140" fill="#f43f5e" opacity="0.08" filter="blur(40px)"/>
 
-  <!-- Inner Sub-grid Lines -->
-  <line x1="202" y1="96" x2="202" y2="416" stroke="#334155" stroke-width="4" stroke-dasharray="2 4"/>
-  <line x1="310" y1="96" x2="310" y2="416" stroke="#334155" stroke-width="4" stroke-dasharray="2 4"/>
-  <line x1="96" y1="202" x2="416" y2="202" stroke="#334155" stroke-width="4" stroke-dasharray="2 4"/>
-  <line x1="96" y1="310" x2="416" y2="310" stroke="#334155" stroke-width="4" stroke-dasharray="2 4"/>
-
-  <!-- Major Cross Lines -->
-  <line x1="202" y1="96" x2="202" y2="416" stroke="#475569" stroke-width="3"/>
-  <line x1="310" y1="96" x2="310" y2="416" stroke="#475569" stroke-width="3"/>
-  <line x1="96" y1="202" x2="416" y2="202" stroke="#475569" stroke-width="3"/>
-  <line x1="96" y1="310" x2="416" y2="310" stroke="#475569" stroke-width="3"/>
-
-  <!-- Sudoku Numbers -->
-  <text x="149" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="54" font-weight="900" fill="#38bdf8" text-anchor="middle">9</text>
-  <text x="363" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="54" font-weight="900" fill="#e2e8f0" text-anchor="middle">4</text>
-  <text x="149" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="54" font-weight="900" fill="#e2e8f0" text-anchor="middle">7</text>
-  <text x="363" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="54" font-weight="900" fill="#a855f7" text-anchor="middle">5</text>
-
-  <!-- Central Battle Swords Motif -->
-  <g transform="translate(256, 256)">
-    <!-- Sword 1 -->
-    <path d="M-42,-42 L42,42 M-30,-42 L-42,-30 L-20,-8 L-8,-20 Z M32,32 L46,46 M26,38 L38,26" stroke="#f43f5e" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
-    <!-- Sword 2 -->
-    <path d="M42,-42 L-42,42 M30,-42 L42,-30 L20,-8 L8,-20 Z M-32,32 L-46,46 M-26,38 L-38,26" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
-    <!-- Spark center -->
-    <circle cx="0" cy="0" r="10" fill="#ffffff" filter="url(#glow)"/>
+  <!-- Tactical Sudoku Board Plate (Chamfered Glass) -->
+  <g filter="url(#appShadow)">
+    <rect x="76" y="76" width="360" height="360" rx="36" fill="url(#plateGrad)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2.5"/>
+    <rect x="80" y="80" width="352" height="352" rx="32" fill="none" stroke="rgba(0, 0, 0, 0.6)" stroke-width="2"/>
   </g>
+
+  <!-- 3x3 Major Grid Lines (Precision Engraved) -->
+  <line x1="196" y1="84" x2="196" y2="428" stroke="rgba(255, 255, 255, 0.18)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="316" y1="84" x2="316" y2="428" stroke="rgba(255, 255, 255, 0.18)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="84" y1="196" x2="428" y2="196" stroke="rgba(255, 255, 255, 0.18)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="84" y1="316" x2="428" y2="316" stroke="rgba(255, 255, 255, 0.18)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Sudoku Number Glyphs (Bold Modern Typography) -->
+  <!-- Top Left: 9 (Player 1 Cyan) -->
+  <g transform="translate(136, 148)">
+    <rect x="-42" y="-42" width="84" height="84" rx="16" fill="rgba(56, 189, 248, 0.1)" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.5"/>
+    <text x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', Roboto, sans-serif" font-size="46" font-weight="900" fill="#38bdf8" text-anchor="middle">9</text>
+  </g>
+
+  <!-- Top Right: 4 (Given Neutral) -->
+  <g transform="translate(376, 148)">
+    <rect x="-42" y="-42" width="84" height="84" rx="16" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5"/>
+    <text x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', Roboto, sans-serif" font-size="46" font-weight="800" fill="#e2e8f0" text-anchor="middle">4</text>
+  </g>
+
+  <!-- Bottom Left: 7 (Given Neutral) -->
+  <g transform="translate(136, 372)">
+    <rect x="-42" y="-42" width="84" height="84" rx="16" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5"/>
+    <text x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', Roboto, sans-serif" font-size="46" font-weight="800" fill="#e2e8f0" text-anchor="middle">7</text>
+  </g>
+
+  <!-- Bottom Right: 2 (Opponent Rose) -->
+  <g transform="translate(376, 372)">
+    <rect x="-42" y="-42" width="84" height="84" rx="16" fill="rgba(244, 63, 94, 0.1)" stroke="rgba(244, 63, 94, 0.3)" stroke-width="1.5"/>
+    <text x="0" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', Roboto, sans-serif" font-size="46" font-weight="900" fill="#fb7185" text-anchor="middle">2</text>
+  </g>
+
+  <!-- Center Crossfire Arena Motif: 1v1 Battle Emblem -->
+  <g transform="translate(256, 256)">
+    <!-- Central Hexagonal Ring -->
+    <circle cx="0" cy="0" r="54" fill="#0c0e14" stroke="rgba(255, 255, 255, 0.25)" stroke-width="3"/>
+    <circle cx="0" cy="0" r="46" fill="rgba(255, 255, 255, 0.03)"/>
+
+    <!-- Left-to-Right Sword (Cyan Blade) -->
+    <path d="M-44,-44 L36,36 M-34,-44 L-44,-34 L-24,-14 L-14,-24 Z M26,26 L42,42 M20,32 L32,20" 
+          stroke="url(#blueSwordGrad)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#coreGlow)"/>
+
+    <!-- Right-to-Left Sword (Rose Crimson Blade) -->
+    <path d="M44,-44 L-36,36 M34,-44 L44,-34 L24,-14 L14,-24 Z M-26,26 L-42,42 M-20,32 L-32,20" 
+          stroke="url(#roseSwordGrad)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#coreGlow)"/>
+
+    <!-- Core Fusion Spark (Tactical Energy Nexus) -->
+    <circle cx="0" cy="0" r="11" fill="#ffffff" filter="url(#coreGlow)"/>
+    <circle cx="0" cy="0" r="5" fill="#fef08a"/>
+  </g>
+
+  <!-- Top Glass Highlight Arc -->
+  <path d="M120 76 Q256 120 392 76" stroke="rgba(255, 255, 255, 0.3)" stroke-width="2" fill="none" opacity="0.6"/>
 </svg>

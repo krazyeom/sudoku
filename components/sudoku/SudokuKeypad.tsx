@@ -3,7 +3,8 @@ import styles from './sudoku.module.css';
 import type { Grid } from '@/lib/sudoku';
 import type { Locale } from './types';
 import { getRemainingCounts } from './helpers';
-import { NotesIcon, EraseIcon, ShieldAlertIcon } from './Icons';
+import { NotesIcon, EraseIcon, UndoIcon, ShieldAlertIcon } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface SudokuKeypadProps {
   board: Grid;
@@ -39,13 +40,37 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
     return [7, 3, 9, 2, 8, 4, 1, 6, 5];
   }, [scrambleActive]);
 
+  const handleNumber = (number: number) => {
+    if (disabled) return;
+    triggerHaptic(noteMode ? 'note' : 'input');
+    onNumberClick(number);
+  };
+
+  const handleNotes = () => {
+    if (disabled) return;
+    triggerHaptic('note');
+    onToggleNoteMode();
+  };
+
+  const handleClear = () => {
+    if (disabled) return;
+    triggerHaptic('erase');
+    onClearClick();
+  };
+
+  const handleUndo = () => {
+    if (disabled || !canUndo) return;
+    triggerHaptic('selection');
+    onUndoClick();
+  };
+
   return (
     <div className={`${styles.keypadWrap} ${scrambleActive ? styles.keypadScrambled : ''}`}>
       {/* Fixed Status Slot prevents keypad from jumping vertically */}
       <div className={`${styles.keypadStatusSlot} ${scrambleActive ? styles.keypadStatusSlotScrambled : ''}`}>
         {scrambleActive ? (
           <span className={styles.keypadScrambleText} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldAlertIcon size={13} color="#fde68a" />
+            <ShieldAlertIcon size={14} color="#fde68a" />
             <span>{locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Active!'}</span>
           </span>
         ) : (
@@ -68,13 +93,13 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
               className={`${styles.keyBtn} ${isCompleted ? styles.keyBtnCompleted : ''} ${
                 scrambleActive ? styles.keyBtnScrambled : ''
               }`}
-              onClick={() => onNumberClick(number)}
+              onClick={() => handleNumber(number)}
               disabled={disabled}
             >
-              <span>{number}</span>
+              <span className={styles.keyDigitText}>{number}</span>
               {!hideRemainingCounts && (
                 <span className={styles.keyRemainingBadge}>
-                  {isCompleted ? '•' : remaining}
+                  {isCompleted ? '✓' : remaining}
                 </span>
               )}
             </button>
@@ -82,16 +107,28 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
         })}
       </div>
 
-      {/* Action Controls: Erase, Notes Mode */}
+      {/* Mobile-Friendly Action Controls: Undo, Notes Mode, Erase */}
       <div className={styles.keypadActions}>
         <button
           type="button"
+          className={`${styles.keyActionBtn} ${!canUndo ? styles.keyActionDisabled : ''}`}
+          onClick={handleUndo}
+          disabled={disabled || !canUndo}
+          aria-label={locale === 'ko' ? '되돌리기' : 'Undo'}
+        >
+          <UndoIcon size={16} color="currentColor" />
+          <span>{locale === 'ko' ? '실행취소' : 'Undo'}</span>
+        </button>
+
+        <button
+          type="button"
           className={`${styles.keyActionBtn} ${noteMode ? styles.keyActionNotesActive : ''}`}
-          onClick={onToggleNoteMode}
+          onClick={handleNotes}
           disabled={disabled}
           aria-pressed={noteMode}
+          aria-label={locale === 'ko' ? '메모 모드' : 'Notes'}
         >
-          <NotesIcon size={14} color="currentColor" />
+          <NotesIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '메모' : 'Notes'}</span>
           <span className={styles.notesActiveIndicator}>{noteMode ? 'ON' : 'OFF'}</span>
         </button>
@@ -99,13 +136,15 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
         <button
           type="button"
           className={styles.keyActionBtn}
-          onClick={onClearClick}
+          onClick={handleClear}
           disabled={disabled}
+          aria-label={locale === 'ko' ? '지우기' : 'Erase'}
         >
-          <EraseIcon size={14} color="currentColor" />
+          <EraseIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '지우기' : 'Erase'}</span>
         </button>
       </div>
     </div>
   );
 };
+

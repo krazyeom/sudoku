@@ -12,6 +12,10 @@ export default function HomePage() {
         </div>
 
         <div className={styles.headerActions}>
+          <div className={styles.marketPwaBadge}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
+            <span>PWA Edition</span>
+          </div>
           <a
             className={styles.gitHubBtn}
             href="https://github.com/krazyeom/sudoku"

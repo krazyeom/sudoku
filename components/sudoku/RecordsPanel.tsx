@@ -4,6 +4,7 @@ import type { Difficulty } from '@/lib/sudoku';
 import type { Locale, RecordEntry } from './types';
 import { formatTime } from './share';
 import { filterAndSortRecords } from '@/lib/recordView';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface RecordsPanelProps {
   records: RecordEntry[];
@@ -107,7 +108,10 @@ export const RecordsPanel: React.FC<RecordsPanelProps> = ({
               className={`${styles.filterPill} ${
                 difficultyFilter === diff ? styles.filterPillActive : ''
               }`}
-              onClick={() => onFilterChange(diff)}
+              onClick={() => {
+                triggerHaptic('selection');
+                onFilterChange(diff);
+              }}
             >
               {diff === 'all'
                 ? locale === 'ko'
@@ -134,7 +138,10 @@ export const RecordsPanel: React.FC<RecordsPanelProps> = ({
               key={sort}
               type="button"
               className={`${styles.filterPill} ${sortMode === sort ? styles.filterPillActive : ''}`}
-              onClick={() => onSortChange(sort)}
+              onClick={() => {
+                triggerHaptic('selection');
+                onSortChange(sort);
+              }}
             >
               {sort === 'fastest'
                 ? locale === 'ko'

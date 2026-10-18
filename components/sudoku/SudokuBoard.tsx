@@ -11,6 +11,7 @@ import {
   ShieldAlertIcon,
   SparklesIcon,
 } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface SudokuBoardProps {
   board: Grid;
@@ -310,6 +311,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                   className={cellClasses}
                   onClick={() => {
                     if (!isBoardLocked) {
+                      triggerHaptic('selection');
                       onCellClick(r, c);
                     }
                   }}

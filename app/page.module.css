@@ -1,88 +1,76 @@
 .page {
   min-height: 100vh;
-  padding: 20px 20px 40px;
+  min-height: 100dvh;
+  padding: calc(16px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   max-width: 1240px;
   margin: 0 auto;
 }
 
+@media (max-width: 640px) {
+  .page {
+    padding: calc(10px + var(--safe-top)) 10px calc(20px + var(--safe-bottom));
+    gap: 12px;
+  }
+}
+
 .header {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 14px;
+  gap: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle, #242429);
 }
 
 .brandRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.brandMark {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-btn, 6px);
-  background: var(--bg-tertiary, #18181c);
-  border: 1px solid var(--border-medium, #383840);
-  color: var(--accent-primary, #ffffff);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.brandTextGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.brandTitle {
-  font-size: 0.96rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--text-primary, #ffffff);
-  line-height: 1.1;
-}
-
-.brandSubtitle {
-  font-size: 0.68rem;
-  font-weight: 500;
-  color: var(--text-muted, #71717c);
-  letter-spacing: 0.02em;
+  gap: 10px;
 }
 
 .versionTag {
-  font-size: 0.64rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 800;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm, 4px);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm, 6px);
   background: var(--bg-tertiary, #18181c);
   border: 1px solid var(--border-subtle, #242429);
   color: var(--text-muted, #71717c);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.marketPwaBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
 }
 
 .gitHubBtn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   padding: 6px 12px;
-  border-radius: var(--radius-btn, 6px);
+  border-radius: var(--radius-btn, 8px);
   background: var(--bg-secondary, #121215);
   border: 1px solid var(--border-subtle, #242429);
   color: var(--text-secondary, #a1a1ab);
@@ -100,16 +88,16 @@
 
 .footer {
   width: 100%;
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: auto;
+  padding-top: 14px;
   border-top: 1px solid var(--border-subtle, #242429);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
   color: var(--text-muted, #71717c);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
 }
 
 .footerLeft {
@@ -142,6 +130,12 @@
   font-size: 0.72rem;
 }
 
+@media (max-width: 640px) {
+  .footerHotkeys {
+    display: none;
+  }
+}
+
 .footerHotkeys kbd {
   display: inline-block;
   padding: 2px 6px;
@@ -149,6 +143,6 @@
   font-size: 0.68rem;
   background: var(--bg-tertiary, #18181c);
   border: 1px solid var(--border-subtle, #242429);
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--text-secondary, #a1a1ab);
 }

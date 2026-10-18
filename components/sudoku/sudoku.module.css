@@ -20,10 +20,38 @@
   align-items: start;
 }
 
+.boardColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.desktopBattleWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .boardColumn {
+    order: 1;
+  }
+
+  .card {
+    order: 2;
+  }
+
+  .desktopBattleWrapper {
+    display: none !important;
+  }
+
+  .boardHiddenMobile {
+    display: none !important;
   }
 }
 
@@ -31,12 +59,12 @@
 .card {
   background: var(--bg-secondary, #121215);
   border: 1px solid var(--border-subtle, #242429);
-  border-radius: var(--radius-card, 8px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.35);
-  padding: 18px;
+  border-radius: var(--radius-card, 14px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 16px rgba(0, 0, 0, 0.4);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   transition: border-color 0.15s ease, background-color 0.2s ease;
 }
 
@@ -44,27 +72,35 @@
   border-color: var(--border-medium, #383840);
 }
 
+.cardBattleMode {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(225, 29, 72, 0.15) !important;
+}
+
 /* Segmented Tab Navigation */
 .tabNav {
-  height: 40px;
-  min-height: 40px;
+  height: 44px;
+  min-height: 44px;
   display: flex;
-  background: var(--bg-primary, #09090b);
+  background: rgba(18, 18, 22, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle, #242429);
-  border-radius: var(--radius-btn, 6px);
+  border-radius: var(--radius-btn, 10px);
   padding: 3px;
-  gap: 3px;
+  gap: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .tabBtn {
   flex: 1;
   height: 100%;
-  padding: 0 14px;
-  border-radius: calc(var(--radius-btn, 6px) - 2px);
+  padding: 0 12px;
+  border-radius: calc(var(--radius-btn, 10px) - 2px);
   background: transparent;
   color: var(--text-muted, #71717c);
-  font-weight: 600;
-  font-size: 0.82rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   border: none;
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -73,6 +109,8 @@
   justify-content: center;
   gap: 7px;
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .tabBtn:hover {
@@ -83,8 +121,30 @@
 .tabBtnActive {
   background: var(--accent-primary, #ffffff) !important;
   color: var(--accent-primary-text, #09090b) !important;
-  font-weight: 700 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tabLiveBadge {
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #e11d48;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  animation: pulseLive 2s infinite ease-in-out;
+}
+
+@keyframes pulseLive {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
 }
 
 /* Header Text & Badges */
@@ -526,15 +586,16 @@
   content: '';
   position: absolute;
   inset: 2px;
-  border: 1px solid var(--border-medium, #383840);
-  border-radius: 2px;
+  border: 1.5px solid var(--border-medium, #383840);
+  border-radius: 4px;
   pointer-events: none;
 }
 
 /* Active Selected Cell */
 .cellSelected {
-  background: var(--cell-bg-selected, rgba(255, 255, 255, 0.14)) !important;
+  background: var(--cell-bg-selected, rgba(255, 255, 255, 0.16)) !important;
   z-index: 2;
+  box-shadow: inset 0 0 12px var(--theme-glow, rgba(255, 255, 255, 0.1));
 }
 
 .cellSelected::before {
@@ -542,22 +603,24 @@
   position: absolute;
   inset: 0;
   border: 2px solid var(--accent-primary, #ffffff);
-  border-radius: 2px;
+  border-radius: 4px;
   pointer-events: none;
+  box-shadow: 0 0 10px var(--theme-glow, rgba(255, 255, 255, 0.2));
 }
 
 /* Conflict / Wrong Input State */
 .cellConflict {
-  background: rgba(244, 63, 94, 0.14) !important;
+  background: rgba(244, 63, 94, 0.2) !important;
 }
 
 .cellConflict::before {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1.5px solid #f43f5e;
-  border-radius: 2px;
+  border: 2px solid #f43f5e;
+  border-radius: 4px;
   pointer-events: none;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
 }
 
 /* Hint Preview Cell */
@@ -685,34 +748,40 @@
 .keypadGrid {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  gap: 6px;
+  gap: 5px;
 }
 
-@media (max-width: 540px) {
+@media (max-width: 480px) {
   .keypadGrid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    gap: 4px;
   }
 }
 
 .keyBtn {
   position: relative;
-  aspect-ratio: 1 / 1.15;
+  height: 52px;
+  min-height: 48px;
   background: var(--bg-tertiary, #18181c);
   border: 1px solid var(--border-subtle, #242429);
-  border-radius: var(--radius-btn, 6px);
+  border-radius: var(--radius-btn, 10px);
   color: var(--text-primary, #ffffff);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  transition: all 0.1s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.25);
+  gap: 1px;
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.35);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.keyDigitText {
+  line-height: 1;
 }
 
 .keyBtn:hover:not(:disabled) {
@@ -722,8 +791,9 @@
 }
 
 .keyBtn:active:not(:disabled) {
-  transform: translateY(1.5px) scale(0.985);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  transform: scale(0.92);
+  background: var(--bg-hover, #2a2a32);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .keyBtn:disabled {
@@ -732,7 +802,7 @@
 }
 
 .keyBtnCompleted {
-  opacity: 0.25 !important;
+  opacity: 0.22 !important;
   background: var(--bg-primary, #09090b) !important;
   border-color: var(--border-subtle, #242429) !important;
   color: var(--text-muted, #71717c) !important;
@@ -740,37 +810,46 @@
 }
 
 .keyRemainingBadge {
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
   color: var(--text-muted, #71717c);
   line-height: 1;
 }
 
-/* Secondary Keypad Controls: Erase, Notes toggle */
+/* Secondary Keypad Controls: Undo, Notes toggle, Erase */
 .keypadActions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  margin-top: 2px;
 }
 
 .keyActionBtn {
-  height: 40px;
-  min-height: 40px;
-  padding: 0 12px;
-  border-radius: var(--radius-btn, 6px);
+  height: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-btn, 10px);
   background: var(--bg-tertiary, #18181c);
   border: 1px solid var(--border-subtle, #242429);
   color: var(--text-secondary, #a1a1ab);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   white-space: nowrap;
   transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.keyActionDisabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 
 .keyActionBtn:hover:not(:disabled) {

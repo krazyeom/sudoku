@@ -78,7 +78,8 @@ import { BattlePanel } from './sudoku/BattlePanel';
 import { HeaderStatus } from './sudoku/HeaderStatus';
 import { RecordsPanel } from './sudoku/RecordsPanel';
 import { CompletionModal } from './sudoku/CompletionModal';
-import { GridIcon, TrophyIcon } from './sudoku/Icons';
+import { GridIcon, TrophyIcon, SwordIcon } from './sudoku/Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 export default function SudokuGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -105,7 +106,7 @@ export default function SudokuGame() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [records, setRecords] = useState<RecordEntry[]>([]);
-  const [activePanel, setActivePanel] = useState<'play' | 'records'>('play');
+  const [activePanel, setActivePanel] = useState<'play' | 'battle' | 'records'>('play');
   const [recordDifficultyFilter, setRecordDifficultyFilter] = useState<'all' | Difficulty>('all');
   const [recordSortMode, setRecordSortMode] = useState<'fastest' | 'newest' | 'oldest'>('fastest');
   const [noteMode, setNoteMode] = useState(false);
@@ -1077,10 +1078,14 @@ export default function SudokuGame() {
         (sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId) ||
         (gameMode === 'vs_ai' && sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku')
       ) {
+        triggerHaptic('error');
         void soundEffects.playDefeat();
       } else {
+        triggerHaptic('victory');
         void soundEffects.playVictory();
       }
+    } else {
+      triggerHaptic(isViewerWinner ? 'victory' : 'error');
     }
 
     if (!sharedRoom && !completionSavedRef.current) {
@@ -1204,6 +1209,7 @@ export default function SudokuGame() {
       currentCombo = comboCountRef.current;
 
       if (currentCombo >= 2) {
+        triggerHaptic('success');
         if (soundEnabled) void soundEffects.playCombo(currentCombo);
         setBattleToast({
           id: `combo-${Date.now()}`,
@@ -1216,10 +1222,12 @@ export default function SudokuGame() {
           timestamp: Date.now(),
         });
       } else {
+        triggerHaptic('input');
         if (soundEnabled) void soundEffects.playCorrect();
       }
     } else {
       // Wrong answer
+      triggerHaptic('error');
       const hadCombo = comboCountRef.current >= 2;
       comboCountRef.current = 0;
       consecutiveMistakesRef.current += 1;
@@ -1597,33 +1605,51 @@ export default function SudokuGame() {
 
   return (
     <div className={styles.container} data-theme={theme}>
-      {/* Tab Navigation: Play vs Records */}
+      {/* Mobile-First Segmented Tab Navigation: Play vs Battle vs Records */}
       <div className={styles.tabNav} role="tablist">
         <button
           type="button"
           className={`${styles.tabBtn} ${activePanel === 'play' ? styles.tabBtnActive : ''}`}
           onClick={() => {
+            triggerHaptic('selection');
             setActivePanel('play');
             handleLogoClick();
           }}
         >
-          <GridIcon size={14} color="currentColor" />
-          <span>{locale === 'ko' ? '스튜디오 플레이' : 'Play Studio'}</span>
+          <GridIcon size={16} color="currentColor" />
+          <span>{locale === 'ko' ? '스도쿠' : 'Play'}</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activePanel === 'battle' ? styles.tabBtnActive : ''}`}
+          onClick={() => {
+            triggerHaptic('selection');
+            setActivePanel('battle');
+          }}
+        >
+          <SwordIcon size={16} color="currentColor" />
+          <span>{locale === 'ko' ? '1v1 배틀' : 'Battle'}</span>
+          {(gameMode !== 'solo' || sharedRoomIsActive) && (
+            <span className={styles.tabLiveBadge}>LIVE</span>
+          )}
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${activePanel === 'records' ? styles.tabBtnActive : ''}`}
-          onClick={() => setActivePanel('records')}
+          onClick={() => {
+            triggerHaptic('selection');
+            setActivePanel('records');
+          }}
         >
-          <TrophyIcon size={14} color="currentColor" />
-          <span>{locale === 'ko' ? '기록실 & 통계' : 'Records & Stats'}</span>
+          <TrophyIcon size={16} color="currentColor" />
+          <span>{locale === 'ko' ? '기록실' : 'Records'}</span>
         </button>
       </div>
 
       <div className={styles.layout}>
-        {/* Left Column: Game Management & Keypad */}
-        <aside className={styles.card}>
-          {activePanel === 'play' ? (
+        {/* Left Column: Game Management & Panels */}
+        <aside className={`${styles.card} ${activePanel === 'battle' ? styles.cardBattleMode : ''}`}>
+          {activePanel === 'play' && (
             <>
               {/* Header Status HUD */}
               <HeaderStatus
@@ -1677,7 +1703,82 @@ export default function SudokuGame() {
                 onUndo={handleUndo}
               />
 
-              {/* 1v1 Battle Panel */}
+              {/* Desktop-only secondary Battle preview when on Play tab */}
+              <div className={styles.desktopBattleWrapper}>
+                <BattlePanel
+                  gameMode={gameMode}
+                  onGameModeChange={handleGameModeChange}
+                  sharedRoom={sharedRoom}
+                  battleSummary={battleSummary}
+                  playerProgress={playerProgress}
+                  aiProgress={aiRival.progressPercent}
+                  minimapGrid={gameMode === 'vs_ai' ? aiMinimap : sharedBattleMiniMapGrid}
+                  roomInput={roomInput}
+                  battleMode={battleMode}
+                  locale={locale}
+                  isOnline={isOnline}
+                  elapsedSeconds={elapsedSeconds}
+                  sharedCompletionSummary={sharedCompletionSummary}
+                  solved={solved}
+                  onRoomInputChange={setRoomInput}
+                  onBattleModeChange={handleBattleModeChange}
+                  onNewGame={() => resetGame(difficulty)}
+                  onRestartAiBattle={() => {
+                    setAiRival(createAiRival(puzzle.puzzle));
+                    setSharedCompletionSummary(null);
+                    setSolved(false);
+                    flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');
+                  }}
+                  onCreateRoom={() => {
+                    const id = `room-${Math.random().toString(36).slice(2, 9)}`;
+                    setRoomInput(id);
+                    connectSharedRoom(id, difficulty, 'host', battleMode);
+                  }}
+                  onJoinRoom={() => {
+                    const clean = sanitizeRoomIdInput(roomInput);
+                    if (clean) connectSharedRoom(clean, undefined, 'guest', battleMode);
+                  }}
+                  onCopyRoomId={async () => {
+                    if (sharedRoom) {
+                      await copyTextToClipboard(sharedRoom.roomId);
+                      flashToast(locale === 'ko' ? '방 ID를 복사했습니다!' : 'Copied Room ID!');
+                    }
+                  }}
+                  onCopyInviteLink={async () => {
+                    if (sharedRoom) {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('room', sharedRoom.roomId);
+                      await copyTextToClipboard(url.toString());
+                      flashToast(locale === 'ko' ? '초대 링크를 복사했습니다!' : 'Copied Invite Link!');
+                    }
+                  }}
+                  onDisconnectRoom={disconnectSharedRoom}
+                />
+              </div>
+            </>
+          )}
+
+          {activePanel === 'battle' && (
+            <>
+              <HeaderStatus
+                elapsedSeconds={elapsedSeconds}
+                timerRunning={timerRunning}
+                noteMode={noteMode}
+                soundEnabled={soundEnabled}
+                locale={locale}
+                isOnline={isOnline}
+                currentTheme={theme}
+                onToggleSound={() => {
+                  setSoundEnabled((cur) => {
+                    const next = !cur;
+                    soundEffects.unlockAudio();
+                    void soundEffects.playToggle(next);
+                    return next;
+                  });
+                }}
+                onToggleLocale={() => setLocale((cur) => (cur === 'ko' ? 'en' : 'ko'))}
+                onOpenThemeSelector={() => setIsThemeSelectorOpen(true)}
+              />
               <BattlePanel
                 gameMode={gameMode}
                 onGameModeChange={handleGameModeChange}
@@ -1728,8 +1829,9 @@ export default function SudokuGame() {
                 onDisconnectRoom={disconnectSharedRoom}
               />
             </>
-          ) : (
-            /* Records & Stats View */
+          )}
+
+          {activePanel === 'records' && (
             <RecordsPanel
               records={records}
               difficultyFilter={recordDifficultyFilter}
@@ -1776,7 +1878,7 @@ export default function SudokuGame() {
         </aside>
 
         {/* Right Column: The Sudoku Board & Tactile Keypad */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className={`${styles.boardColumn} ${activePanel !== 'play' ? styles.boardHiddenMobile : ''}`}>
           <SudokuBoard
             board={board}
             notes={notes}

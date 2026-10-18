@@ -15,11 +15,12 @@
   grid-template-rows: repeat(4, var(--tile-size, 10px));
   gap: var(--tile-gap, 2px);
   position: relative;
-  padding: 2px;
-  border-radius: var(--radius-sm, 4px);
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border-subtle, #242429);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  padding: 3px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(10, 10, 14, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* Base Tile Styling */
@@ -29,13 +30,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 800;
+  border-radius: 3px;
+  font-family: -apple-system, BlinkMacSystemFont, ui-monospace, SFMono-Regular, monospace;
+  font-weight: 900;
   font-size: var(--tile-font, 7px);
   line-height: 1;
   position: relative;
-  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Sudoku Tiles (S, U, D, O, K) */
@@ -43,32 +44,32 @@
   background: var(--bg-tertiary, #18181c);
   border: 1px solid var(--border-medium, #383840);
   color: var(--text-primary, #f4f4f6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 /* Duel Vertical Tiles (D, E, L) */
 .tileDuel {
-  background: rgba(225, 29, 72, 0.15);
-  border: 1px solid rgba(225, 29, 72, 0.4);
+  background: rgba(225, 29, 72, 0.18);
+  border: 1px solid rgba(244, 63, 94, 0.45);
   color: #fb7185;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Intersection Tile: 'U' (SUDOKU's 6th char & DUEL's 2nd char) */
 .tileIntersection {
-  background: linear-gradient(135deg, var(--accent-primary, #e11d48), #f43f5e);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, #e11d48, #f43f5e);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   color: #ffffff;
   font-weight: 900;
-  box-shadow: 0 0 8px rgba(225, 29, 72, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   z-index: 2;
 }
 
 .nexusGlow {
   position: absolute;
   inset: -2px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   pointer-events: none;
   animation: pulseNexus 2.5s infinite ease-in-out;
 }
@@ -79,8 +80,8 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.08);
+    opacity: 0.9;
+    transform: scale(1.1);
   }
 }
 
@@ -99,25 +100,26 @@
 }
 
 .brandTitle {
-  font-size: 0.98rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
   color: var(--text-primary, #ffffff);
 }
 
 .brandTitleAccent {
-  font-size: 0.98rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
   color: #fb7185;
-  text-shadow: 0 0 10px rgba(251, 113, 133, 0.3);
+  text-shadow: 0 0 12px rgba(251, 113, 133, 0.4);
 }
 
 .brandTagline {
   font-size: 0.68rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted, #71717c);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Size Variants */

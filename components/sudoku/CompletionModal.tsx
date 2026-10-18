@@ -10,6 +10,7 @@ import type {
 import { formatTime } from './share';
 import { getDifficultyLabel } from './helpers';
 import { TrophyIcon, SwordIcon, PlayIcon, ShareIcon } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface CompletionModalProps {
   isOpen: boolean;
@@ -135,16 +136,37 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
 
         {/* Modal Buttons */}
         <div className={styles.modalActions}>
-          <button type="button" className={styles.btnPrimary} onClick={onNewGame}>
-            <PlayIcon size={14} color="currentColor" />
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => {
+              triggerHaptic('selection');
+              onNewGame();
+            }}
+          >
+            <PlayIcon size={16} color="currentColor" />
             <span>{locale === 'ko' ? '새 게임 시작' : 'Play Again'}</span>
           </button>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button type="button" className={styles.btnSecondary} onClick={onShare}>
-              <ShareIcon size={14} color="currentColor" />
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => {
+                triggerHaptic('selection');
+                onShare();
+              }}
+            >
+              <ShareIcon size={16} color="currentColor" />
               <span>{locale === 'ko' ? '기록 공유' : 'Share'}</span>
             </button>
-            <button type="button" className={styles.btnSecondary} onClick={onClose}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => {
+                triggerHaptic('selection');
+                onClose();
+              }}
+            >
               <span>{locale === 'ko' ? '보드 보기' : 'View Board'}</span>
             </button>
           </div>

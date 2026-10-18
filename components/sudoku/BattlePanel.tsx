@@ -12,6 +12,7 @@ import {
   TrophyIcon,
   TimerIcon,
 } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface BattlePanelProps {
   gameMode: GameMode;
@@ -142,25 +143,34 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'solo' ? styles.modeBtnActive : ''}`}
-            onClick={() => onGameModeChange('solo')}
+            onClick={() => {
+              triggerHaptic('selection');
+              onGameModeChange('solo');
+            }}
           >
-            <SoloIcon size={13} color="currentColor" />
+            <SoloIcon size={14} color="currentColor" />
             <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? '싱글' : 'Solo'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'vs_ai' ? styles.modeBtnActive : ''}`}
-            onClick={() => onGameModeChange('vs_ai')}
+            onClick={() => {
+              triggerHaptic('selection');
+              onGameModeChange('vs_ai');
+            }}
           >
-            <BotIcon size={13} color="currentColor" />
+            <BotIcon size={14} color="currentColor" />
             <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? 'vs AI' : 'vs AI'}</span>
           </button>
           <button
             type="button"
             className={`${styles.modeBtn} ${gameMode === 'online' ? styles.modeBtnActive : ''}`}
-            onClick={() => onGameModeChange('online')}
+            onClick={() => {
+              triggerHaptic('selection');
+              onGameModeChange('online');
+            }}
           >
-            <SwordIcon size={13} color="currentColor" />
+            <SwordIcon size={14} color="currentColor" />
             <span style={{ marginLeft: '4px' }}>{locale === 'ko' ? '1v1 배틀' : '1v1'}</span>
           </button>
         </div>
@@ -245,7 +255,10 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                     key={mode.id}
                     type="button"
                     className={`${styles.modeBtn} ${isSelected ? styles.modeBtnActive : ''}`}
-                    onClick={() => onBattleModeChange(mode.id)}
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      onBattleModeChange(mode.id);
+                    }}
                     title={locale === 'ko' ? mode.descKo : mode.descEn}
                   >
                     <span>{locale === 'ko' ? mode.labelKo : mode.labelEn}</span>
@@ -519,6 +532,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                     className={`${styles.modeBtn} ${isSelected ? styles.modeBtnActive : ''}`}
                     onClick={() => {
                       if (canChangeMode) {
+                        triggerHaptic('selection');
                         onBattleModeChange(mode.id);
                       }
                     }}

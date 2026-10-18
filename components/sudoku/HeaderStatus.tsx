@@ -12,6 +12,7 @@ import {
   PaletteIcon,
   PlaneIcon,
 } from './Icons';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface HeaderStatusProps {
   elapsedSeconds: number;
@@ -38,6 +39,21 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   onToggleLocale,
   onOpenThemeSelector,
 }) => {
+  const handleSound = () => {
+    triggerHaptic('selection');
+    onToggleSound();
+  };
+
+  const handleLocale = () => {
+    triggerHaptic('selection');
+    onToggleLocale();
+  };
+
+  const handleTheme = () => {
+    triggerHaptic('selection');
+    onOpenThemeSelector();
+  };
+
   const themeConfig = getThemeConfig(currentTheme);
   return (
     <div className={styles.hudGrid}>
@@ -71,7 +87,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       <button
         type="button"
         className={`${styles.hudCard} ${styles.hudCardInteractive}`}
-        onClick={onOpenThemeSelector}
+        onClick={handleTheme}
         style={{
           gridColumn: '1 / -1',
           display: 'flex',
@@ -159,7 +175,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
         className={`${styles.hudCard} ${styles.hudCardInteractive} ${
           soundEnabled ? styles.hudCardActive : ''
         }`}
-        onClick={onToggleSound}
+        onClick={handleSound}
       >
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '효과음' : 'Sound'}</span>
@@ -176,7 +192,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
       <button
         type="button"
         className={`${styles.hudCard} ${styles.hudCardInteractive}`}
-        onClick={onToggleLocale}
+        onClick={handleLocale}
       >
         <div className={styles.hudLabel}>
           <span>{locale === 'ko' ? '언어 선택' : 'Language'}</span>
