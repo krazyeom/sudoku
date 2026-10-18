@@ -50,6 +50,61 @@
   flex-shrink: 0;
 }
 
+.creatorBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle, #202636);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.creatorBadge:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.creatorIcon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.creatorBadge:hover .creatorIcon {
+  opacity: 1;
+  fill: #38bdf8;
+  transform: scale(1.08);
+}
+
+.creatorLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.creatorName {
+  font-weight: 700;
+  color: var(--text-primary, #e2e8f0);
+  letter-spacing: 0.01em;
+}
+
+.creatorBadge:hover .creatorName {
+  color: #38bdf8;
+}
+
 
 .footer {
   width: 100%;
@@ -166,3 +221,15 @@
     gap: 6px;
   }
 }
+
+@media (max-width: 480px) {
+  .creatorLabel {
+    display: none;
+  }
+  .creatorBadge {
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    gap: 5px;
+  }
+}
+
