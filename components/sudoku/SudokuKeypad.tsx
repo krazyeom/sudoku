@@ -66,20 +66,6 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
 
   return (
     <div className={`${styles.keypadWrap} ${scrambleActive ? styles.keypadScrambled : ''}`}>
-      {/* Fixed Status Slot prevents keypad from jumping vertically */}
-      <div className={`${styles.keypadStatusSlot} ${scrambleActive ? styles.keypadStatusSlotScrambled : ''}`}>
-        {scrambleActive ? (
-          <span className={styles.keypadScrambleText} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldAlertIcon size={14} color="#fde68a" />
-            <span>{locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Active!'}</span>
-          </span>
-        ) : (
-          <span className={styles.keypadNormalText}>
-            {locale === 'ko' ? '숫자 1~9 터치 또는 키보드 입력' : 'Tap 1-9 or press keys'}
-          </span>
-        )}
-      </div>
-
       {/* Numbers 1-9 */}
       <div className={styles.keypadGrid}>
         {keypadNumbers.map((number) => {
@@ -143,6 +129,20 @@ export const SudokuKeypad: React.FC<SudokuKeypadProps> = ({
           <EraseIcon size={16} color="currentColor" />
           <span>{locale === 'ko' ? '지우기' : 'Erase'}</span>
         </button>
+      </div>
+
+      {/* Fixed Status Slot positioned below keypad */}
+      <div className={`${styles.keypadStatusSlot} ${scrambleActive ? styles.keypadStatusSlotScrambled : ''}`}>
+        {scrambleActive ? (
+          <span className={styles.keypadScrambleText} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldAlertIcon size={14} color="#fde68a" />
+            <span>{locale === 'ko' ? '키패드 교란 디버프 발동 중!' : 'Keypad Chaos Active!'}</span>
+          </span>
+        ) : (
+          <span className={styles.keypadNormalText}>
+            {locale === 'ko' ? '숫자 1~9 터치 또는 키보드 입력' : 'Tap 1-9 or press keys'}
+          </span>
+        )}
       </div>
     </div>
   );
