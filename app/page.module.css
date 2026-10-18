@@ -54,51 +54,93 @@
 .footer {
   width: 100%;
   margin-top: auto;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-subtle, #242429);
+  padding: 22px 0 14px;
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  color: var(--text-muted, #71717c);
-  font-size: 0.75rem;
+  justifyContent: center;
 }
 
-.footerLeft {
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-subtle, rgba(255, 255, 255, 0.08)), transparent);
+}
+
+.footerContent {
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justifyContent: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.copyright {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--text-muted, #71717c);
+  flex-wrap: wrap;
 }
 
-.footerLeft a {
-  color: var(--text-secondary, #a1a1ab);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--border-medium, #383840);
-  text-underline-offset: 3px;
-  transition: color 0.15s ease;
-}
-
-.footerLeft a:hover {
+.copyright strong {
   color: var(--text-primary, #ffffff);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.footerSep {
+.dot {
   opacity: 0.4;
+  font-size: 0.65rem;
+}
+
+.authorLink {
+  color: #38bdf8;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+}
+
+.authorLink:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(56, 189, 248, 0.25);
 }
 
 .footerHotkeys {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 0.72rem;
+  color: var(--text-muted, #71717c);
 }
 
-@media (max-width: 640px) {
-  .footerHotkeys {
-    display: none;
-  }
+.hotkeyLabel {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.65;
+  margin-right: 2px;
 }
 
 .footerHotkeys kbd {
@@ -110,4 +152,17 @@
   border: 1px solid var(--border-subtle, #242429);
   border-radius: 4px;
   color: var(--text-secondary, #a1a1ab);
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 18px 0 10px;
+  }
+  .footerHotkeys {
+    display: none;
+  }
+  .copyright {
+    font-size: 0.72rem;
+    gap: 6px;
+  }
 }

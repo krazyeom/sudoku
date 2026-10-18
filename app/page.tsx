@@ -15,17 +15,31 @@ export default function HomePage() {
       <SudokuGame />
 
       <footer className={styles.footer}>
-        <div className={styles.footerLeft}>
-          <span>© 2026 <a href="https://github.com/krazyeom" target="_blank" rel="noreferrer">krazyeom</a></span>
-        </div>
-        <div className={styles.footerHotkeys}>
-          <span>Keys:</span>
-          <kbd>1–9</kbd>
-          <kbd>Arrows</kbd>
-          <kbd>Del</kbd>
-          <kbd>N</kbd>
-          <kbd>I</kbd>
-          <kbd>H</kbd>
+        <div className={styles.footerContent}>
+          <p className={styles.copyright}>
+            <span>© 2026 <strong>Sudoku Duel</strong></span>
+            <span className={styles.dot}>•</span>
+            <span>
+              Made by{' '}
+              <a
+                href="https://github.com/krazyeom"
+                target="_blank"
+                rel="noreferrer"
+                className={styles.authorLink}
+              >
+                krazyeom
+              </a>
+            </span>
+          </p>
+
+          <div className={styles.footerHotkeys}>
+            <span className={styles.hotkeyLabel}>Quick Keys</span>
+            <kbd>1–9</kbd>
+            <kbd>Arrows</kbd>
+            <kbd>Del</kbd>
+            <kbd>N Note</kbd>
+            <kbd>H Hint</kbd>
+          </div>
         </div>
       </footer>
     </main>
