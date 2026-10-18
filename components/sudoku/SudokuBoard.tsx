@@ -34,6 +34,80 @@ interface SudokuBoardProps {
   onCellClick: (row: number, col: number) => void;
 }
 
+interface InkSplatData {
+  id: number;
+  top: string;
+  left: string;
+  width: string;
+  height: string;
+  transform: string;
+  clipPath: string;
+  opacity: number;
+}
+
+const INK_SHAPES = [
+  'polygon(25% 0%, 70% 10%, 100% 45%, 85% 85%, 40% 100%, 0% 75%, 5% 25%)',
+  'polygon(15% 10%, 80% 0%, 95% 65%, 60% 95%, 10% 80%, 0% 40%)',
+  'polygon(30% 0%, 90% 20%, 100% 80%, 45% 100%, 0% 60%)',
+  'polygon(20% 5%, 75% 0%, 98% 30%, 88% 80%, 55% 98%, 15% 88%, 0% 50%)',
+  'polygon(40% 0%, 85% 15%, 100% 60%, 70% 95%, 25% 90%, 0% 55%, 10% 20%)',
+  'polygon(10% 20%, 65% 5%, 95% 25%, 90% 70%, 50% 95%, 5% 75%)',
+  'polygon(50% 0%, 90% 35%, 80% 90%, 20% 85%, 5% 40%)',
+  'polygon(35% 5%, 80% 15%, 95% 50%, 80% 85%, 30% 95%, 5% 70%, 10% 30%)',
+];
+
+function generateRandomInkSplats(): InkSplatData[] {
+  // 3 distinct primary ink splatters spread across top, middle, and bottom sectors
+  const primaryZones = [
+    { topMin: 5, topMax: 28, leftMin: 6, leftMax: 62 },
+    { topMin: 32, topMax: 56, leftMin: 12, leftMax: 58 },
+    { topMin: 60, topMax: 78, leftMin: 8, leftMax: 65 },
+  ];
+
+  const splats: InkSplatData[] = primaryZones.map((zone, idx) => {
+    const top = zone.topMin + Math.floor(Math.random() * (zone.topMax - zone.topMin));
+    const left = zone.leftMin + Math.floor(Math.random() * (zone.leftMax - zone.leftMin));
+    const width = 160 + Math.floor(Math.random() * 85);
+    const height = 130 + Math.floor(Math.random() * 75);
+    const rotate = Math.floor(Math.random() * 360);
+    const shape = INK_SHAPES[idx % INK_SHAPES.length];
+    const opacity = 0.92 + Math.random() * 0.06;
+
+    return {
+      id: idx + 1,
+      top: `${top}%`,
+      left: `${left}%`,
+      width: `${width}px`,
+      height: `${height}px`,
+      transform: `rotate(${rotate}deg)`,
+      clipPath: shape,
+      opacity,
+    };
+  });
+
+  // 3 smaller scattered ink droplets for realistic splatter effect
+  for (let i = 0; i < 3; i++) {
+    const top = 8 + Math.floor(Math.random() * 80);
+    const left = 8 + Math.floor(Math.random() * 80);
+    const size = 35 + Math.floor(Math.random() * 45);
+    const rotate = Math.floor(Math.random() * 360);
+    const shape = INK_SHAPES[(i + 3) % INK_SHAPES.length];
+
+    splats.push({
+      id: i + 10,
+      top: `${top}%`,
+      left: `${left}%`,
+      width: `${size}px`,
+      height: `${size}px`,
+      transform: `rotate(${rotate}deg)`,
+      clipPath: shape,
+      opacity: 0.85 + Math.random() * 0.1,
+    });
+  }
+
+  return splats;
+}
+
 export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   board,
   notes,
@@ -65,6 +139,12 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   const isBlind = activeDebuff?.type === 'blind';
   const isMist = activeDebuff?.type === 'mist';
   const isBoardLocked = sharedMatchGateActive || isFrozen;
+
+  // Generate randomized ink splatter layout for every new blind debuff instance
+  const inkSplats = useMemo(() => {
+    if (!isBlind) return [];
+    return generateRandomInkSplats();
+  }, [isBlind, activeDebuff?.endsAt]);
 
   return (
     <section className={styles.boardSection}>
@@ -248,9 +328,21 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
           {/* Blind Ink Splatters */}
           {!sharedMatchGateActive && isBlind && (
             <div className={styles.blindInkContainer} aria-hidden="true">
-              <div className={`${styles.inkSplat} ${styles.inkSplat1}`} />
-              <div className={`${styles.inkSplat} ${styles.inkSplat2}`} />
-              <div className={`${styles.inkSplat} ${styles.inkSplat3}`} />
+              {inkSplats.map((splat) => (
+                <div
+                  key={splat.id}
+                  className={styles.inkSplat}
+                  style={{
+                    top: splat.top,
+                    left: splat.left,
+                    width: splat.width,
+                    height: splat.height,
+                    transform: splat.transform,
+                    clipPath: splat.clipPath,
+                    opacity: splat.opacity,
+                  }}
+                />
+              ))}
             </div>
           )}
 

@@ -1472,9 +1472,20 @@
 
 .inkSplat {
   position: absolute;
-  background: #09090b;
-  border: 1px solid #242429;
-  filter: drop-shadow(0 0 8px #000000);
+  background: radial-gradient(circle at 42% 42%, #22222a 0%, #0d0d12 55%, #000000 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.95));
+  animation: inkSplatFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: none;
+}
+
+@keyframes inkSplatFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .inkSplat1 {

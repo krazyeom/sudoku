@@ -159,37 +159,42 @@ export function stepAiRival(
   let attack: RoomAttack | null = null;
   if (newlyCompleted.length > 0 && battleMode !== 'off') {
     let debuffType: DebuffType = 'quake';
-    let durationMs = 2000;
+    let durationMs = 3200;
     let labelKo = '알파도쿠 지진 공격';
     let labelEn = 'Alphadoku Board Quake';
 
     if (battleMode === 'hard') {
       if (newlyCompleted.some((u) => u.type === 'box')) {
         debuffType = 'freeze';
-        durationMs = 1600;
+        durationMs = 2500;
         labelKo = '알파도쿠 AI 빙결 기습';
         labelEn = 'AI Freeze Assault';
+      } else if (newlyCompleted.some((u) => u.type === 'col')) {
+        debuffType = 'blind';
+        durationMs = 5000;
+        labelKo = '알파도쿠 짙은 먹물 테러';
+        labelEn = 'AI Heavy Ink Splatter';
       } else {
         debuffType = 'scramble';
-        durationMs = 3500;
-        labelKo = '알파도쿠 키패드 셔플';
-        labelEn = 'AI Keypad Shuffle';
+        durationMs = 5500;
+        labelKo = '알파도쿠 키패드 대혼란';
+        labelEn = 'AI Keypad Chaos';
       }
     } else if (battleMode === 'normal') {
       if (newlyCompleted.some((u) => u.type === 'box')) {
         debuffType = 'scramble';
-        durationMs = 2400;
+        durationMs = 4000;
         labelKo = '알파도쿠 키패드 셔플';
         labelEn = 'AI Keypad Shuffle';
       } else {
         debuffType = 'blind';
-        durationMs = 2400;
+        durationMs = 3800;
         labelKo = '알파도쿠 잉크 블러';
         labelEn = 'AI Ink Splatter';
       }
     } else {
       debuffType = 'mist';
-      durationMs = 1800;
+      durationMs = 2800;
       labelKo = '알파도쿠 안개 스모크';
       labelEn = 'AI Smoke Mist';
     }
