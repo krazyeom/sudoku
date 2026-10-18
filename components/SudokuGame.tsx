@@ -379,7 +379,12 @@ export default function SudokuGame() {
       const now = Date.now();
       if (now < aiRival.stunnedUntil || now < aiRival.nextMoveTime) return;
 
-      const { nextState, attack, solved: aiSolved } = stepAiRival(aiRival, puzzle.solution, battleMode);
+      const { nextState, attack, solved: aiSolved } = stepAiRival(
+        aiRival,
+        puzzle.solution,
+        battleMode,
+        playerProgress
+      );
       setAiRival(nextState);
 
       if (attack) {
@@ -400,7 +405,7 @@ export default function SudokuGame() {
     }, 350);
 
     return () => window.clearInterval(interval);
-  }, [gameMode, solved, timerRunning, aiRival, puzzle.solution, battleMode, difficulty, puzzle.clueCount, elapsedSeconds]);
+  }, [gameMode, solved, timerRunning, aiRival, puzzle.solution, battleMode, difficulty, puzzle.clueCount, elapsedSeconds, playerProgress]);
 
   function flashToast(text: string) {
     setCopyToast(text);

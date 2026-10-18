@@ -32,27 +32,27 @@ export function createAiRival(puzzleGrid: Grid): AiRivalState {
     progressPercent: 0,
     completedUnits: new Set<string>(),
     stunnedUntil: 0,
-    nextMoveTime: Date.now() + 3500, // Initial delay before AI begins
+    nextMoveTime: Date.now() + 5500, // Generous initial delay for human player to read board
     lastFilledCell: null,
   };
 }
 
 /**
  * Realistic human-like pacing for AI.
- * Not an instantaneous bot, but tuned to feel engaging and fair.
+ * Tuned so human players can have exciting, beatable duels.
  */
 export function getAiMoveInterval(battleMode: BattleMode): number {
   switch (battleMode) {
     case 'hard':
-      // 2.6s - 3.8s: skilled pace, but beatable with combos
-      return 2600 + Math.floor(Math.random() * 1200);
+      // 3.8s - 5.8s: skilled pace, but beatable with combos
+      return 3800 + Math.floor(Math.random() * 2000);
     case 'easy':
-      // 5.2s - 7.5s: relaxed pace, allows easy practice
-      return 5200 + Math.floor(Math.random() * 2300);
+      // 7.5s - 11.5s: relaxed pace, allows easy practice
+      return 7500 + Math.floor(Math.random() * 4000);
     case 'normal':
     default:
-      // 3.6s - 5.0s: thrilling back-and-forth
-      return 3600 + Math.floor(Math.random() * 1400);
+      // 5.8s - 8.8s: fair, enjoyable human-friendly pace
+      return 5800 + Math.floor(Math.random() * 3000);
   }
 }
 
@@ -62,7 +62,8 @@ export function getAiMoveInterval(battleMode: BattleMode): number {
 export function stepAiRival(
   current: AiRivalState,
   solution: Grid,
-  battleMode: BattleMode
+  battleMode: BattleMode,
+  playerProgress: number = 0
 ): {
   nextState: AiRivalState;
   attack: RoomAttack | null;
@@ -214,6 +215,20 @@ export function stepAiRival(
 
   const solved = newFilledCount >= current.totalFillable;
 
+  let interval = getAiMoveInterval(battleMode);
+
+  // 1. Human-like intermittent thinking pause (~25% of moves)
+  if (Math.random() < 0.25) {
+    interval += 2200 + Math.floor(Math.random() * 2500);
+  }
+
+  // 2. Dynamic rubberbanding: if AI leads player by more than 8%, slow down slightly
+  if (progressPercent > playerProgress + 8) {
+    const lead = progressPercent - playerProgress;
+    const catchupDelay = Math.min(4000, Math.floor(lead * 120));
+    interval += catchupDelay;
+  }
+
   const nextState: AiRivalState = {
     board: newBoard,
     filledCount: newFilledCount,
@@ -221,7 +236,7 @@ export function stepAiRival(
     progressPercent,
     completedUnits: newUnits,
     stunnedUntil: current.stunnedUntil,
-    nextMoveTime: Date.now() + getAiMoveInterval(battleMode),
+    nextMoveTime: Date.now() + interval,
     lastFilledCell: { row: target.row, col: target.col, value: correctVal },
   };
 
@@ -236,7 +251,7 @@ export function applyDebuffToAi(current: AiRivalState, durationMs: number): AiRi
   return {
     ...current,
     stunnedUntil,
-    nextMoveTime: Math.max(current.nextMoveTime, Date.now() + durationMs + 800),
+    nextMoveTime: Math.max(current.nextMoveTime, Date.now() + durationMs + 1200),
   };
 }
 

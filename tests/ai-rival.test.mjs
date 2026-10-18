@@ -41,13 +41,13 @@ test('createAiRival initializes AI state properly with human-paced intervals', (
   assert.equal(rival.board[0][1], null);
 
   const hardInterval = getAiMoveInterval('hard');
-  assert.ok(hardInterval >= 2600 && hardInterval <= 3800);
+  assert.ok(hardInterval >= 3800 && hardInterval <= 5800);
 
   const normalInterval = getAiMoveInterval('normal');
-  assert.ok(normalInterval >= 3600 && normalInterval <= 5000);
+  assert.ok(normalInterval >= 5800 && normalInterval <= 8800);
 
   const easyInterval = getAiMoveInterval('easy');
-  assert.ok(easyInterval >= 5200 && easyInterval <= 7500);
+  assert.ok(easyInterval >= 7500 && easyInterval <= 11500);
 });
 
 test('applyDebuffToAi stuns AI and pushes nextMoveTime', () => {
