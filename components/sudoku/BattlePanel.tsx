@@ -12,6 +12,7 @@ import {
   PlaneIcon,
   TrophyIcon,
   TimerIcon,
+  PlayIcon,
 } from './Icons';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -38,6 +39,7 @@ interface BattlePanelProps {
   onCopyRoomId: () => void;
   onCopyInviteLink: () => void;
   onDisconnectRoom: () => void;
+  onStartAiBattle?: () => void;
   onRestartAiBattle?: () => void;
   onNewGame?: () => void;
 }
@@ -107,6 +109,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   onCopyRoomId,
   onCopyInviteLink,
   onDisconnectRoom,
+  onStartAiBattle,
   onRestartAiBattle,
   onNewGame,
 }) => {
@@ -183,7 +186,11 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             className={`${styles.modeBtn} ${gameMode === 'vs_ai' ? styles.modeBtnActive : ''}`}
             onClick={() => {
               triggerHaptic('selection');
-              onGameModeChange('vs_ai');
+              if (gameMode === 'vs_ai' && onStartAiBattle) {
+                onStartAiBattle();
+              } else {
+                onGameModeChange('vs_ai');
+              }
             }}
           >
             <BotIcon size={14} color="currentColor" />
@@ -297,6 +304,47 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
               {locale === 'ko' ? currentModeInfo.descKo : currentModeInfo.descEn}
             </div>
           </div>
+
+          {/* Main Primary Action: Start AI Battle / Go to Sudoku Board */}
+          {onStartAiBattle && (
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={() => {
+                triggerHaptic('success');
+                onStartAiBattle();
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              <PlayIcon size={18} color="#ffffff" />
+              <span>
+                {locale === 'ko'
+                  ? (isAiMatchFinished
+                      ? '⚡ AI 대결 새 게임 시작 (수도쿠 판으로 이동)'
+                      : playerProgress === 0 && aiProgress === 0
+                        ? '⚡ AI 대결 시작 (수도쿠 판으로 이동)'
+                        : '🎮 수도쿠 판으로 이동하여 대결 계속')
+                  : (isAiMatchFinished
+                      ? '⚡ Start New AI Match (Go to Board)'
+                      : playerProgress === 0 && aiProgress === 0
+                        ? '⚡ Start AI Match (Go to Board)'
+                        : '🎮 Go to Board & Continue Duel')}
+              </span>
+            </button>
+          )}
 
           {/* AI Rival Duel Progress */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

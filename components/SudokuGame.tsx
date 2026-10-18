@@ -1490,6 +1490,25 @@ export default function SudokuGame() {
     );
   }
 
+  function handleStartAiBattle(resetPuzzle: boolean = false) {
+    triggerHaptic('success');
+    setGameMode('vs_ai');
+    if (resetPuzzle || solved || sharedCompletionSummary) {
+      resetGame(difficulty);
+    } else {
+      setAiRival(createAiRival(puzzle.puzzle));
+      setSharedCompletionSummary(null);
+      setSolved(false);
+    }
+    setTimerRunning(true);
+    setActivePanel('play');
+    flashToast(
+      locale === 'ko'
+        ? '🤖 알파도쿠 AI 대결 시작! 수도쿠 판으로 이동했습니다.'
+        : '🤖 AI Match Started! Switched to Sudoku board.'
+    );
+  }
+
   function handleUndo() {
     if (sharedMatchGateActive || sharedRoomIsActive || history.length === 0) return;
     const previous = history[history.length - 1];
@@ -1890,11 +1909,16 @@ export default function SudokuGame() {
                   solved={solved}
                   onRoomInputChange={setRoomInput}
                   onBattleModeChange={handleBattleModeChange}
-                  onNewGame={() => resetGame(difficulty)}
+                  onStartAiBattle={() => handleStartAiBattle(false)}
+                  onNewGame={() => {
+                    resetGame(difficulty);
+                    setActivePanel('play');
+                  }}
                   onRestartAiBattle={() => {
                     setAiRival(createAiRival(puzzle.puzzle));
                     setSharedCompletionSummary(null);
                     setSolved(false);
+                    setActivePanel('play');
                     flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');
                   }}
                   onCreateRoom={() => {
@@ -1965,11 +1989,16 @@ export default function SudokuGame() {
                 solved={solved}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
-                onNewGame={() => resetGame(difficulty)}
+                onStartAiBattle={() => handleStartAiBattle(false)}
+                onNewGame={() => {
+                  resetGame(difficulty);
+                  setActivePanel('play');
+                }}
                 onRestartAiBattle={() => {
                   setAiRival(createAiRival(puzzle.puzzle));
                   setSharedCompletionSummary(null);
                   setSolved(false);
+                  setActivePanel('play');
                   flashToast(locale === 'ko' ? '알파도쿠 AI와의 대결을 리셋했습니다.' : 'Reset AI Rival match.');
                 }}
                 onCreateRoom={() => {
