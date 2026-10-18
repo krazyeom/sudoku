@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '배틀 스도쿠 | Battle Sudoku',
-  description: '1v1 실시간 대결과 다채로운 방해 기믹, 오프라인 모드를 완벽 지원하는 배틀 스도쿠 게임',
+  title: '배틀 스도쿠 | Battle Sudoku 1v1',
+  description: '1v1 실시간 대결과 다채로운 방해 기믹, 오프라인 모드를 완벽 지원하는 차세대 배틀 스도쿠',
   manifest: '/manifest.json',
   icons: {
     icon: '/icon.svg',

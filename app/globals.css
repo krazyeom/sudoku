@@ -16,33 +16,33 @@
 
 :root,
 [data-theme="classic"] {
-  --bg-primary: #09090b;
-  --bg-secondary: #121215;
-  --bg-tertiary: #18181c;
-  --bg-hover: #222227;
-  --bg-board: #0b0b0e;
-  --border-subtle: #242429;
-  --border-medium: #383840;
-  --border-strong: #52525c;
-  --text-primary: #f4f4f6;
-  --text-secondary: #a1a1ab;
-  --text-muted: #71717c;
-  --accent-primary: #f4f4f6;
-  --accent-primary-text: #09090b;
-  --accent-secondary: #71717c;
-  --cell-given: #9898a4;
-  --cell-user: #ffffff;
-  --cell-note: #71717c;
-  --cell-bg-selected: rgba(255, 255, 255, 0.12);
-  --cell-bg-highlight: rgba(255, 255, 255, 0.035);
-  --cell-bg-same: rgba(255, 255, 255, 0.08);
-  --cell-bg-hover: rgba(255, 255, 255, 0.06);
-  --theme-glow: rgba(255, 255, 255, 0.08);
-  --grid-dot: rgba(255, 255, 255, 0.025);
-  --radius-card: 14px;
-  --radius-btn: 10px;
-  --radius-sm: 6px;
-  --shadow-dock: 0 -4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --bg-primary: #07090e;
+  --bg-secondary: #0f121a;
+  --bg-tertiary: #171b26;
+  --bg-hover: #222736;
+  --bg-board: #0b0e14;
+  --border-subtle: #202636;
+  --border-medium: #333d54;
+  --border-strong: #38bdf8;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent-primary: #38bdf8;
+  --accent-primary-text: #07090e;
+  --accent-secondary: #818cf8;
+  --cell-given: #e2e8f0;
+  --cell-user: #38bdf8;
+  --cell-note: #94a3b8;
+  --cell-bg-selected: rgba(56, 189, 248, 0.22);
+  --cell-bg-highlight: rgba(56, 189, 248, 0.05);
+  --cell-bg-same: rgba(129, 140, 248, 0.16);
+  --cell-bg-hover: rgba(56, 189, 248, 0.1);
+  --theme-glow: rgba(56, 189, 248, 0.25);
+  --grid-dot: rgba(56, 189, 248, 0.04);
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-sm: 8px;
+  --shadow-dock: 0 -4px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="christmas"] {
@@ -322,13 +322,15 @@ body {
 }
 
 body {
-  color: var(--text-primary, #f4f4f6);
-  background-color: var(--bg-primary, #09090b);
+  color: var(--text-primary, #f8fafc);
+  background-color: var(--bg-primary, #07090e);
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 70%),
-    linear-gradient(var(--grid-dot, rgba(255, 255, 255, 0.025)) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-dot, rgba(255, 255, 255, 0.025)) 1px, transparent 1px);
-  background-size: 100% 100%, 28px 28px, 28px 28px;
+    radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 90% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(129, 140, 248, 0.06) 0%, transparent 50%),
+    linear-gradient(var(--grid-dot, rgba(56, 189, 248, 0.04)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-dot, rgba(56, 189, 248, 0.04)) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
   background-attachment: fixed;
   min-height: 100vh;
   min-height: 100dvh;

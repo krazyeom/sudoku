@@ -1,12 +1,12 @@
-const CACHE_NAME = 'battle-sudoku-cache-v1';
-const PRECACHE_ASSETS = ['/', '/manifest.json', '/icon.svg'];
+const CACHE_NAME = 'battle-sudoku-cache-v2';
+const PRECACHE_ASSETS = ['/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_ASSETS))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -55,28 +55,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-While-Revalidate for static assets, pages, and chunks
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request)
+  // Navigation requests (HTML pages): NETWORK FIRST so updates appear immediately
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
           return networkResponse;
         })
         .catch(() => {
-          // If offline and request is for page navigation, return root cache
-          if (request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          return cachedResponse;
-        });
+          return caches.match('/') || caches.match(request);
+        })
+    );
+    return;
+  }
 
-      return cachedResponse || fetchPromise;
-    })
+  // Static assets and chunks: Cache with Network Fallback & update
+  event.respondWith(
+    fetch(request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(request))
   );
 });

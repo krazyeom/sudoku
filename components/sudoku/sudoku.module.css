@@ -510,21 +510,25 @@
 .boardGrid {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 490px;
   aspect-ratio: 1 / 1;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
-  background: var(--bg-board, #0b0b0e);
-  border: 2px solid var(--border-strong, #52525c);
-  border-radius: 8px;
+  background: var(--bg-board, #0b0e14);
+  border: 2.5px solid var(--border-medium, #333d54);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 35px var(--theme-glow, rgba(56, 189, 248, 0.15));
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .boardGridSolved {
-  border-color: var(--accent-primary, #ffffff) !important;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.4), inset 0 0 20px rgba(56, 189, 248, 0.2) !important;
 }
 
 /* Individual Cell */
@@ -542,21 +546,26 @@
   margin: 0;
   user-select: none;
   outline: none;
-  transition: background-color 0.1s ease;
+  transition: background-color 0.12s ease, transform 0.08s ease;
   font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
   
   /* Delicate inner borders */
-  border-right: 1px solid var(--border-subtle, #242429);
-  border-bottom: 1px solid var(--border-subtle, #242429);
+  border-right: 1px solid var(--border-subtle, #1e2433);
+  border-bottom: 1px solid var(--border-subtle, #1e2433);
+}
+
+.cell:active:not(.cellLocked) {
+  transform: scale(0.95);
 }
 
 /* 3x3 Block Boundary Demarcation */
 .cellColBreak {
-  border-right: 2px solid var(--border-strong, #52525c) !important;
+  border-right: 2.5px solid var(--border-medium, #333d54) !important;
 }
 
 .cellRowBreak {
-  border-bottom: 2px solid var(--border-strong, #52525c) !important;
+  border-bottom: 2.5px solid var(--border-medium, #333d54) !important;
 }
 
 .cellNoRightBorder {
@@ -569,48 +578,49 @@
 
 /* Hover State */
 .cell:hover:not(.cellLocked) {
-  background: var(--cell-bg-hover, rgba(255, 255, 255, 0.06));
+  background: var(--cell-bg-hover, rgba(56, 189, 248, 0.08));
 }
 
 /* Crosshair Highlight (Row, Col, or 3x3 block related to selected cell) */
 .cellRelated {
-  background: var(--cell-bg-highlight, rgba(255, 255, 255, 0.035));
+  background: var(--cell-bg-highlight, rgba(56, 189, 248, 0.05));
 }
 
 /* Same Digit Highlight: All instances of selected number */
 .cellMatchingDigit {
-  background: var(--cell-bg-same, rgba(255, 255, 255, 0.08)) !important;
+  background: var(--cell-bg-same, rgba(129, 140, 248, 0.16)) !important;
 }
 
 .cellMatchingDigit::after {
   content: '';
   position: absolute;
   inset: 2px;
-  border: 1.5px solid var(--border-medium, #383840);
-  border-radius: 4px;
+  border: 1.5px solid var(--border-strong, #38bdf8);
+  border-radius: 6px;
   pointer-events: none;
+  opacity: 0.8;
 }
 
 /* Active Selected Cell */
 .cellSelected {
-  background: var(--cell-bg-selected, rgba(255, 255, 255, 0.16)) !important;
+  background: var(--cell-bg-selected, rgba(56, 189, 248, 0.22)) !important;
   z-index: 2;
-  box-shadow: inset 0 0 12px var(--theme-glow, rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 0 16px var(--theme-glow, rgba(56, 189, 248, 0.3));
 }
 
 .cellSelected::before {
   content: '';
   position: absolute;
   inset: 0;
-  border: 2px solid var(--accent-primary, #ffffff);
-  border-radius: 4px;
+  border: 2px solid var(--accent-primary, #38bdf8);
+  border-radius: 6px;
   pointer-events: none;
-  box-shadow: 0 0 10px var(--theme-glow, rgba(255, 255, 255, 0.2));
+  box-shadow: 0 0 14px var(--theme-glow, rgba(56, 189, 248, 0.5));
 }
 
 /* Conflict / Wrong Input State */
 .cellConflict {
-  background: rgba(244, 63, 94, 0.2) !important;
+  background: rgba(244, 63, 94, 0.25) !important;
 }
 
 .cellConflict::before {
@@ -618,42 +628,45 @@
   position: absolute;
   inset: 0;
   border: 2px solid #f43f5e;
-  border-radius: 4px;
+  border-radius: 6px;
   pointer-events: none;
-  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
 }
 
 /* Hint Preview Cell */
 .cellHintPreview {
-  background: var(--cell-bg-hover, rgba(255, 255, 255, 0.12)) !important;
+  background: var(--cell-bg-hover, rgba(56, 189, 248, 0.15)) !important;
 }
 
 .cellHintPreview::before {
   content: '';
   position: absolute;
   inset: 1px;
-  border: 1.5px dashed var(--accent-primary, #ffffff);
-  border-radius: 2px;
+  border: 2px dashed var(--accent-primary, #38bdf8);
+  border-radius: 4px;
   pointer-events: none;
 }
 
 /* Cell Digits: Given vs User Input */
 .givenDigit {
-  font-size: clamp(1.2rem, 3.8vw, 1.7rem);
-  font-weight: 600;
-  color: var(--cell-given, #9898a4);
+  font-size: clamp(1.25rem, 4vw, 1.8rem);
+  font-weight: 800;
+  color: var(--cell-given, #f1f5f9);
   letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .userDigit {
-  font-size: clamp(1.2rem, 3.8vw, 1.7rem);
-  font-weight: 700;
-  color: var(--cell-user, #ffffff);
+  font-size: clamp(1.25rem, 4vw, 1.8rem);
+  font-weight: 900;
+  color: var(--cell-user, #38bdf8);
   letter-spacing: -0.02em;
+  text-shadow: 0 0 12px var(--theme-glow, rgba(56, 189, 248, 0.5));
 }
 
 .conflictDigit {
   color: #fb7185 !important;
+  text-shadow: 0 0 10px rgba(244, 63, 94, 0.6) !important;
 }
 
 /* Notes 3x3 Micro-Grid inside Cell */
@@ -759,61 +772,67 @@
 
 .keyBtn {
   position: relative;
-  height: 52px;
-  min-height: 48px;
-  background: var(--bg-tertiary, #18181c);
-  border: 1px solid var(--border-subtle, #242429);
-  border-radius: var(--radius-btn, 10px);
-  color: var(--text-primary, #ffffff);
-  font-size: 1.35rem;
-  font-weight: 800;
+  height: 56px;
+  min-height: 50px;
+  background: linear-gradient(180deg, #1c2230 0%, #111520 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-btn, 12px);
+  color: var(--text-primary, #f8fafc);
+  font-size: 1.45rem;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.35);
+  gap: 2px;
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.45);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 .keyDigitText {
   line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .keyBtn:hover:not(:disabled) {
-  background: var(--bg-hover, #222227);
-  border-color: var(--border-medium, #383840);
-  color: var(--accent-primary, #ffffff);
+  background: linear-gradient(180deg, #262e42 0%, #161c2b 100%);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 16px rgba(56, 189, 248, 0.35);
 }
 
 .keyBtn:active:not(:disabled) {
   transform: scale(0.92);
-  background: var(--bg-hover, #2a2a32);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  background: #0f131c;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.7);
 }
 
 .keyBtn:disabled {
-  opacity: 0.25;
+  opacity: 0.2;
   cursor: not-allowed;
+  box-shadow: none !important;
 }
 
 .keyBtnCompleted {
-  opacity: 0.22 !important;
-  background: var(--bg-primary, #09090b) !important;
-  border-color: var(--border-subtle, #242429) !important;
-  color: var(--text-muted, #71717c) !important;
+  opacity: 0.2 !important;
+  background: var(--bg-primary, #07090e) !important;
+  border-color: var(--border-subtle, #1e2433) !important;
+  color: var(--text-muted, #94a3b8) !important;
   box-shadow: none !important;
 }
 
 .keyRemainingBadge {
   font-size: 0.62rem;
-  font-weight: 700;
-  color: var(--text-muted, #71717c);
+  font-weight: 800;
+  color: var(--text-muted, #94a3b8);
   line-height: 1;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
 }
 
 /* Secondary Keypad Controls: Undo, Notes toggle, Erase */
@@ -821,57 +840,53 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .keyActionBtn {
-  height: 44px;
-  min-height: 44px;
+  height: 46px;
+  min-height: 46px;
   padding: 0 10px;
-  border-radius: var(--radius-btn, 10px);
-  background: var(--bg-tertiary, #18181c);
-  border: 1px solid var(--border-subtle, #242429);
-  color: var(--text-secondary, #a1a1ab);
-  font-size: 0.82rem;
-  font-weight: 700;
+  border-radius: var(--radius-btn, 12px);
+  background: linear-gradient(180deg, #181d2a 0%, #10141f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.84rem;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 7px;
   white-space: nowrap;
   transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 3px 8px rgba(0, 0, 0, 0.3);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 .keyActionDisabled {
-  opacity: 0.3 !important;
+  opacity: 0.25 !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
 }
 
 .keyActionBtn:hover:not(:disabled) {
-  background: var(--bg-hover, #222227);
-  border-color: var(--border-medium, #383840);
+  background: linear-gradient(180deg, #22293b 0%, #151a28 100%);
+  border-color: rgba(56, 189, 248, 0.4);
   color: var(--text-primary, #ffffff);
 }
 
 .keyActionBtn:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.keyActionBtn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  transform: translateY(1.5px) scale(0.97);
 }
 
 .keyActionNotesActive {
-  background: var(--accent-primary, #ffffff) !important;
-  border-color: var(--accent-primary, #ffffff) !important;
-  color: var(--accent-primary-text, #09090b) !important;
-  font-weight: 700 !important;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #07090e !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
 .notesActiveIndicator {

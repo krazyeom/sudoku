@@ -272,7 +272,15 @@ export default function SudokuGame() {
     if (typeof window === 'undefined') return;
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      if ('caches' in window) {
+        window.caches.delete('battle-sudoku-cache-v1').catch(() => {});
+      }
+      navigator.serviceWorker
+        .register('/sw.js?v=2')
+        .then((reg) => {
+          reg.update().catch(() => {});
+        })
+        .catch(() => {});
     }
 
     setIsOnline(navigator.onLine);
@@ -1628,7 +1636,7 @@ export default function SudokuGame() {
           }}
         >
           <SwordIcon size={16} color="currentColor" />
-          <span>{locale === 'ko' ? '1v1 배틀' : 'Battle'}</span>
+          <span>{locale === 'ko' ? '배틀' : 'Battle'}</span>
           {(gameMode !== 'solo' || sharedRoomIsActive) && (
             <span className={styles.tabLiveBadge}>LIVE</span>
           )}
