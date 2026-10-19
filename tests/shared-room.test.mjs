@@ -275,3 +275,24 @@ test('combo of 3 or more generates a blitz attack in battle mode', () => {
   assert.ok(moveResult.attack.labelKo.includes('3연속'));
 });
 
+test('1:1 match starts 5-second countdown when second player joins', () => {
+  const room = createRoomState({
+    roomId: 'room-countdown-test',
+    difficulty: 'medium',
+    puzzle,
+    solution,
+    hostId: 'host-player',
+  });
+  registerParticipant(room, 'host-player');
+  assert.equal(room.phase, 'lobby');
+  assert.equal(room.countdownEndsAt, null);
+
+  // Second player joins -> triggers countdown
+  registerParticipant(room, 'guest-player');
+  assert.equal(room.phase, 'countdown');
+  assert.ok(room.countdownEndsAt);
+  const diff = new Date(room.countdownEndsAt).getTime() - Date.now();
+  assert.ok(diff > 4000 && diff <= 5500, `Countdown should be approximately 5 seconds, got ${diff}ms`);
+});
+
+

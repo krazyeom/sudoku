@@ -42,6 +42,7 @@ interface BattlePanelProps {
   onStartAiBattle?: () => void;
   onRestartAiBattle?: () => void;
   onNewGame?: () => void;
+  onGoToBoard?: () => void;
 }
 
 const BATTLE_MODES: {
@@ -112,6 +113,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   onStartAiBattle,
   onRestartAiBattle,
   onNewGame,
+  onGoToBoard,
 }) => {
   const currentModeInfo = BATTLE_MODES.find((m) => m.id === battleMode) ?? BATTLE_MODES[1];
   const canChangeMode = !sharedRoom || sharedRoom.role === 'host';
@@ -627,6 +629,46 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           {sharedRoom ? (
             /* Active Room Details */
             <>
+              {onGoToBoard && (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => {
+                    triggerHaptic('success');
+                    onGoToBoard();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '11px 16px',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                    boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <PlayIcon size={16} color="#ffffff" />
+                  <span>
+                    {locale === 'ko'
+                      ? sharedRoom.snapshot?.phase === 'countdown'
+                        ? '⚡ 카운트다운 진행 중! (스도쿠 판으로 이동)'
+                        : sharedRoom.snapshot?.phase === 'playing'
+                          ? '🎮 스도쿠 판으로 이동하여 대결 계속'
+                          : '🎮 스도쿠 판으로 이동'
+                      : sharedRoom.snapshot?.phase === 'countdown'
+                        ? '⚡ Countdown in Progress! (Go to Board)'
+                        : sharedRoom.snapshot?.phase === 'playing'
+                          ? '🎮 Go to Board & Continue Duel'
+                          : '🎮 Go to Sudoku Board'}
+                  </span>
+                </button>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                   <span className={styles.badge} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>

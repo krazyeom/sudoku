@@ -31,7 +31,7 @@ import {
   getItemsForBattleMode,
   getRankTierInfo,
 } from './sudoku/types';
-import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole } from '@/lib/shared-room';
+import type { SharedRoomCellOccupancy, SharedRoomSnapshot, RoomRole, SharedRoomPhase } from '@/lib/shared-room';
 import { soundEffects } from './sudoku/sound';
 import {
   createAiRival,
@@ -163,6 +163,7 @@ export default function SudokuGame() {
   const lastProcessedAttackTimestampRef = useRef<number>(0);
   const localCompletedUnitsRef = useRef<Set<string>>(new Set());
   const comboCountRef = useRef<number>(0);
+  const prevSharedMatchPhaseRef = useRef<SharedRoomPhase | null>(null);
   const lastCorrectMoveTimeRef = useRef<number>(0);
   const consecutiveMistakesRef = useRef<number>(0);
 
@@ -836,6 +837,7 @@ export default function SudokuGame() {
     }
     stopSharedRoomPolling();
     closeSharedWebSocket();
+    setGameMode('online');
 
     const participantKey = `${ROOM_TOKEN_PREFIX}${roomId}`;
     const participantId = window.localStorage.getItem(participantKey) ?? makeClientId('p');
@@ -1115,6 +1117,33 @@ export default function SudokuGame() {
       );
     }
   }, [sharedMatchIsCountdown, sharedMatchCountDownSeconds, sharedMatchIsPlaying, solved, locale]);
+
+  // Auto-switch to Sudoku board when 1:1 match countdown begins or match starts
+  useEffect(() => {
+    const prevPhase = prevSharedMatchPhaseRef.current;
+    prevSharedMatchPhaseRef.current = sharedMatchPhase;
+
+    if (
+      (sharedMatchPhase === 'countdown' && prevPhase !== 'countdown') ||
+      (sharedMatchPhase === 'playing' && prevPhase !== 'playing' && !solved)
+    ) {
+      setActivePanel('play');
+      triggerHaptic('success');
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+    }
+  }, [sharedMatchPhase, solved]);
+
+  // Tactile haptic feedback on each countdown tick
+  useEffect(() => {
+    if (sharedMatchIsCountdown && sharedMatchCountDownSeconds !== null) {
+      triggerHaptic('note');
+    }
+  }, [sharedMatchIsCountdown, sharedMatchCountDownSeconds]);
 
   // Solved event
   useEffect(() => {
@@ -1937,6 +1966,12 @@ export default function SudokuGame() {
                     }
                   }}
                   onDisconnectRoom={disconnectSharedRoom}
+                  onGoToBoard={() => {
+                    setActivePanel('play');
+                    if (typeof window !== 'undefined') {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
                 />
               </div>
             </>
@@ -2021,6 +2056,12 @@ export default function SudokuGame() {
                   }
                 }}
                 onDisconnectRoom={disconnectSharedRoom}
+                onGoToBoard={() => {
+                  setActivePanel('play');
+                  if (typeof window !== 'undefined') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
               />
             </>
           )}
