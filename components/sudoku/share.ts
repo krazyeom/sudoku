@@ -25,6 +25,7 @@ export function buildShareText(summary: CompletionSummary, locale: Locale): stri
         `시간: ${formatTime(summary.elapsedSeconds)}`,
         `주어진 힌트: ${summary.clueCount}개`,
         `랭킹: ${summary.rank}/${summary.total}`,
+        '지금 플레이하기: https://sudoku.krazyeom.com',
       ].join('\n')
     : [
         'Battle Sudoku Victory 🏆',
@@ -32,6 +33,7 @@ export function buildShareText(summary: CompletionSummary, locale: Locale): stri
         `Time: ${formatTime(summary.elapsedSeconds)}`,
         `Clues: ${summary.clueCount}`,
         `Rank: #${summary.rank}/${summary.total}`,
+        'Play now: https://sudoku.krazyeom.com',
       ].join('\n');
 }
 
@@ -70,7 +72,7 @@ export function buildShareCardSvg(summary: CompletionSummary, locale: Locale): s
   
   ${statsSvg}
 
-  <text x="80" y="520" fill="#52525b" font-size="18" font-family="-apple-system, sans-serif">Single-solution verified • 1v1 Real-time Duel • Battle Sudoku</text>
+  <text x="80" y="520" fill="#71717a" font-size="18" font-family="-apple-system, sans-serif">Play now: sudoku.krazyeom.com • Single-solution verified • Battle Sudoku</text>
 </svg>`;
 }
 
@@ -80,7 +82,9 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 

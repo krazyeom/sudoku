@@ -132,17 +132,23 @@ export const VictoryShareCard: React.FC<VictoryShareCardProps> = ({
     const tierText = streak > 0 ? `🔥 ${streak} Days` : tierBadge;
     ctx.fillText(tierText, 800, 390);
 
-    // Footer Watermark
+    // Footer Watermark - Official domain sudoku.krazyeom.com
     ctx.fillStyle = '#64748b';
     ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('Play now: sudoku-app.vercel.app • Made by krazyeom', 80, 530);
+    ctx.fillText('Play now: sudoku.krazyeom.com • Made by krazyeom', 80, 530);
 
-    setDownloadUrl(canvas.toDataURL('image/png'));
+    try {
+      setDownloadUrl(canvas.toDataURL('image/png'));
+    } catch {
+      // ignore
+    }
   }, [difficulty, elapsedSeconds, locale, rankTierInfo, gameMode, streak, timeFormatted, diffLabel, tierBadge]);
+
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const handleCopyText = async () => {
     triggerHaptic('success');
-    const shareText = `⚔️ [Sudoku Duel] 승리 완료!\n⏱️ 기록: ${timeFormatted}\n🎯 난이도: ${diffLabel}\n🏆 랭크: ${tierBadge}\n지금 도전해보세요: ${window.location.origin}`;
+    const shareText = `⚔️ [Sudoku Duel] 승리 완료!\n⏱️ 기록: ${timeFormatted}\n🎯 난이도: ${diffLabel}\n🏆 랭크: ${tierBadge}\n지금 도전해보세요: https://sudoku.krazyeom.com`;
     try {
       await navigator.clipboard.writeText(shareText);
       setCopied(true);
@@ -152,13 +158,78 @@ export const VictoryShareCard: React.FC<VictoryShareCardProps> = ({
     }
   };
 
-  const handleDownloadImage = () => {
-    if (!downloadUrl) return;
+  const handleDownloadImage = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     triggerHaptic('victory');
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `sudoku-victory-${difficulty}-${timeFormatted}.png`;
-    link.click();
+
+    // Remove illegal colon character from filename for Windows/macOS/Android compatibility
+    const safeTime = timeFormatted.replace(/:/g, '-');
+    const filename = `sudoku-victory-${difficulty}-${safeTime}.png`;
+
+    const triggerBlobDownload = (blob: Blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setDownloadSuccess(true);
+      setTimeout(() => {
+        setDownloadSuccess(false);
+        URL.revokeObjectURL(blobUrl);
+      }, 2500);
+    };
+
+    const triggerDataUrlDownload = () => {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 2500);
+      } catch {
+        // fallback
+      }
+    };
+
+    if (canvas.toBlob) {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          triggerDataUrlDownload();
+          return;
+        }
+
+        // Web Share API with File (Supported on iOS Safari, Android Chrome for saving directly to photo album)
+        if (typeof navigator !== 'undefined' && typeof navigator.canShare === 'function') {
+          try {
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                title: locale === 'ko' ? '배틀 스도쿠 승리 기록' : 'Sudoku Duel Victory Card',
+                text: `⚔️ [Sudoku Duel] (${diffLabel} - ${timeFormatted})\nPlay now: https://sudoku.krazyeom.com`,
+                files: [file],
+              });
+              setDownloadSuccess(true);
+              setTimeout(() => setDownloadSuccess(false), 2500);
+              return;
+            }
+          } catch (err: unknown) {
+            // If user closed share sheet, return normally
+            if ((err as Error)?.name === 'AbortError') return;
+          }
+        }
+
+        triggerBlobDownload(blob);
+      }, 'image/png');
+    } else {
+      triggerDataUrlDownload();
+    }
   };
 
   return (
@@ -194,7 +265,11 @@ export const VictoryShareCard: React.FC<VictoryShareCardProps> = ({
           style={{ flex: 1, height: '42px', fontSize: '0.82rem' }}
         >
           <span>📸</span>
-          <span>{locale === 'ko' ? '카드 이미지 저장' : 'Save Image'}</span>
+          <span>
+            {downloadSuccess
+              ? (locale === 'ko' ? '저장 완료!' : 'Saved!')
+              : (locale === 'ko' ? '카드 이미지 저장' : 'Save Image')}
+          </span>
         </button>
       </div>
     </div>

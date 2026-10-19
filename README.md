@@ -87,7 +87,7 @@ bash scripts/stop.sh
 - 예시:
 
 ```text
-http://서버주소:6767/?room=ROOM_ID
+https://sudoku.krazyeom.com/?room=ROOM_ID
 ```
 
 #### 방법 B. 방 ID를 직접 입력해서 참가

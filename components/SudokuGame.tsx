@@ -1926,9 +1926,13 @@ export default function SudokuGame() {
                   }}
                   onCopyInviteLink={async () => {
                     if (sharedRoom) {
-                      const url = new URL(window.location.href);
-                      url.searchParams.set('room', sharedRoom.roomId);
-                      await copyTextToClipboard(url.toString());
+                      const officialOrigin =
+                        typeof window !== 'undefined' &&
+                        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                          ? window.location.origin
+                          : 'https://sudoku.krazyeom.com';
+                      const inviteUrl = `${officialOrigin}/?room=${encodeURIComponent(sharedRoom.roomId)}`;
+                      await copyTextToClipboard(inviteUrl);
                       flashToast(locale === 'ko' ? '초대 링크를 복사했습니다!' : 'Copied Invite Link!');
                     }
                   }}
@@ -2006,9 +2010,13 @@ export default function SudokuGame() {
                 }}
                 onCopyInviteLink={async () => {
                   if (sharedRoom) {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('room', sharedRoom.roomId);
-                    await copyTextToClipboard(url.toString());
+                    const officialOrigin =
+                      typeof window !== 'undefined' &&
+                      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                        ? window.location.origin
+                        : 'https://sudoku.krazyeom.com';
+                    const inviteUrl = `${officialOrigin}/?room=${encodeURIComponent(sharedRoom.roomId)}`;
+                    await copyTextToClipboard(inviteUrl);
                     flashToast(locale === 'ko' ? '초대 링크를 복사했습니다!' : 'Copied Invite Link!');
                   }
                 }}

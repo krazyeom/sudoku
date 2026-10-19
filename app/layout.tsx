@@ -2,8 +2,18 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sudoku.krazyeom.com'),
   title: '배틀 스도쿠 | Battle Sudoku 1v1',
   description: '1v1 실시간 대결과 다채로운 방해 기믹, 오프라인 모드를 완벽 지원하는 차세대 배틀 스도쿠',
+  alternates: {
+    canonical: 'https://sudoku.krazyeom.com',
+  },
+  openGraph: {
+    title: '배틀 스도쿠 | Battle Sudoku 1v1',
+    description: '1v1 실시간 대결과 다채로운 방해 기믹, 오프라인 모드를 완벽 지원하는 차세대 배틀 스도쿠',
+    url: 'https://sudoku.krazyeom.com',
+    siteName: 'Sudoku Duel',
+  },
   manifest: '/manifest.json',
   icons: {
     icon: '/icon.svg',
