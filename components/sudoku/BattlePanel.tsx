@@ -32,6 +32,10 @@ interface BattlePanelProps {
   elapsedSeconds?: number;
   sharedCompletionSummary?: SharedCompletionSummary | null;
   solved?: boolean;
+  wsConnected?: boolean;
+  isReconnecting?: boolean;
+  pingLatency?: number | null;
+  opponentConnected?: boolean;
   onRoomInputChange: (val: string) => void;
   onBattleModeChange: (mode: BattleMode) => void;
   onCreateRoom: () => void;
@@ -103,6 +107,10 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   elapsedSeconds = 0,
   sharedCompletionSummary = null,
   solved = false,
+  wsConnected = false,
+  isReconnecting = false,
+  pingLatency = null,
+  opponentConnected = false,
   onRoomInputChange,
   onBattleModeChange,
   onCreateRoom,
@@ -629,6 +637,56 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
           {sharedRoom ? (
             /* Active Room Details */
             <>
+              {/* Real-time Connection Status HUD */}
+              <div className={styles.liveConnectionBar} style={{ margin: '0 0 6px 0' }}>
+                <div className={styles.liveStatusItem}>
+                  <span
+                    className={`${styles.statusDot} ${
+                      !isOnline
+                        ? styles.dotRed
+                        : isReconnecting
+                          ? styles.dotYellowPulse
+                          : wsConnected
+                            ? styles.dotGreen
+                            : styles.dotYellowPulse
+                    }`}
+                  />
+                  <span>
+                    {!isOnline
+                      ? (locale === 'ko' ? '오프라인' : 'Offline')
+                      : isReconnecting
+                        ? (locale === 'ko' ? '재연결 시도 중…' : 'Reconnecting…')
+                        : wsConnected
+                          ? (locale === 'ko' ? '내 연결 정상' : 'You Online')
+                          : (locale === 'ko' ? '연결 중…' : 'Connecting…')}
+                  </span>
+                  {wsConnected && pingLatency !== null && (
+                    <span style={{ opacity: 0.7, fontSize: '0.65rem' }}>({pingLatency}ms)</span>
+                  )}
+                </div>
+
+                <div className={styles.liveStatusDivider} />
+
+                <div className={styles.liveStatusItem}>
+                  <span
+                    className={`${styles.statusDot} ${
+                      !sharedRoom.snapshot?.participants?.some((p) => p.id !== sharedRoom.participantId)
+                        ? styles.dotGray
+                        : opponentConnected
+                          ? styles.dotGreen
+                          : styles.dotYellowPulse
+                    }`}
+                  />
+                  <span>
+                    {!sharedRoom.snapshot?.participants?.some((p) => p.id !== sharedRoom.participantId)
+                      ? (locale === 'ko' ? '상대 대기 중' : 'Waiting Rival')
+                      : opponentConnected
+                        ? (locale === 'ko' ? '상대 연동됨' : 'Rival Synced')
+                        : (locale === 'ko' ? '상대 재접속 중…' : 'Rival Reconnecting…')}
+                  </span>
+                </div>
+              </div>
+
               {onGoToBoard && (
                 <button
                   type="button"

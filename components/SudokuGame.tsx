@@ -155,8 +155,22 @@ export default function SudokuGame() {
     records: {},
   });
 
+  // WebRTC / WebSocket connection resilience states
+  const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
+  const [pingLatency, setPingLatency] = useState<number | null>(null);
+
   const sharedRoomPollRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const sharedRoomRef = useRef<SharedRoomState | null>(null);
+  sharedRoomRef.current = sharedRoom;
+
+  const pingIntervalRef = useRef<number | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const isManuallyClosedRef = useRef<boolean>(false);
+  const prevOpponentConnectedRef = useRef<boolean | null>(null);
+
   const timerOriginRef = useRef<number | null>(null);
   const completionSavedRef = useRef(false);
   const copyToastTimerRef = useRef<number | null>(null);
@@ -356,6 +370,21 @@ export default function SudokuGame() {
   const sharedRoomIsActive = Boolean(sharedRoom);
   const sharedMatchGateActive = sharedRoomIsActive && !sharedMatchIsPlaying;
   const sharedBattleMiniMapGrid = sharedRoom?.snapshot?.occupancy ?? createEmptyOwnershipGrid();
+
+  const opponentParticipant = useMemo(() => {
+    if (!sharedRoom?.snapshot?.participants) return null;
+    return sharedRoom.snapshot.participants.find((p) => p.id !== sharedRoom.participantId) ?? null;
+  }, [sharedRoom?.snapshot?.participants, sharedRoom?.participantId]);
+
+  const opponentConnected = useMemo(() => {
+    if (!opponentParticipant) return false;
+    if (opponentParticipant.connected) return true;
+    if (opponentParticipant.lastSeenAt) {
+      const diff = Date.now() - new Date(opponentParticipant.lastSeenAt).getTime();
+      return diff < 8000;
+    }
+    return false;
+  }, [opponentParticipant]);
 
   const aiMinimap = useMemo(() => {
     if (gameMode !== 'vs_ai') return createEmptyOwnershipGrid();
@@ -611,6 +640,77 @@ export default function SudokuGame() {
     return () => window.clearTimeout(timer);
   }, [battleToast]);
 
+  // Network Online/Offline & Tab Visibility Resync Listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    function handleOnline() {
+      setIsOnline(true);
+      flashToast(locale === 'ko' ? '🌐 네트워크가 다시 연결되었습니다.' : '🌐 Network restored.');
+      if (sharedRoomRef.current) {
+        initSharedWebSocket(sharedRoomRef.current.roomId, sharedRoomRef.current.participantId, true);
+        void pollSharedRoom(sharedRoomRef.current.roomId, sharedRoomRef.current.participantId);
+      }
+    }
+
+    function handleOffline() {
+      setIsOnline(false);
+      flashToast(
+        locale === 'ko'
+          ? '⚠️ 네트워크 연결이 끊어졌습니다. 재연결을 대기합니다.'
+          : '⚠️ Network disconnected. Waiting for connection.'
+      );
+      closeSharedWebSocket(false);
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && sharedRoomRef.current) {
+        const { roomId, participantId } = sharedRoomRef.current;
+        void pollSharedRoom(roomId, participantId);
+        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+          initSharedWebSocket(roomId, participantId, false);
+        }
+      }
+    }
+
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [locale]);
+
+  // Opponent connection status change notification
+  useEffect(() => {
+    if (gameMode !== 'online' || !sharedRoom) {
+      prevOpponentConnectedRef.current = null;
+      return;
+    }
+    if (opponentParticipant) {
+      if (prevOpponentConnectedRef.current === false && opponentConnected) {
+        flashToast(
+          locale === 'ko'
+            ? '🟢 상대방이 다시 연결되었습니다! 실시간 대결을 계속합니다.'
+            : '🟢 Opponent reconnected! Live duel resumed.'
+        );
+      } else if (prevOpponentConnectedRef.current === true && !opponentConnected) {
+        flashToast(
+          locale === 'ko'
+            ? '🟡 상대방의 네트워크가 불안정하여 재연결 중입니다…'
+            : '🟡 Opponent connection unstable, reconnecting…'
+        );
+      }
+      prevOpponentConnectedRef.current = opponentConnected;
+    } else {
+      prevOpponentConnectedRef.current = null;
+    }
+  }, [gameMode, sharedRoom, opponentParticipant, opponentConnected, locale]);
+
   function captureSnapshot(): Snapshot {
     return {
       board: cloneGrid(board),
@@ -741,19 +841,63 @@ export default function SudokuGame() {
     }
   }
 
-  function closeSharedWebSocket() {
+  function stopSharedPing() {
+    if (pingIntervalRef.current !== null) {
+      window.clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+  }
+
+  function clearReconnectTimer() {
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }
+
+  function closeSharedWebSocket(manual: boolean = true) {
+    if (manual) {
+      isManuallyClosedRef.current = true;
+      clearReconnectTimer();
+      setIsReconnecting(false);
+    }
+    stopSharedPing();
     if (socketRef.current) {
+      socketRef.current.onopen = null;
       socketRef.current.onclose = null;
       socketRef.current.onerror = null;
       socketRef.current.onmessage = null;
       socketRef.current.close();
       socketRef.current = null;
     }
+    setWsConnected(false);
+    setPingLatency(null);
   }
 
-  function initSharedWebSocket(roomId: string, participantId: string) {
+  function scheduleReconnect(roomId: string, participantId: string) {
+    if (isManuallyClosedRef.current || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+    clearReconnectTimer();
+    setIsReconnecting(true);
+
+    reconnectAttemptsRef.current += 1;
+    const delay = Math.min(3500, Math.max(1000, reconnectAttemptsRef.current * 800));
+
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      if (!isManuallyClosedRef.current && sharedRoomRef.current?.roomId === roomId) {
+        initSharedWebSocket(roomId, participantId, false);
+      }
+    }, delay);
+  }
+
+  function initSharedWebSocket(roomId: string, participantId: string, resetAttempts: boolean = true) {
     if (typeof window === 'undefined') return;
-    closeSharedWebSocket();
+    if (resetAttempts) {
+      isManuallyClosedRef.current = false;
+      reconnectAttemptsRef.current = 0;
+      clearReconnectTimer();
+    }
+    closeSharedWebSocket(false);
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -761,7 +905,12 @@ export default function SudokuGame() {
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
+      let lastPongTime = Date.now();
+
       ws.onopen = () => {
+        setWsConnected(true);
+        setIsReconnecting(false);
+        reconnectAttemptsRef.current = 0;
         ws.send(
           JSON.stringify({
             type: 'join_room',
@@ -769,12 +918,30 @@ export default function SudokuGame() {
             participantId,
           })
         );
+
+        stopSharedPing();
+        pingIntervalRef.current = window.setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            if (Date.now() - lastPongTime > 9000) {
+              try { ws.close(); } catch {}
+              scheduleReconnect(roomId, participantId);
+              return;
+            }
+            ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+          }
+        }, 3200);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(String(event.data));
-          if (data.type === 'battle_attack' && data.attack) {
+          if (data.type === 'pong') {
+            lastPongTime = Date.now();
+            if (typeof data.timestamp === 'number') {
+              const latency = Math.max(1, Date.now() - data.timestamp);
+              setPingLatency(latency);
+            }
+          } else if (data.type === 'battle_attack' && data.attack) {
             handleBattleAttack(data.attack, participantId);
           } else if (data.type === 'battle_mode_changed' && data.battleMode) {
             setBattleModeState(data.battleMode);
@@ -787,14 +954,20 @@ export default function SudokuGame() {
       };
 
       ws.onerror = () => {
-        // Fallback to polling is active
+        // Will fire onclose and trigger reconnect
       };
 
       ws.onclose = () => {
+        setWsConnected(false);
+        setPingLatency(null);
         socketRef.current = null;
+        stopSharedPing();
+        if (!isManuallyClosedRef.current && sharedRoomRef.current?.roomId === roomId) {
+          scheduleReconnect(roomId, participantId);
+        }
       };
     } catch {
-      // ignore
+      scheduleReconnect(roomId, participantId);
     }
   }
 
@@ -804,6 +977,9 @@ export default function SudokuGame() {
       const res = await fetch(`/api/shared-room?${query.toString()}`);
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
+      if (data?.lastAttack) {
+        handleBattleAttack(data.lastAttack, participantId);
+      }
       if (data?.snapshot) {
         applySharedSnapshot(data.snapshot, participantId);
       }
@@ -1941,6 +2117,10 @@ export default function SudokuGame() {
                   elapsedSeconds={elapsedSeconds}
                   sharedCompletionSummary={sharedCompletionSummary}
                   solved={solved}
+                  wsConnected={wsConnected}
+                  isReconnecting={isReconnecting}
+                  pingLatency={pingLatency}
+                  opponentConnected={opponentConnected}
                   onRoomInputChange={setRoomInput}
                   onBattleModeChange={handleBattleModeChange}
                   onStartAiBattle={() => handleStartAiBattle(false)}
@@ -2031,6 +2211,10 @@ export default function SudokuGame() {
                 elapsedSeconds={elapsedSeconds}
                 sharedCompletionSummary={sharedCompletionSummary}
                 solved={solved}
+                wsConnected={wsConnected}
+                isReconnecting={isReconnecting}
+                pingLatency={pingLatency}
+                opponentConnected={opponentConnected}
                 onRoomInputChange={setRoomInput}
                 onBattleModeChange={handleBattleModeChange}
                 onStartAiBattle={() => handleStartAiBattle(false)}
@@ -2180,6 +2364,58 @@ export default function SudokuGame() {
 
         {/* Right Column: The Sudoku Board & Tactile Keypad */}
         <div className={`${styles.boardColumn} ${activePanel !== 'play' ? styles.boardHiddenMobile : ''}`}>
+          {/* Live 1v1 Connection Resilience & Status Indicator Bar */}
+          {gameMode === 'online' && sharedRoom && (
+            <div className={styles.liveConnectionBar}>
+              <div className={styles.liveStatusItem}>
+                <span
+                  className={`${styles.statusDot} ${
+                    !isOnline
+                      ? styles.dotRed
+                      : isReconnecting
+                        ? styles.dotYellowPulse
+                        : wsConnected
+                          ? styles.dotGreen
+                          : styles.dotYellowPulse
+                  }`}
+                />
+                <span>
+                  {!isOnline
+                    ? (locale === 'ko' ? '오프라인' : 'Offline')
+                    : isReconnecting
+                      ? (locale === 'ko' ? '내 연결 복구 중…' : 'Reconnecting…')
+                      : wsConnected
+                        ? (locale === 'ko' ? '내 연결 정상' : 'You Online')
+                        : (locale === 'ko' ? '연결 중…' : 'Connecting…')}
+                </span>
+                {wsConnected && pingLatency !== null && (
+                  <span style={{ opacity: 0.7, fontSize: '0.65rem' }}>({pingLatency}ms)</span>
+                )}
+              </div>
+
+              <div className={styles.liveStatusDivider} />
+
+              <div className={styles.liveStatusItem}>
+                <span
+                  className={`${styles.statusDot} ${
+                    !opponentParticipant
+                      ? styles.dotGray
+                      : opponentConnected
+                        ? styles.dotGreen
+                        : styles.dotYellowPulse
+                  }`}
+                />
+                <span>
+                  {!opponentParticipant
+                    ? (locale === 'ko' ? '상대 대기 중' : 'Waiting Rival')
+                    : opponentConnected
+                      ? (locale === 'ko' ? '상대 연동됨' : 'Rival Synced')
+                      : (locale === 'ko' ? '상대 재접속 중…' : 'Rival Reconnecting…')}
+                </span>
+              </div>
+            </div>
+          )}
+
           <SudokuBoard
             board={board}
             notes={notes}

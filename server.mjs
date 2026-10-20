@@ -100,7 +100,13 @@ const server = http.createServer(async (req, res) => {
           return;
         }
         touchParticipant(room, participantId);
-        sendJson(res, 200, { type: 'room_snapshot', roomId: room.roomId, participantId, snapshot: snapshotFor(room, participantId) });
+        sendJson(res, 200, {
+          type: 'room_snapshot',
+          roomId: room.roomId,
+          participantId,
+          snapshot: snapshotFor(room, participantId),
+          lastAttack: room.lastAttack ?? null,
+        });
         return;
       }
 
@@ -266,6 +272,19 @@ wss.on('connection', (socket, request) => {
     const current = socketState.get(socket) ?? { roomId: null, participantId: null };
 
     try {
+      if (message.type === 'ping') {
+        const room = current.roomId ? getRoom(current.roomId) : null;
+        if (room && current.participantId) {
+          touchParticipant(room, current.participantId);
+        }
+        send(socket, {
+          type: 'pong',
+          timestamp: message.timestamp ?? Date.now(),
+          serverTime: Date.now(),
+        });
+        return;
+      }
+
       if (message.type === 'create_room') {
         const difficulty = normalizeDifficulty(message.difficulty);
         const battleMode = normalizeBattleMode(message.battleMode);
@@ -306,6 +325,7 @@ wss.on('connection', (socket, request) => {
         const participantId =
           typeof message.participantId === 'string' && message.participantId.trim() ? message.participantId.trim() : randomUUID();
         const participant = registerParticipant(room, participantId);
+        touchParticipant(room, participant.id);
         attachSocket(socket, room.roomId, participant.id);
         send(socket, {
           type: 'room_joined',
@@ -313,6 +333,12 @@ wss.on('connection', (socket, request) => {
           participantId: participant.id,
           snapshot: snapshotFor(room, participant.id),
         });
+        if (room.lastAttack && room.lastAttack.attackerId !== participant.id && Date.now() - room.lastAttack.timestamp < 12000) {
+          send(socket, {
+            type: 'battle_attack',
+            attack: room.lastAttack,
+          });
+        }
         syncRoom(room);
         return;
       }
