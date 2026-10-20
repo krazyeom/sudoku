@@ -12,6 +12,7 @@ import {
   SparklesIcon,
 } from './Icons';
 import { triggerHaptic } from '@/lib/haptics';
+import { DefeatOverlay } from './DefeatOverlay';
 
 interface SudokuBoardProps {
   board: Grid;
@@ -26,6 +27,10 @@ interface SudokuBoardProps {
   locale: Locale;
   gameMode?: GameMode;
   isAiWinner?: boolean;
+  isDefeated?: boolean;
+  defeatWinnerName?: string;
+  onRetry?: () => void;
+  onShowDetails?: () => void;
   sharedMatchGateActive: boolean;
   sharedMatchIsCountdown: boolean;
   sharedMatchCountDownSeconds: number | null;
@@ -121,6 +126,10 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   locale,
   gameMode = 'solo',
   isAiWinner = false,
+  isDefeated = false,
+  defeatWinnerName,
+  onRetry,
+  onShowDetails,
   sharedMatchGateActive,
   sharedMatchIsCountdown,
   sharedMatchCountDownSeconds,
@@ -210,19 +219,21 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
               </span>
             </div>
           </div>
-        ) : isAiWinner ? (
+        ) : isDefeated || isAiWinner ? (
           <div className={styles.topMessageBoardContent}>
             <span className={styles.topMessageBoardIcon}>
-              <BotIcon size={16} color="#f43f5e" />
+              {isAiWinner ? <BotIcon size={16} color="#f43f5e" /> : <SwordIcon size={16} color="#f43f5e" />}
             </span>
             <div className={styles.topMessageBoardTexts}>
               <strong className={styles.topMessageBoardTitle} style={{ color: '#f43f5e' }}>
-                {locale === 'ko' ? '알파도쿠 AI 승리 (패배)' : 'Alphadoku AI Wins (Defeat)'}
+                {locale === 'ko'
+                  ? `${defeatWinnerName || (isAiWinner ? '알파도쿠 AI' : '상대방')} 승리 (패배)`
+                  : `${defeatWinnerName || (isAiWinner ? 'Alphadoku AI' : 'Opponent')} Won (Defeat)`}
               </strong>
               <span className={styles.topMessageBoardSubtitle}>
                 {locale === 'ko'
-                  ? '좌측 하단 패널에서 대결 결과 및 완성도를 확인하세요.'
-                  : 'Check match results in the bottom-left panel.'}
+                  ? '보드 중앙의 패배 안내 및 대결 결과를 확인하세요.'
+                  : 'Check match summary and battle result.'}
               </span>
             </div>
             <span className={styles.topMessageBoardBadge}>
@@ -262,7 +273,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
         )}
       </div>
 
-      <div className={`${styles.boardFrame} ${isQuake ? styles.boardQuake : ''}`}>
+      <div className={`${styles.boardFrame} ${isQuake ? styles.boardQuake : ''} ${isDefeated ? styles.boardFrameDefeated : ''}`}>
         <div className={styles.boardTopInfo}>
           <div className={styles.legendBar}>
             <span className={styles.legendItem}>
@@ -302,12 +313,22 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
             </div>
 
             <div
-              className={`${styles.boardGrid} ${solved ? styles.boardGridSolved : ''} ${
-                sharedMatchGateActive ? styles.boardGridHidden : ''
-              }`}
+              className={`${styles.boardGrid} ${
+                solved ? (isDefeated ? styles.boardGridDefeated : styles.boardGridSolved) : ''
+              } ${sharedMatchGateActive ? styles.boardGridHidden : ''}`}
               role="grid"
               aria-label="Sudoku board"
             >
+          {/* Defeat Overlay in Duel / AI Rival Battle */}
+          {!sharedMatchGateActive && isDefeated && (
+            <DefeatOverlay
+              locale={locale}
+              winnerName={defeatWinnerName}
+              onRetry={onRetry}
+              onShowDetails={onShowDetails}
+            />
+          )}
+
           {/* Match Gate Overlay in Shared Battle */}
           {sharedMatchGateActive && (
             <div className={styles.boardGateOverlay} role="status" aria-live="polite">

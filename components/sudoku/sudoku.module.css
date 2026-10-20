@@ -2070,3 +2070,312 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* =========================================================================
+   DEFEAT BOARD OVERLAY & DRAMATIC ANIMATIONS
+   ========================================================================= */
+.boardGridDefeated {
+  border-color: #f43f5e !important;
+  box-shadow: 
+    0 0 40px rgba(244, 63, 94, 0.5),
+    inset 0 0 25px rgba(244, 63, 94, 0.25) !important;
+}
+
+.boardFrameDefeated {
+  animation: defeatShake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes defeatShake {
+  10%, 90% { transform: translate3d(-2px, 1px, 0); }
+  20%, 80% { transform: translate3d(3px, -2px, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 2px, 0); }
+  40%, 60% { transform: translate3d(4px, -1px, 0); }
+}
+
+.defeatOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 48;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  animation: defeatOverlayEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes defeatOverlayEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.defeatBackdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(42, 12, 19, 0.9) 0%, rgba(14, 6, 10, 0.97) 100%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.defeatEmberContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.defeatEmber {
+  position: absolute;
+  bottom: -10px;
+  background: linear-gradient(180deg, #ff758f, #e11d48);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.9));
+  animation: defeatEmberRise linear infinite;
+}
+
+@keyframes defeatEmberRise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: var(--ember-opacity, 0.8);
+  }
+  50% {
+    transform: translate3d(var(--drift, 15px), -180px, 0) scale(0.85);
+  }
+  100% {
+    transform: translate3d(calc(var(--drift, 15px) * 1.8), -380px, 0) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.defeatContent {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.defeatIconWrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.defeatIconGlow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.5) 0%, transparent 72%);
+  animation: defeatGlowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes defeatGlowPulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.9;
+  }
+}
+
+.defeatIcon {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 6px 14px rgba(244, 63, 94, 0.8));
+  animation: defeatIconFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes defeatIconFloat {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-4px) scale(1.05);
+  }
+}
+
+.defeatTitle {
+  font-size: 2.15rem;
+  font-weight: 900;
+  margin: 6px 0 6px 0;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #ffffff 10%, #fecdd3 50%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(244, 63, 94, 0.8));
+  animation: defeatTitleBreath 2s ease-in-out infinite alternate;
+}
+
+@keyframes defeatTitleBreath {
+  0% {
+    filter: drop-shadow(0 0 16px rgba(244, 63, 94, 0.7));
+  }
+  100% {
+    filter: drop-shadow(0 0 28px rgba(255, 77, 109, 1));
+  }
+}
+
+.defeatSubtitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fecdd3;
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+}
+
+.defeatEncourage {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  margin: 0 0 18px 0;
+  line-height: 1.45;
+}
+
+.defeatActions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.defeatBtnPrimary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.45);
+}
+
+.defeatBtnPrimary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.defeatBtnPrimary:active {
+  transform: translateY(1px);
+}
+
+.defeatBtnSecondary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.defeatBtnSecondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.defeatPeekBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.74rem;
+  margin-top: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.defeatPeekBtn:hover {
+  color: #f1f5f9;
+  text-decoration: underline;
+}
+
+.defeatMinimizedBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 48;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(28, 12, 18, 0.94);
+  border: 1px solid #f43f5e;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 14px rgba(244, 63, 94, 0.4);
+  backdrop-filter: blur(8px);
+  animation: defeatBadgeEntrance 0.3s ease;
+}
+
+@keyframes defeatBadgeEntrance {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.defeatMiniIcon {
+  font-size: 1rem;
+}
+
+.defeatMiniText {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fecdd3;
+  letter-spacing: 0.04em;
+}
+
+.defeatMiniExpandBtn {
+  background: rgba(244, 63, 94, 0.2);
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.defeatMiniExpandBtn:hover {
+  background: rgba(244, 63, 94, 0.4);
+}
+

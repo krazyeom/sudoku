@@ -1777,6 +1777,23 @@ export default function SudokuGame() {
     }
   }
 
+  const isAiDefeat = gameMode === 'vs_ai' && sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku';
+  const isSharedDefeat = Boolean(
+    sharedRoom && sharedCompletionSummary && sharedCompletionSummary.completedBy !== sharedRoom.participantId
+  );
+  const isDefeated = Boolean(solved && (isAiDefeat || isSharedDefeat));
+
+  const defeatWinnerName = useMemo(() => {
+    if (isAiDefeat) return locale === 'ko' ? '알파도쿠 AI' : 'Alphadoku AI';
+    if (sharedCompletionSummary) {
+      const role = sharedCompletionSummary.completedByRole;
+      if (role === 'host') return locale === 'ko' ? '방장' : 'Host';
+      if (role === 'guest') return locale === 'ko' ? '도전자' : 'Guest';
+      return locale === 'ko' ? '상대방' : 'Opponent';
+    }
+    return locale === 'ko' ? '상대방' : 'Opponent';
+  }, [isAiDefeat, sharedCompletionSummary, locale]);
+
   if (!hydrated) {
     return (
       <div className={styles.container}>
@@ -2175,7 +2192,11 @@ export default function SudokuGame() {
             difficulty={difficulty}
             locale={locale}
             gameMode={gameMode}
-            isAiWinner={gameMode === 'vs_ai' && sharedCompletionSummary?.completedBy === 'ai-rival-alphadoku'}
+            isAiWinner={isAiDefeat}
+            isDefeated={isDefeated}
+            defeatWinnerName={defeatWinnerName}
+            onRetry={() => resetGame(difficulty)}
+            onShowDetails={() => setShowCompleteModal(true)}
             sharedMatchGateActive={sharedMatchGateActive}
             sharedMatchIsCountdown={sharedMatchIsCountdown}
             sharedMatchCountDownSeconds={sharedMatchCountDownSeconds}
